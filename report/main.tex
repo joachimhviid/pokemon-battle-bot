@@ -22,6 +22,8 @@
 }
 
 \chapterstyle{tandh} % configuration of the 'memoir' class
+\usepackage[backend=biber,style=ieee]{biblatex} % Use biblatex with the IEEE style
+\addbibresource{mybibliography.bib} % Add your .bib file
 
 %
 % The actual document starts here
@@ -69,7 +71,8 @@
 % Appendix chapter in 'chap-appendix.tex'
 \input{chapters/appendix/chap-appendix}
 
-\bibliographystyle{plain}
-\bibliography{mybibliography}
+% \bibliographystyle{ieeetr}
+% \bibliography{mybibliography}
+\printbibliography
 
 \end{document}
