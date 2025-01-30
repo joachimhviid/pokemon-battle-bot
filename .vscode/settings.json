@@ -1,61 +1,32 @@
 {
+  "latex-workshop.latex.outDir": "%DIR%/out",
+  "latex-workshop.formatting.latex": "latexindent",
   "latex-workshop.latex.tools": [
-      {
-          "name": "pdflatex",
-          "command": "pdflatex",
-          "args": [
-              "-synctex=1",
-              "-interaction=nonstopmode",
-              "-file-line-error",
-              "-output-directory=out",
-              "%DOC%"
-          ]
-      },
-      {
-          "name": "xelatex",
-          "command": "xelatex",
-          "args": [
-              "-synctex=1",
-              "-interaction=nonstopmode",
-              "-file-line-error",
-              "-output-directory=out",
-              "%DOC%"
-          ]
-      }
+    {
+      "name": "pdflatex",
+      "command": "pdflatex",
+      "args": [
+        "-output-directory=out",
+        "%DOC%"
+      ]
+    },
+    {
+      "name": "biber",
+      "command": "biber",
+      "args": [
+        "out/%DOCFILE%"
+      ]
+    }
   ],
   "latex-workshop.latex.recipes": [
-      {
-          "name": "pdflatex",
-          "tools": ["pdflatex"]
-      },
-      {
-          "name": "xelatex",
-          "tools": ["xelatex"]
-      }
-  ],
-  "latex-workshop.latex.clean.fileTypes": [
-      "*.aux",
-      "*.bbl",
-      "*.blg",
-      "*.idx",
-      "*.ind",
-      "*.lof",
-      "*.lot",
-      "*.out",
-      "*.toc",
-      "*.acn",
-      "*.acr",
-      "*.alg",
-      "*.glg",
-      "*.glo",
-      "*.gls",
-      "*.ist",
-      "*.fls",
-      "*.log",
-      "*.fdb_latexmk",
-      "*.snm",
-      "*.nav",
-      "*.vrb",
-      "*.synctex.gz"
+    {
+      "name": "pdflatex -> biber -> pdflatex x2",
+      "tools": [
+          "pdflatex",
+          "biber",
+          "pdflatex",
+          "pdflatex"
+      ]
+    }
   ]
 }
