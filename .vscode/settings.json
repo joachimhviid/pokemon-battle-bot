@@ -7,6 +7,7 @@
       "command": "pdflatex",
       "args": [
         "-output-directory=out",
+        "-interaction nonstopmode",
         "%DOC%"
       ]
     },
