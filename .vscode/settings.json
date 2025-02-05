@@ -7,7 +7,9 @@
       "command": "pdflatex",
       "args": [
         "-output-directory=out",
-        "-interaction nonstopmode",
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
         "%DOC%"
       ]
     },
