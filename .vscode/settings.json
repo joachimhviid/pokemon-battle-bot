@@ -1,6 +1,13 @@
 {
   "latex-workshop.latex.outDir": "%DIR%/out",
   "latex-workshop.formatting.latex": "latexindent",
+  "latex-workshop.formatting.latexindent.args":  [
+    "-c",
+    "%DIR%/out",
+    "%TMPFILE%",
+    "-y=defaultIndent: '%INDENT%'",
+    "-m"
+  ],
   "latex-workshop.latex.tools": [
     {
       "name": "pdflatex",
@@ -25,10 +32,10 @@
     {
       "name": "pdflatex -> biber -> pdflatex x2",
       "tools": [
-          "pdflatex",
-          "biber",
-          "pdflatex",
-          "pdflatex"
+        "pdflatex",
+        "biber",
+        "pdflatex",
+        "pdflatex"
       ]
     }
   ]
