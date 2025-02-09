@@ -14,6 +14,9 @@ easier to focus on what is important for this project: the machine learning.
 Python is also home to a large ecosystem of libraries made specifically for the purpose of machine learning. Examples of these libraries are
 TensorFlow, PyTorch and Pandas.
 
+However, Python is an interpreted language with slow runtime performance compared to compiled languages such as C++. 
+If performance becomes an issue it could be desirable to use a more performant language.
+
 
 \subsection{C++}
 C++ is another language to consider. It is a statically typed, compiled language, that is commonly used for high-performance systems, such as
@@ -47,3 +50,11 @@ excellent language choice for that purpose. A WebSocket connection could be made
 the decisions made by the model.
 
 \subsection{Unity with C\#}
+Unity is a popular game engine used to create both 3D and 2D games and simulations using C\# \cite{Unity}. It can be used to create environments suitable
+for training agents using various methods such as reinforcement learning or imitation learning \cite{UnityMLAgents}. 
+
+Compared to Python, Unity has a steep learning curve,
+due to the required knowledge in C\# and Unity's domain specific constructs based on game development concepts. Unity has excellent support for 3D environments and controls,
+something that Python might struggle with out of the box. However, a Pokemon battle simulator is not bound to a physics enabled 3D environment and as such
+Unity might be overly complex for the purposes of this project.
+Unity is also lacking in certain traditional machine learning tasks such as data analysis, making further learnings more difficult to attain.  
