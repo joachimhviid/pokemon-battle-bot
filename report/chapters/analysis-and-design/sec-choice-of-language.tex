@@ -1,0 +1,60 @@
+\section{Choice of language}
+\label{sec:choice-of-language}
+
+When starting a large project like a battle simulator it is important to consider your options when it comes to choosing a technology to build with.
+For a technical project, the initial building block is the programming language. While it is possible to do almost anything with any 
+programming language, there are some that are more suited to certain tasks than others. For the battle simulator, a tool that is well 
+suited for machine learning and handling large sets of data is desired.
+
+\subsection{Python}
+The first language that comes to mind, when considering machine learning capabilities, is Python \cite{PythonForMachineLearning}.
+Python in general is known for its simplicity, which makes it easy to use in comparison to other languages. This ease of use will make it
+easier to focus on what is important for this project: the machine learning.
+
+Python is also home to a large ecosystem of libraries made specifically for the purpose of machine learning. Examples of these libraries are
+TensorFlow, PyTorch and Pandas.
+
+However, Python is an interpreted language with slow runtime performance compared to compiled languages such as C++. 
+If performance becomes an issue it could be desirable to use a more performant language.
+
+
+\subsection{C++}
+C++ is another language to consider. It is a statically typed, compiled language, that is commonly used for high-performance systems, such as
+game engines or operating systems \cite{C++}. Pokemon, the subject of this project's learnings, is also speculated to have been made using C++ in recent years \cite{PokemonProgrammingLanguageForumPost}\cite{NintendoDataLeak}\cite{ChatGPTPokemonProgrammingLanguage}.
+C++ has a steep learning curve, but can produce more efficient applications compared to other languages. 
+A part of C++'s complexity comes from manually controlling memory, thus providing more reliable systems if done correctly. 
+
+When it comes to machine learning, the improved performance can make it possible to work with even more complex data and scenarios compared 
+to Python \cite{C++VsPythonML}, as well as potentially reducing the time it takes to train a model. However, C++ does not come with a lot of libraries
+for machine learning, so choosing C++ would involve creating a lot of tools before being able to start properly working on data.
+
+\subsection{JavaScript}
+\begin{quote}
+    Atwood's Law: any application that can be written in JavaScript, will eventually be written in JavaScript.
+    
+    -- Jeff Atwood \cite{AtwoodsLaw}
+\end{quote}
+
+JavaScript is the main language used by the browser and has traditionally not been used for machine learning. In spite of this, Atwood's Law \cite{AtwoodsLaw} dictates
+that machine learning in the browser was inevitable, and has in recent times been proven correct. JavaScript has received a number of libraries
+for machine learning over the years, such as brain.js \cite{BrainJS}, ml5.js \cite{ML5JS} and even a JavaScript version of TensorFlow \cite{TensorFlowJS}.
+
+Using JavaScript could be beneficial as it is easy to use, like Python, but runs on any platform that has a browser. JavaScript loses its edge over Python
+when it comes to performance. While both languages are interpreted, JavaScript runs in the browser and as such only has access to WebGL and WebGPU. 
+These APIs are not supported on all devices and are generally less efficient than the low-level compiled C libraries used in Python \cite{WebGPUvsCUDA}.
+There is also a significant performance overhead because of these APIs that can slow down model execution \cite{DeepLearningInBrowsers}. Therefore JavaScript
+might not be suitable for this project.
+
+In F5 (see table \ref{tab:functional-requirements}) a GUI is described such that a user might be able to visualize the actions of an agent. JavaScript would be an 
+excellent language choice for that purpose. A WebSocket connection could be made between the server running our model and the browser client displaying
+the decisions made by the model.
+
+\subsection{Unity with C\#}
+Unity is a popular game engine used to create both 3D and 2D games and simulations using C\# \cite{Unity}. It can be used to create environments suitable
+for training agents using various methods such as reinforcement learning or imitation learning \cite{UnityMLAgents}. 
+
+Compared to Python, Unity has a steep learning curve,
+due to the required knowledge in C\# and Unity's domain specific constructs based on game development concepts. Unity has excellent support for 3D environments and controls,
+something that Python might struggle with out of the box. However, a Pokemon battle simulator is not bound to a physics enabled 3D environment and as such
+Unity might be overly complex for the purposes of this project.
+Unity is also lacking in certain traditional machine learning tasks such as data analysis, making further learnings more difficult to attain.  
