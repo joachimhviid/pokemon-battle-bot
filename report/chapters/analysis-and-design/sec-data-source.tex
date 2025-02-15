@@ -8,12 +8,17 @@ It needs to know about Pokemon abilities and held items, and how they interact w
 To this end it is important to find a good data source to work with. The following are some options to consider
 for this purpose.
 
-\subsection{Kaggle}
-\subsection{PokeAPI}
 \subsection{Data mining}
-% .pbs dumping from game files?
 Data mining is the process of discovering patterns in large data sets \cite{DataMining}. It is commonly used in video games to extract raw data 
 from game files, such as assets (3D models, sprites, etc.) or hidden details of how certain functions interact in a game. This data has historically
 been used for online documentation of game mechanics \cite{DataMiningPokemon} or even for creating fan-made modifications to the original game \cite{RenegadePlatinum}.
 
-For the purpose of creating a battle simulator, it would be possible to "mine" the data directly from the game files.
+For the purpose of creating a battle simulator, it would be possible to "mine" the data directly from the game files. This is a lengthy process, however
+and can be viewed as a grey area in terms of legality or ethicality. This is because it involves sideloading software on a physical console in order to
+extract encrypted data from both the console and the game cartridge itself. Once in possesion of the keys and game data, it is then possible to extract
+data by removing multiple layers of encryption and parsing Nintendo's proprietary file formats.
+
+This method would be the most accurate data source available, but is also the most tedious option to use compared to other data sources.
+
+\subsection{Kaggle}
+\subsection{PokeAPI}
