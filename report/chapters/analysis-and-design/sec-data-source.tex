@@ -1,0 +1,43 @@
+\section{Data source}
+\label{sec:data-source}
+
+In order to simulate a Pokemon battle, it is necessary to have the data needed for a Pokemon battle to take place.
+The simulator needs data on Pokemon species and their stats and moves, as well as data on what the individual moves do.
+It needs to know about Pokemon abilities and held items, and how they interact with eachother.
+
+To this end it is important to find a good data source to work with. The following are some options to consider
+for this purpose.
+
+\subsection{Data mining}
+Data mining is the process of discovering patterns in large data sets \cite{DataMining}. It is commonly used in video games to extract raw data 
+from game files, such as assets (3D models, sprites, etc.) or hidden details of how certain functions interact in a game. This data has historically
+been used for online documentation of game mechanics \cite{DataMiningPokemon} or even for creating fan-made modifications to the original game \cite{RenegadePlatinum}.
+
+For the purpose of creating a battle simulator, it would be possible to "mine" the data directly from the game files. This is a lengthy process, however
+and can be viewed as a grey area in terms of legality or ethicality. This is because it involves sideloading software on a physical console in order to
+extract encrypted data from both the console and the game cartridge itself. Once in possesion of the keys and game data, it is then possible to extract
+data by removing multiple layers of encryption and parsing Nintendo's proprietary file formats.
+
+This method would be the most accurate data source available, but is also the most tedious option to use compared to other data sources.
+
+\subsection{Kaggle}
+Kaggle is a platform owned by Google, that is home to a large number of datasets and models used by data scientists \cite{WhatIsKaggle}.
+The datasets are made by the community in order to allow data scientists to practice their craft without having to worry about gathering large amounts of
+data themselves. 
+
+Kaggle is home to over 400 Pokemon datasets \cite{PokemonKaggleDataSets} covering a vast spectrum of topics. For this project, data on Pokemon species,
+moves and abilites is required. This data does exist on Kaggle, however not fully complete nor available in a single set. The most complete set \cite{PokemonDataSetWithStats} is 
+more than 8 years old and as such does not meet the requirement of generation 9 mechanics described in the functional requirements (see table \ref{tab:functional-requirements}).
+Additionally it would have to be supported by a secondary dataset that contains available Pokemon moves and abilites.
+
+This data source is potentially viable for the project, but would require some extra work in order to organize multiple datasets into a cohesive source.
+
+\subsection{PokeAPI}
+PokeAPI is an open-source REST API featuring all available Pokemon data \cite{PokeAPI}. Its data is sourced by multiple different projects, most notably 
+Veekun \cite{Veekun} a site with a collection of data mined info from the Pokemon games. PokeAPI even has some wrapper libraries that can be easily integrated
+into the project \cite{PokeAPIWrapperLibs}. 
+
+PokeAPI contains all the data needed for the project and is neatly organized in their API. It contains all the Pokemon species and their various forms, 
+all of their abilites, moves and types, as well as all of the held items that can be used in a Pokemon battle. 
+
+All of this makes PokeAPI a strong candidate for the projects data source, both in terms of data completeness, but also ease of use.
