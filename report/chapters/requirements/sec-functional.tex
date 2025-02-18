@@ -1,0 +1,32 @@
+\section{Functional Requirements}
+\label{sec:functional-requirements}
+
+\newcounter{requirement}
+\newcounter{subrequirement}
+\newcommand\rownumber{\arabic{requirement}}
+\newcommand\subrownumber[1]{%
+  \stepcounter{subrequirement}%
+  \arabic{requirement}.\arabic{subrequirement}%
+}
+\newcommand\resetrownumbers{\setcounter{requirement}{0}\setcounter{subrequirement}{0}}
+
+\begin{xltabular}{\textwidth}{
+  >{\raggedright\arraybackslash}m{1cm} |
+  >{\raggedright\arraybackslash}X |
+  >{\raggedright\arraybackslash}X |
+  >{\centering\arraybackslash}m{2cm}
+  }
+  \textbf{ID}                                              & \textbf{Title}          & \textbf{Description}                                                                             & \textbf{MoSCoW} \\\hline
+  \stepcounter{requirement}F\rownumber                     & Battle Environment      & Turn-based battle simulator that can take inputs from an agent.                                  & M               \\\hline
+  F\subrownumber{\rownumber}                               & Gen 9 Mechanics         & The environment will be based on the combat mechanics currently available in Generation 9 games. & M               \\\hline
+  F\subrownumber{\rownumber}                               & Game Specific Mechanics & Game specific mechanics such as Mega Evolution, Z-moves, Terastalization and Dynamaxing.         & W               \\\hline
+  F\subrownumber{\rownumber}                               & Held Items              & The environment supports a subset of held items.                                                 & M               \\\hline
+  F\subrownumber{\rownumber}                               & Single Battles          & The environment must support single battles with 1v1 combat.                                     & M               \\\hline
+  F\subrownumber{\rownumber}\setcounter{subrequirement}{0} & Double Battles          & The environment must support double battles with 2v2 combat.                                     & S               \\\hline
+  \stepcounter{requirement}F\rownumber                     & Trainable Agent         & An agent that can be trained in the battle environment.                                          & M               \\\hline
+  \stepcounter{requirement}F\rownumber                     & Configurable Teams      & The sets of Pokemon used in the environment can be changed.                                      & S               \\\hline
+  \stepcounter{requirement}F\rownumber                     & Team Builder            & Build a team using a GUI for the agent(s) to use.                                                & C               \\\hline
+  \stepcounter{requirement}F\rownumber                     & GUI                     & A GUI for viewing the agents actions and watching combat logs in real time.                      & C               \\\hline
+  \caption{Functional Requirements}
+  \label{tab:functional-requirements}
+\end{xltabular}

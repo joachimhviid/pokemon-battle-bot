@@ -1,0 +1,20 @@
+\section{Non-functional Requirements}
+\label{sec:non-functional-requirements}
+
+\resetrownumbers
+
+\begin{xltabular}{\textwidth}{
+  >{\raggedright\arraybackslash}m{1cm} |
+  >{\raggedright\arraybackslash}X |
+  >{\raggedright\arraybackslash}X |
+  >{\centering\arraybackslash}m{2cm}
+  }  % first column with fixed width, others flexible
+  \textbf{ID}                           & \textbf{Title}       & \textbf{Description}                                                                                          & \textbf{MoSCoW} \\\hline
+  \stepcounter{requirement}NF\rownumber & Reproduceable Output & Given an agent and an input the outcome should always be the same no matter how many times the system is run. & M               \\\hline
+  \stepcounter{requirement}NF\rownumber & Portable             & The agent should function on both Windows and MacOS.                                                          & M               \\\hline
+  \stepcounter{requirement}NF\rownumber & Runtime              & The simulator should be able to run 1000-5000 iterations within 10 seconds.                                   & S               \\\hline
+  \stepcounter{requirement}NF\rownumber & Training time        & Each iteration of the agent should be trained within 6 hours.                                                 & S               \\\hline
+  \stepcounter{requirement}NF\rownumber & User Experience (UX) & User evaluation test to make sure our GUI gives users a good experience when watching.                        & C               \\\hline
+  \caption{Non-functional Requirements}
+  \label{tab:non-functional-requirements}
+\end{xltabular}
