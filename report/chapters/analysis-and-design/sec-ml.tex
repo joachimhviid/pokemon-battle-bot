@@ -1,58 +1,73 @@
 \section{Machine Learning}
 \label{sec:Machine Learning}
 
-Machine learning is a subset of artificial intelligence 
+Machine learning is a subset of artificial intelligence
 that focuses on the development of a computer program that learns from data.
 In machine learning there are three approaches: supervised, unsupervised, and reinforcement learning.
 Each of these approaches has its own strengths and weaknesses, but all of them need a machine learning algorithm.
 
-A machine learning algorithm is a set of rules or mathematical 
-procedures that the system follows to learn from a dataset 
+A machine learning algorithm is a set of rules or mathematical
+procedures that the system follows to learn from a dataset
 and make predictions or decisions based on the data.
 
 After applying the algorithm a dataset, you will have what is called a Machine learning Model.
 A model is a specific instance of a trained system that has learned from the data and can make predictions or classifications.
 \cite{ML-Models}
-\textbf{Analogy:} A machine learning model is like a fully cooked meal. 
+\textbf{Analogy:} A machine learning model is like a fully cooked meal.
 The recipe (algorithm) was used to prepare it, but now it is a ready-to-use product.
-
-
 
 \subsection{Supervised Learning}
 The supervised learning approach is the more common approoach of the 3 approaches.
-This is due to its ability to predict a wide range om problems accuratly, 
+This is due to its ability to predict a wide range om problems accuratly,
 however its effectiveness is dependent on the quality of the training data.
-Supervised learning uses labled dataset to train the model, 
+Supervised learning uses labled dataset to train the model,
 which means that from the input data we expect the correct output data as well.
 \cite{GoogleCloud-SL}
 
-Some examples of supervised learning are spam email classifiers, 
+Some examples of supervised learning are spam email classifiers,
 so wheter an email is spam or not and weather prediction models.
 
 \subsection{Unsupervised Learning}
-Unsupervised learning is a type of machine learning 
+Unsupervised learning is a type of machine learning
 that learns from data without human supervision. Unlike supervised learning,
-unsupervised machine learning models are given unlabled data and allowed to discover patterns 
+unsupervised machine learning models are given unlabled data and allowed to discover patterns
 and relationships without any explicit guidance or instructions. \cite{GoogleCloud-UL}
-
 
 \subsection{Reinforcement Learning}
 Reinforcement learning is the third type of machine learning.
 Unlike the previous branches of machine learning,
-reinforcement learning relies on a datasets with predefined answers, it learns by experience. 
-In reinforcement learning, an agent learns to achieve a goal in 
-an uncertain and potentially complex evironment/s py recieveing feedback 
+reinforcement learning relies on a datasets with predefined answers, it learns by experience.
+In reinforcement learning, an agent learns to achieve a goal in
+an uncertain and potentially complex evironment/s py recieveing feedback
 through rewards or penalties. \cite{RL-GeeksForGeeks}
 \newline
 The key concepts of reinforcement learning: 
+
 \begin{itemize}
-    \item Agent: The learner/decision maker
-    \item Environment: Everything the agent interacts with.
-    \item State: A specific situation the agent finds itself in. 
-    \item Actions: What the agent can do
-    \item Rewards: Feedback from the environment
+    \item Agent: The learner/decision maker 
+    \begin{enumerate}
+        \item An agent is anything that can be viewed as percieving its environment through
+              sensors and acting upon that environment and as mentioned above, the agent is the learner/decision maker because it
+              learns from its environment and makes decisions based on what it has learned. 
+              For a software agent the sensors could be the input data, network packes or keystrokes
+              and the actuators are the output data. \cite{IntelligentAgents}
+    \end{enumerate}
+    \item Environment: Everything the agent interacts with. The environment is the context in which the agent acts opun and learns from,
+          and there exists a lot of different environment types. \cite{IntelligentAgents}
+          \begin{enumerate}
+            \item Deterministic vs Stochastic is the part of the environment that determines if the next state is completly
+                  determined by the current state and agents action or if there is some randomness involved.
+            \item Episodic vs Sequential describes wheter the agents experience is divided into unconnected episodes or
+                  if the agents actions have long-term consequences on the environment.
+            \item Static vs Dynamic is wether the environment can change while the agent is making a decision.
+            \item Discrete vs Continuous is the number of possible actions and states the environment can provide the agent.
+            \item Single-Agent vs Multi-Agent is the number of agents operating in the same environment.
+        \end{enumerate}
+    \item State: A specific situation the agent finds itself in.
+    \item Actions: What possible moves the agent can make.
+    \item Rewards: Feedback from the environment, that helps guide the learning process.
+    \item Policy: The agent's strategy for decision making.
+    \item Value Function: Predicts future rewards of a state and/or action.
+    \item Exploration vs Exploitation: Balancing between trying new action or using known best actions.
 \end{itemize}
-
- 
-
 
