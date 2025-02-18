@@ -1,7 +1,26 @@
 \section{Pokemon mechanics}
 \label{sec:pokemon-mechanics}
 
+The Pokemon games are home to a vast amount of mechanics. In order to fully understand
+this project, it is important to have a basic understanding of the mechanics present in a Pokemon battle.
+
+The following section aims to briefly explain these mechanics.
+
 \subsection{Type chart}
+A Pokemon will under normal circumstances have 1 or 2 types that represents its elemental alignment and similarly a Pokemon move will have 1 type.
+Each type determines its effectiveness against other types. The effectivenesses are categorized as follows:
+\begin{itemize}
+  \item No effect (0x multiplier)
+  \item Not very effective (0.5x multiplier)
+  \item Effective (1x multiplier)
+  \item Super effective (2x multiplier)
+\end{itemize}
+These multipliers are stacking, so if a Pokemon has 2 types that resists an incoming attack, the multiplier becomes $ 0.5*0.5=0.25 $.
+
+Example: A fire type Pokemon, Charmander, is in a battle with the water type Pokemon, Squirtle.
+The Squirtle uses the water type move Water Gun against the Charmander. As water is super effective against fire, the move 
+Water Gun receives a 2x multiplier to its damage.
+
 \subsection{Stats}
 \subsubsection{IVs and EVs}
 \subsubsection{Stat boosts}
@@ -21,6 +40,8 @@
 \subsubsection{Nightmare}
 \subsection{Moves}
 % Power
+% Damage range
+% OHKO
 % Critical hits
 % Physical/Special
 % Accuracy
@@ -29,6 +50,7 @@
 \subsection{Weather}
 \subsection{Field effects}
 \subsection{Battles}
+% Turn order
 \subsubsection{Double battles}
 \subsubsection{Special battles}
 \subsection{Special mechanics}
