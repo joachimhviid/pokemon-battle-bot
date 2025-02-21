@@ -91,17 +91,36 @@ Please note that the HP stat has a different formula compared to the other stats
 \subsection{Abilites}
 \subsection{Held items}
 \subsection{Status conditions}
-\subsubsection{Poison}
-\subsubsection{Burn}
-\subsubsection{Sleep}
-\subsubsection{Paralysis}
-\subsubsection{Freeze}
-\subsubsection{Confusion}
-\subsubsection{Flinch}
-\subsubsection{Seed}
-\subsubsection{Infatuation}
-\subsubsection{Curse}
-\subsubsection{Nightmare}
+In pokemon there exists a variety of status conditions that fall into either of two categories: Volatile and Non-volatile. Non-volatile status conditions
+lasts until a pokemon is healed, and volatile conditions only lasts for the duration of a battle. \cite{StatusCondition}
+\begin{itemize}
+  \item Poison (PSN): Is a condition non-volatile that deals 1/8 of the pokemon's health at the end of each turn and can only be avoided by a few abilities,
+  moves or items.
+  \begin{itemize}
+    \item Badly Poisoned: Is another type of the non-volatile poison status condition that starts to deal 1/16 at the start of a turn, 
+      but increases the damage taken by 1/16 every turn, so after 3 turns it deals 3/16 of a pokemons health. 
+      This condition can be avoided by the same abilities, moves or items as the normal poison condition.
+  \end{itemize}
+  \item Burn (BRN): Is another non-volatile status condition that deals 1/16 from generation 1 and 7 onwards while also cutting the pokemons attack stat
+    in half until the pokemon is heald. There are one ability and move that negates the attack drop from burn and turns it into an attack boost instead.
+  \item Sleep (SLP): This condition causes a pokemon unable to use moves, except snore and sleep talk and 
+    randomly lasts 1 to 3 turns in generation 5 and onwards. The first turn of sleep is always skipped.
+  \item Paralysis (PAR): Is a non-volatile status condition that has a 25\% chance of preventing the pokemon from moving each turn and reducedes a pokemons
+    speed 50\% from generation 7 onwards.
+  \item Freeze (FRZ): This is a non-volatile condition that renders the pokemon unable to move unless, it thawes out by a 20\% chance or 
+    by using a move to thaw it out.
+  \item Confusion: Is a type of volatile status condition that has a 33\% chance of causing a pokemon to hurt itself in its confusion instead of executing
+    a selected move.
+  \item Flinch: The flinch status is volatile and prevents an oppossing pokemon from moving for the turn it was flinched. This can be done by moves like 
+    fake out that has Priority +3, and rock slide that has a 30\% chance of flinching if you move before the oppossing pokemon.
+  \item Others: There are a lot of other volatile status conditions that are not as common as the ones mentioned above.
+  \begin{itemize}
+    \item Grounded: Pokemon that are grounded looses their imunity to ground type moves.
+    \item Nightmare: Only affects sleeping pokemon and deal 1/4 of their hp each turn they stay asleep.
+    \item Curse: Deals 1/4 of the users hp each turn if used by a ghost type. If not lowers the users speed by 1 stage and increases 
+      the users attack and defense by 1 stage.
+  \end{itemize}
+\end{itemize}
 \subsection{Moves}
 % Power
 % Damage range
