@@ -44,17 +44,17 @@ EVs are values gained through battles. A Pokemon can have a total number of 510 
 \subsubsection{Natures}
 A Pokemons nature \cite{Natures} is determined when it is generated. A nature gives a Pokemon a ±10\% modifier to select stats.
 If a nature both raises and lowers a stat it is called a "Neutral nature" and no changes will occur to the final stat.
-Please refer to table \ref{tab:nature-table} for the full list of natures and their effects.
+Please refer to figure \ref{tab:nature-table} for the full list of natures and their effects.
 \begin{figure}[h]
   \centering
   \includegraphics[width=.8\textwidth]{assets/nature-stat-table.jpg}
-  \label{tab:nature-table}
   \caption{Table of Natures and how they affect stats from Bulbapedia \cite{Natures}}
+  \label{tab:nature-table}
 \end{figure}
 
 \subsubsection{Stat boosts}
 Stat boosts are temporary modifiers applied to a Pokemons stat in combat. A stat is raised and lowered in stages ranging from -6 to +6 \cite{StatBoosts}.
-Certain moves or abilites can raise or lower a Pokemons stat in stages. By default all stats begin at stage 0, meaning no change.
+Certain moves or abilities can raise or lower a Pokemons stat in stages. By default all stats begin at stage 0, meaning no change.
 
 \begin{figure}[h]
   \centering
@@ -67,8 +67,8 @@ Certain moves or abilites can raise or lower a Pokemons stat in stages. By defau
       \hline
     \end{tabular}
   }
-  \label{tab:stat-stage-modifiers}
   \caption{Table of stat stages and their modifier from Bulbapedia \cite{StatBoosts}}
+  \label{tab:stat-stage-modifiers}
 
 \end{figure}
 
@@ -84,11 +84,15 @@ Please note that the HP stat has a different formula compared to the other stats
   $$
     OtherStat = \left\lfloor \left( \left\lfloor \frac{(2 * Base + IV + \left\lfloor \frac{EV}{4} \right\rfloor) * Level}{100} \right\rfloor + 5 \right) * NatureMod \right\rfloor
   $$
-  \label{formula:stat-formula}
   \caption{Formulas for calculating a Pokemons stats \cite{PokemonStats}}
+  \label{formula:stat-formula}
 \end{figure}
 
-\subsection{Abilites}
+\subsection{Abilities}
+Since generation 3 of Pokemon, a Pokemon has had an Ability \cite{Abilities}. These are passive effects that provide bonuses in battle or in the overworld.
+A Pokemon species can have multiple possible abilities, but a single Pokemon will only ever have one that is determined when the Pokemon is generated.
+Abilities can have a wide variety of effects, ranging from setting a weather condition upon entering battle \cite{DrizzleAbility}, to increasing the damage of certain types of moves \cite{IronFistAbility}.
+
 \subsection{Held items}
 \subsection{Status conditions}
 In pokemon there exists a variety of status conditions that fall into either of two categories: Volatile and Non-volatile. Non-volatile status conditions
