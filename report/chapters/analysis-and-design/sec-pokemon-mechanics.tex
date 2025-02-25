@@ -89,11 +89,21 @@ Please note that the HP stat has a different formula compared to the other stats
 \end{figure}
 
 \subsection{Abilities}
+\label{subsec:abilities}
 Since generation 3 of Pokemon, a Pokemon has had an Ability \cite{Abilities}. These are passive effects that provide bonuses in battle or in the overworld.
 A Pokemon species can have multiple possible abilities, but a single Pokemon will only ever have one that is determined when the Pokemon is generated.
 Abilities can have a wide variety of effects, ranging from setting a weather condition upon entering battle \cite{DrizzleAbility}, to increasing the damage of certain types of moves \cite{IronFistAbility}.
 
+There are almost 300 abilities available in generation 9 of Pokemon. For this project to accurately describe the real world, most of these should be implemented, but the focus will be to implement the most common ones.
+
 \subsection{Held items}
+A Pokemon is able to hold an item \cite{HeldItems}. These items provide an effect to the Pokemon that can significantly change how a battle pans out. Like Abilities (see \ref{subsec:abilities}),
+held items can have a lot of different effects. Notable examples are berries that a Pokemon may consume during battle, such as a Sitrus Berry \cite{SitrusBerry} that a Pokemon will automatically eat
+when its HP is reduced below 50\%, resulting in the Pokemon restoring 25\% of its maximum HP. There are also items that provide a bonus through the entire battle such as Choice Band \cite{ChoiceBand}.
+The Choice Band increases the Pokemons Attack stat by 50\%, but only allows it to use the first move it selects. The effect resets when it is withdrawn from battle.
+
+There are a \textit{lot} of held items in generation 9 of Pokemon. For this project, the focus will be to implement the most common ones and expanding the available selection of held items as the time frame allows. 
+
 \subsection{Status conditions}
 In pokemon there exists a variety of status conditions that fall into either of two categories: Volatile and Non-volatile. Non-volatile status conditions
 lasts until a pokemon is healed, and volatile conditions only lasts for the duration of a battle. \cite{StatusCondition}
@@ -109,7 +119,7 @@ lasts until a pokemon is healed, and volatile conditions only lasts for the dura
     in half until the pokemon is heald. There are one ability and move that negates the attack drop from burn and turns it into an attack boost instead.
   \item Sleep (SLP): This condition causes a pokemon unable to use moves, except snore and sleep talk and 
     randomly lasts 1 to 3 turns in generation 5 and onwards. The first turn of sleep is always skipped.
-  \item Paralysis (PAR): Is a non-volatile status condition that has a 25\% chance of preventing the pokemon from moving each turn and reducedes a pokemons
+  \item Paralysis (PAR): Is a non-volatile status condition that has a 25\% chance of preventing the pokemon from moving each turn and reduces a pokemons
     speed 50\% from generation 7 onwards.
   \item Freeze (FRZ): This is a non-volatile condition that renders the pokemon unable to move unless, it thawes out by a 20\% chance or 
     by using a move to thaw it out.
