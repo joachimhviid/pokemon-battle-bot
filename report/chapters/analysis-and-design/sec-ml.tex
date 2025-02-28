@@ -41,33 +41,53 @@ In reinforcement learning, an agent learns to achieve a goal in
 an uncertain and potentially complex evironment/s py recieveing feedback
 through rewards or penalties. \cite{RL-GeeksForGeeks}
 \newline
-The key concepts of reinforcement learning: 
+The key concepts of reinforcement learning:
 
 \begin{itemize}
-    \item Agent: The learner/decision maker 
-    \begin{enumerate}
-        \item An agent is anything that can be viewed as percieving its environment through
-              sensors and acting upon that environment and as mentioned above, the agent is the learner/decision maker because it
-              learns from its environment and makes decisions based on what it has learned. 
-              For a software agent the sensors could be the input data, network packes or keystrokes
-              and the actuators are the output data. \cite{IntelligentAgents}
-    \end{enumerate}
-    \item Environment: Everything the agent interacts with. The environment is the context in which the agent acts opun and learns from,
-          and there exists a lot of different environment types. \cite{IntelligentAgents}
-          \begin{enumerate}
-            \item Deterministic vs Stochastic is the part of the environment that determines if the next state is completly
-                  determined by the current state and agents action or if there is some randomness involved.
-            \item Episodic vs Sequential describes wheter the agents experience is divided into unconnected episodes or
-                  if the agents actions have long-term consequences on the environment.
-            \item Static vs Dynamic is wether the environment can change while the agent is making a decision.
-            \item Discrete vs Continuous is the number of possible actions and states the environment can provide the agent.
-            \item Single-Agent vs Multi-Agent is the number of agents operating in the same environment.
-        \end{enumerate}
-    \item State: A specific situation the agent finds itself in.
-    \item Actions: What possible moves the agent can make.
-    \item Rewards: Feedback from the environment, that helps guide the learning process.
-    \item Policy: The agent's strategy for decision making.
-    \item Value Function: Predicts future rewards of a state and/or action.
-    \item Exploration vs Exploitation: Balancing between trying new action or using known best actions.
+      \item Agent: The learner/decision maker
+            \begin{enumerate}
+                  \item An agent is anything that can be viewed as percieving its environment through
+                        sensors and acting upon that environment and as mentioned above, the agent is the learner/decision maker because it
+                        learns from its environment and makes decisions based on what it has learned.
+                        For a software agent the sensors could be the input data, network packes or keystrokes
+                        and the actuators are the output data. \cite{IntelligentAgents}
+            \end{enumerate}
+      \item Environment: Everything the agent interacts with. The environment is the context in which the agent acts opun and learns from,
+            and there exists a lot of different environment types. \cite{IntelligentAgents}
+            \begin{enumerate}
+                  \item Deterministic vs Stochastic is the part of the environment that determines if the next state is completly
+                        determined by the current state and agents action or if there is some randomness involved.
+                  \item Episodic vs Sequential describes wheter the agents experience is divided into unconnected episodes or
+                        if the agents actions have long-term consequences on the environment.
+                  \item Static vs Dynamic is wether the environment can change while the agent is making a decision.
+                  \item Discrete vs Continuous is the number of possible actions and states the environment can provide the agent.
+                  \item Single-Agent vs Multi-Agent is the number of agents operating in the same environment.
+            \end{enumerate}
+      \item State: A specific situation the agent finds itself in.
+      \item Actions: What possible moves the agent can make.
+      \item Rewards: Feedback from the environment, that helps guide the learning process.
+      \item Policy: The agent's strategy for decision making.
+      \item Value Function: Predicts future rewards of a state and/or action.
+      \item Exploration vs Exploitation: Balancing between trying new action or using known best actions.
 \end{itemize}
+
+\subsection{Choice of Machine learning model}
+
+\begin{figure}[h]
+      \centering
+      \begin{tabular}{ |c|c|c| }
+            \hline
+            Type: & Pros & Cons \\
+            \hline
+            Supervised learning     & fill & fill \\
+            \hline
+            Unsupervised learning   & fill & fill \\
+            \hline
+            Reinforcement learning  & fill & fill \\
+            \hline 
+      \end{tabular}      
+      \caption{Table over our choices of machine learning models}
+      \label{tab:ML-Models}
+\end{figure}
+
 
