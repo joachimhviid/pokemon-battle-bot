@@ -4,3 +4,4 @@ report/out/*
 .venv
 project/input/*
 !project/input/.gitkeep
+__pycache__
