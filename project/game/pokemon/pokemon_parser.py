@@ -3,7 +3,7 @@ import json
 
 
 def parse_team(file_name: str) -> list[Pokemon]:
-    with open(file_name, 'r') as file_stream:
+    with open(f'input/{file_name}.json', 'r') as file_stream:
         data = json.loads(file_stream.read())
         team = []
         for pokemon in data:
