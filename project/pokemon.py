@@ -47,6 +47,7 @@ class Pokemon:
     _nature: PokemonNatureKey
     _level: int
     stats: PokemonStats
+    held_item: str | None
 
     def __init__(self, name: str, base_stats: PokemonStats, ivs: PokemonStats, evs: PokemonStats,
                  nature: PokemonNatureKey, level: int, held_item: str | None, types: list[str], moves: list[str], ability: str):
@@ -58,6 +59,7 @@ class Pokemon:
         self._level = level
         self.stats = {stat: self._calculate_stat_value(
             stat) for stat in self._base_stats}
+        self.held_item = held_item
 
     def get_nature_modifier(self, stat: PokemonStatKey) -> float:
         if pokemon_natures.get(self._nature).get('UP') == stat:
