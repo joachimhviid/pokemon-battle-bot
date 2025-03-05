@@ -32,6 +32,59 @@ TensorFlow when working on larger scale projects, but because of its strenghts a
 than TensorFlow on smaller-scale models it has made a huge leap in favorability in 
 scientific-research and smaller scale projects. \cite{simplilearn}
 
+\subsection{Choice of Frameworks}
+
+In table \ref{tab:frameworks} we have listed the pros and cons of the two frameworks and chosen to go with PyTorch as our framework. Pytorch has a more
+dynamic approach to computation graphs, which is more suitable for our project, is pythonic and has integrations with Jupyter. 
+It also has better debugging capabilities and is faster than TensorFlow on smaller-scale models.
+
+\begin{table}[h]      
+      \begin{tabular}{| m{3.5cm} | m{5cm} | m{5cm} |}
+            \hline
+            \textbf{Type} & \textbf{Pros} & \textbf{Cons} \\ 
+            \hline
+            \textbf{TensorFlow} & 
+            \begin{itemize}
+                  \item Widely adopted for larger-scale machine learning applications.
+                  \item Has scalability and robustness.
+                  \item Versatile framework.
+            \end{itemize} & 
+            \begin{itemize}
+                  \item Higher learning curve.
+                  \item Static computation graphs can hinder development.
+                  \item Can create a more complex codebase.
+            \end{itemize} \\ 
+            \hline
+            \textbf{PyTorch} & 
+            \begin{itemize}
+                  \item Dynamic computation graphs.
+                  \item Better debugging capabilities.
+                  \item Pythonic approach.
+                  \item Integration with Jupyter and Gymnasion. 
+                  \item Faster than TensorFlow on smaller-scale models.
+            \end{itemize} & 
+            \begin{itemize}
+                  \item Limited in production readiness.
+                  \item Inferior performance compared to TensorFlow on larger scale projects.
+                  \item Can be harder to scale. 
+            \end{itemize} \\ 
+            \hline
+      \end{tabular}
+      \caption{Table over our choices of frameworks}
+      \label{tab:frameworks}      
+\end{table}
+
+\subsection{Data Vizualization}
+
+\subsubsection{Jupyter}
+Jupyter is a flexible and interactive development environment that supports multiple 
+programming languages, enhances the process of building, training and evaluating AI Agents and,
+is a great tool for data exploration, processing, visualization and sharing of results.
+
+\subsection{Gymnasion}
+Is a python package that provides a toolkit for developing and comparing reinforcement learning algorithms.
+
+
 
 
 
