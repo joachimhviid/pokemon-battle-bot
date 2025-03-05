@@ -9,6 +9,8 @@ PokemonNatureModifier = Literal['UP', 'DOWN']
 PokemonStats = dict[PokemonStatKey, int]
 PokemonNature = dict[
     PokemonNatureKey, dict[PokemonNatureModifier, PokemonStatKey]]
+PokemonType = Literal[
+    'normal', 'fire', 'water', 'electric', 'grass', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy']
 
 pokemon_natures: PokemonNature = {
     'hardy': {},
@@ -79,3 +81,12 @@ class Pokemon:
             return math.floor(((2 * stat_value + iv_value + ev_value // 4) * self._level // 100) + self._level + 10)
 
         return math.floor((((2 * stat_value + iv_value + ev_value // 4) * self._level // 100) + 5) * nature_modifier)
+
+
+class PokemonMove:
+    name: str
+    power: int
+    type: PokemonType
+
+    def __init__(self):
+        pass
