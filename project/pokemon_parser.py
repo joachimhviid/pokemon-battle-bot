@@ -16,6 +16,6 @@ def parse_team(file_name: str) -> list[Pokemon]:
 
 
 if __name__ == "__main__":
-    team = parse_team('player_1')
+    team = parse_team('blastoise')
     print(team)
-    parse_team('player_1')
+    parse_team('blastoise')

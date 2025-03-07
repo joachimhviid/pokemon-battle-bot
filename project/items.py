@@ -8,7 +8,7 @@ def map_items():
     items_array = []
     for i in Item:
         items_array.append(i)
-    return items_array
+    return items_array  
 
 # TODO Implement a function that matches a pokemon item with its corresponding item in the enum
 
@@ -22,17 +22,20 @@ def match_item(pokemon: Pokemon):
                 pokemon.held_item = "None" 
             print(f"Used {pokemon_item} with {Item.SITRUS_BERRY}")
         case "Focus Sash":
-                
-#            if pokemon.stats["max_hp"] - damage == 0 or pokemon.stats["max_hp"] - damage ==  1:
-#                pokemon.stats["hp"] = 1
-#                pokemon.held_item = "None"
+            if pokemon.stats["max_hp"] - damage == 0 or pokemon.stats["max_hp"] - damage ==  1:
+                pokemon.stats["hp"] = 1
+                pokemon.held_item = "None"
                 print(f"Used {pokemon_item} with {Item.FOCUS_SASH}")
         case "Life Orb":
+            pokemon.move[i].power = pokemon.move[i].power * 1.3
+            pokemon.stats["hp"] -= pokemon.stats["max_hp"] * 0.1
+            if pokemon.stats["hp"] <= 0:
+                pokemon.fainted = True
             print(f"Matched {pokemon_item} with {Item.LIFE_ORB}")
         case "Rocky Helmet":
-            if pokemon.is_hit_contact == True:
-                pokemon.opponent  -= pokemon.stats["max_hp"] * 0.0625
-            print(f"Matched {pokemon_item} with {Item.ROCKY_HELMET}")
+            if opponent.move[i].damage_type == "Physical":
+                pokemon.opponent.stats["hp"]  -= pokemon.stats["hp"] * 0.0625
+                print(f"Matched {pokemon_item} with {Item.ROCKY_HELMET}")
         case "Leftovers":
             print(f"Matched {pokemon_item} with {Item.LEFTOVERS}")
             pokemon.stats["hp"] += pokemon.stats["max_hp"] * 0.06
@@ -41,7 +44,7 @@ def match_item(pokemon: Pokemon):
         case "Covert Cloak":
             print(f"Matched {pokemon_item} with {Item.COVERT_CLOAK}")
         case "Choice Specs":
-            if pokemon.moves[0].category == "Special" or pokemon.moves[1].category == "Special" or pokemon.moves[2].category == "Special" or pokemon.moves[3].category == "Special":
+            if pokemon.moves[i].category == "Special":
                 pokemon.stats["sp_atk"] = pokemon.stats["sp_atk"] * 1.5
                 # set pokemon.move[i] to be usable only 
             print(f"Matched {pokemon_item} with {Item.CHOICE_SPECS}")
@@ -50,16 +53,24 @@ def match_item(pokemon: Pokemon):
             # pokemon.moves[i] = "usable"
             print(f"Matched {pokemon_item} with {Item.CHOICE_SCARF}")
         case "Safety Goggles":
-            # if pokemon.oppennet == True && pokemon.moves == powders or environment.weather == "sandstorm" or environment.weather == "hail":
-                #pokemon.stats["hp"] ignore damage
+
+            if pokemon.oppennet == True & pokemon.moves == powders:
+                pokemon.ignore_powder = True
+
+            if environment.weather == "sandstorm" or environment.weather == "hail":
+                pokemon.stats["hp"] # ignore damage
+
             print(f"Matched {pokemon_item} with {Item.SAFETY_GOGGLES}")
         case "Lum Berry":
-            print(f"Matched {pokemon_item} with {Item.LUM_BERRY}")
+            if pokemon.status != "None":
+                pokemon.status = "None"
+                pokemon.held_item = "None"
+                print(f"Used {pokemon_item} with {Item.LUM_BERRY}")
 
 
 if __name__ == "__main__":
     team = parse_team('blastoise')
     match_item(team[0])
-    
+    print(team[0].held_item)
 
     
