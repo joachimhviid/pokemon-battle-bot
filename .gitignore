@@ -1,3 +1,7 @@
 report/out/*
 !report/out/.gitkeep
 .DS_Store
+.venv
+project/input/*
+!project/input/.gitkeep
+__pycache__
