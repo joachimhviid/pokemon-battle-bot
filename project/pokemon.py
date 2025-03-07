@@ -11,6 +11,7 @@ PokemonNature = dict[
     PokemonNatureKey, dict[PokemonNatureModifier, PokemonStatKey]]
 PokemonType = Literal[
     'normal', 'fire', 'water', 'electric', 'grass', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy']
+DamageClass = Literal['status', 'special', 'physical']
 
 pokemon_natures: PokemonNature = {
     'hardy': {},
@@ -53,7 +54,7 @@ class Pokemon:
     opponent: True | False
 
     def __init__(self, name: str, base_stats: PokemonStats, ivs: PokemonStats, evs: PokemonStats,
-                 nature: PokemonNatureKey, level: int, held_item: str | None, types: list[str], moves: list[str], ability: str):
+                 nature: PokemonNatureKey, level: int, held_item: str | None, types: list[PokemonType], moves: list[str], ability: str):
         self.name = name
         self._base_stats = base_stats
         self._ivs = ivs
@@ -89,6 +90,13 @@ class PokemonMove:
     name: str
     power: int
     type: PokemonType
+    pp: int
+    accuracy: int
+    damage_class: str
 
     def __init__(self):
         pass
+
+
+if __name__ == "__main__":
+    print('pokemon')
