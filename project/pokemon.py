@@ -52,46 +52,6 @@ pokemon_natures: PokemonNature = {
 }
 
 
-class Pokemon:
-    name: str
-    _base_stats: PokemonStats
-    _ivs: PokemonStats
-    _evs: PokemonStats
-    _nature: PokemonNatureKey
-    _level: int
-    stats: PokemonStats
-
-    def __init__(self, name: str, base_stats: PokemonStats, ivs: PokemonStats, evs: PokemonStats,
-                 nature: PokemonNatureKey, level: int, held_item: str | None, types: list[PokemonType], moves: list[str], ability: str):
-        self.name = name
-        self._base_stats = base_stats
-        self._ivs = ivs
-        self._evs = evs
-        self._nature = nature
-        self._level = level
-        self.stats = {stat: self._calculate_stat_value(
-            stat) for stat in self._base_stats}
-
-    def get_nature_modifier(self, stat: PokemonStatKey) -> float:
-        if pokemon_natures.get(self._nature).get('UP') == stat:
-            return 1.1
-        elif pokemon_natures.get(self._nature).get('DOWN') == stat:
-            return 0.9
-        else:
-            return 1.0
-
-    def _calculate_stat_value(self, stat: PokemonStatKey) -> int:
-        nature_modifier: float = self.get_nature_modifier(stat)
-        stat_value = self._base_stats.get(stat)
-        iv_value = self._ivs.get(stat)
-        ev_value = self._evs.get(stat)
-
-        if stat == 'hp':
-            return math.floor(((2 * stat_value + iv_value + ev_value // 4) * self._level // 100) + self._level + 10)
-
-        return math.floor((((2 * stat_value + iv_value + ev_value // 4) * self._level // 100) + 5) * nature_modifier)
-
-
 class PokemonMove:
     name: str
     power: int | None
@@ -109,8 +69,14 @@ class PokemonMove:
     stat_changes: list[dict[PokemonStatKey, int]]
     stat_chance: int
 
-    hits: dict[Literal['min', 'max'], int | None]
-    duration: dict[Literal['min', 'max'], int | None]
+    hits: dict[Literal['min', 'max'], int | None] = {
+        'min': None,
+        'max': None,
+    }
+    duration: dict[Literal['min', 'max'], int | None] = {
+        'min': None,
+        'max': None,
+    }
 
     healing: int
     flinch_chance: int
@@ -139,6 +105,47 @@ class PokemonMove:
         self.flinch_chance = move['meta']['flinch_chance']
         self.drain = move['meta']['drain']
         self.crit_rate = move['meta']['crit_rate']
+
+
+class Pokemon:
+    name: str
+    _base_stats: PokemonStats
+    _ivs: PokemonStats
+    _evs: PokemonStats
+    _nature: PokemonNatureKey
+    _level: int
+    stats: PokemonStats
+    moves: list[PokemonMove]
+
+    def __init__(self, pokemon_data):
+        self.name = pokemon_data['name']
+        self._base_stats = pokemon_data['stats']
+        self._ivs = pokemon_data['ivs']
+        self._evs = pokemon_data['evs']
+        self._nature = pokemon_data['nature']
+        self._level = pokemon_data['level']
+        self.stats = {stat: self._calculate_stat_value(
+            stat) for stat in self._base_stats}
+        self.moves = [PokemonMove(move) for move in pokemon_data['moves']]
+
+    def get_nature_modifier(self, stat: PokemonStatKey) -> float:
+        if pokemon_natures.get(self._nature).get('UP') == stat:
+            return 1.1
+        elif pokemon_natures.get(self._nature).get('DOWN') == stat:
+            return 0.9
+        else:
+            return 1.0
+
+    def _calculate_stat_value(self, stat: PokemonStatKey) -> int:
+        nature_modifier: float = self.get_nature_modifier(stat)
+        stat_value = self._base_stats.get(stat)
+        iv_value = self._ivs.get(stat)
+        ev_value = self._evs.get(stat)
+
+        if stat == 'hp':
+            return math.floor(((2 * stat_value + iv_value + ev_value // 4) * self._level // 100) + self._level + 10)
+
+        return math.floor((((2 * stat_value + iv_value + ev_value // 4) * self._level // 100) + 5) * nature_modifier)
 
 
 if __name__ == "__main__":

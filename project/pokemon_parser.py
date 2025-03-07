@@ -7,11 +7,7 @@ def parse_team(file_name: str) -> list[Pokemon]:
         data = json.loads(file_stream.read())
         team = []
         for pokemon in data:
-            team.append(
-                Pokemon(name=pokemon['name'], base_stats=pokemon['stats'], evs=pokemon['evs'], ivs=pokemon['ivs'],
-                        nature=pokemon['nature'], level=pokemon['level'], moves=pokemon['moves'], types=pokemon['types'],
-                        ability=pokemon['ability'], held_item=pokemon['held_item'])
-            )
+            team.append(Pokemon(pokemon))
         return team
 
 
