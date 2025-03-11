@@ -7,13 +7,20 @@
         <mxCell id="DEPRd6UQ8BkP_VHY7koi-1" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#ff0000;" parent="1" vertex="1">
           <mxGeometry x="170" y="90" width="30" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="DEPRd6UQ8BkP_VHY7koi-2" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;verticalAlign=bottom;endArrow=open;endSize=8;strokeColor=#ff0000;rounded=0;" parent="1" source="DEPRd6UQ8BkP_VHY7koi-1" edge="1">
+        <mxCell id="DEPRd6UQ8BkP_VHY7koi-2" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;verticalAlign=bottom;endArrow=open;endSize=8;strokeColor=#000000;rounded=0;" parent="1" source="DEPRd6UQ8BkP_VHY7koi-1" edge="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="185" y="230" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="DEPRd6UQ8BkP_VHY7koi-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="DEPRd6UQ8BkP_VHY7koi-3" target="DEPRd6UQ8BkP_VHY7koi-4" edge="1">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="m-ihC5SjHMYOalNXXcl_-11" value="Start" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="DEPRd6UQ8BkP_VHY7koi-2">
+          <mxGeometry x="-0.1131" relative="1" as="geometry">
+            <mxPoint x="35" y="-64" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DEPRd6UQ8BkP_VHY7koi-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="DEPRd6UQ8BkP_VHY7koi-3" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="185" y="370" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="DEPRd6UQ8BkP_VHY7koi-15" value="Read Battle State" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="DEPRd6UQ8BkP_VHY7koi-5" vertex="1" connectable="0">
           <mxGeometry x="0.05" y="-2" relative="1" as="geometry">
@@ -23,16 +30,15 @@
         <mxCell id="DEPRd6UQ8BkP_VHY7koi-3" value="Observe state" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="125" y="230" width="120" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="DEPRd6UQ8BkP_VHY7koi-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="DEPRd6UQ8BkP_VHY7koi-4" target="DEPRd6UQ8BkP_VHY7koi-6" edge="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="DEPRd6UQ8BkP_VHY7koi-16" value="Choose Action" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="DEPRd6UQ8BkP_VHY7koi-7" vertex="1" connectable="0">
-          <mxGeometry x="-0.1714" y="-2" relative="1" as="geometry">
-            <mxPoint as="offset" />
+        <mxCell id="DEPRd6UQ8BkP_VHY7koi-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" target="DEPRd6UQ8BkP_VHY7koi-6" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="185" y="450" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="DEPRd6UQ8BkP_VHY7koi-4" value="Select Action" style="rhombus;whiteSpace=wrap;html=1;" parent="1" vertex="1">
-          <mxGeometry x="117.5" y="370" width="135" height="80" as="geometry" />
+        <mxCell id="DEPRd6UQ8BkP_VHY7koi-16" value="Chosen Action" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="DEPRd6UQ8BkP_VHY7koi-7" vertex="1" connectable="0">
+          <mxGeometry x="-0.1714" y="-2" relative="1" as="geometry">
+            <mxPoint x="2" y="11" as="offset" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="DEPRd6UQ8BkP_VHY7koi-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="DEPRd6UQ8BkP_VHY7koi-6" target="DEPRd6UQ8BkP_VHY7koi-8" edge="1">
           <mxGeometry relative="1" as="geometry" />
@@ -53,8 +59,13 @@
             <mxPoint x="3" y="28" as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="DEPRd6UQ8BkP_VHY7koi-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="DEPRd6UQ8BkP_VHY7koi-8" target="DEPRd6UQ8BkP_VHY7koi-13" edge="1">
+        <mxCell id="m-ihC5SjHMYOalNXXcl_-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="DEPRd6UQ8BkP_VHY7koi-8" target="DEPRd6UQ8BkP_VHY7koi-13">
           <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m-ihC5SjHMYOalNXXcl_-9" value="Ends battle if&lt;br&gt;opponents Surrender" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="m-ihC5SjHMYOalNXXcl_-7">
+          <mxGeometry x="-0.1793" y="-2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="DEPRd6UQ8BkP_VHY7koi-8" value="Wait for Opponent" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="390" y="520" width="120" height="60" as="geometry" />
@@ -67,11 +78,33 @@
             <mxPoint x="15" as="offset" />
           </mxGeometry>
         </mxCell>
+        <mxCell id="m-ihC5SjHMYOalNXXcl_-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="DEPRd6UQ8BkP_VHY7koi-10" target="DEPRd6UQ8BkP_VHY7koi-13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m-ihC5SjHMYOalNXXcl_-10" value="Ends battle if&lt;br&gt;the last pokemon&lt;br&gt;is defeated" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="m-ihC5SjHMYOalNXXcl_-8">
+          <mxGeometry x="-0.3333" y="-3" relative="1" as="geometry">
+            <mxPoint y="35" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m-ihC5SjHMYOalNXXcl_-12" value="End" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="m-ihC5SjHMYOalNXXcl_-8">
+          <mxGeometry x="0.7133" y="1" relative="1" as="geometry">
+            <mxPoint x="93" as="offset" />
+          </mxGeometry>
+        </mxCell>
         <mxCell id="DEPRd6UQ8BkP_VHY7koi-10" value="End Turn" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="390" y="230" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="DEPRd6UQ8BkP_VHY7koi-13" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#ff0000;" parent="1" vertex="1">
-          <mxGeometry x="435" y="690" width="30" height="30" as="geometry" />
+          <mxGeometry x="660" y="395" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="m-ihC5SjHMYOalNXXcl_-4" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="130" y="370" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="m-ihC5SjHMYOalNXXcl_-5" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="380" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="m-ihC5SjHMYOalNXXcl_-6" value="Action Choices" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="110" y="390" width="120" height="60" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
