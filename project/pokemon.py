@@ -115,7 +115,7 @@ class Pokemon:
     _ivs: PokemonStats
     _evs: PokemonStats
     _nature: PokemonNatureKey
-    _level: int
+    level: int
     stats: PokemonStats
     moves: list[PokemonMove]
     types: list[PokemonType]
@@ -130,7 +130,7 @@ class Pokemon:
         self._ivs = pokemon_data['ivs']
         self._evs = pokemon_data['evs']
         self._nature = pokemon_data['nature']
-        self._level = pokemon_data['level']
+        self.level = pokemon_data['level']
         self.stats = {stat: self._calculate_stat_value(
             stat) for stat in self._base_stats}
         self.current_hp = self.stats['hp']
@@ -153,9 +153,9 @@ class Pokemon:
         ev_value = self._evs.get(stat)
 
         if stat == 'hp':
-            return math.floor(((2 * stat_value + iv_value + ev_value // 4) * self._level // 100) + self._level + 10)
+            return math.floor(((2 * stat_value + iv_value + ev_value // 4) * self.level // 100) + self.level + 10)
 
-        return math.floor((((2 * stat_value + iv_value + ev_value // 4) * self._level // 100) + 5) * nature_modifier)
+        return math.floor((((2 * stat_value + iv_value + ev_value // 4) * self.level // 100) + 5) * nature_modifier)
 
     def take_damage(self, damage: int):
         pass

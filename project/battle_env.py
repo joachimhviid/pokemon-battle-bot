@@ -74,7 +74,7 @@ class BattleEnv(gym.Env):
         # Item boosts etc (eg choice band)
         other_modifier = 1
 
-        return int(math.floor(((((2 * self._level) / 5) * move.power * (offensive_effective_stat / defensive_effective_stat)) / 50) + 2) * targets_modifier * weather_modifier * (1.5 if is_critical_hit else 1) * random_modifier * stab_modifier * type_modifier * burn_modifier * other_modifier)
+        return int(math.floor(((((2 * attacker.level) / 5) * move.power * (offensive_effective_stat / defensive_effective_stat)) / 50) + 2) * targets_modifier * weather_modifier * (1.5 if is_critical_hit else 1) * random_modifier * stab_modifier * type_modifier * burn_modifier * other_modifier)
 
     def is_critical_hit(self, move: PokemonMove) -> bool:
         match self.crit_stage + move.crit_rate:
