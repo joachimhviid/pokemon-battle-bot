@@ -67,8 +67,8 @@ class BattleEnv(gym.Env):
         targets_modifier = 1
         weather_modifier = 1.5 if (self.weather == 'rain' and move.type == 'water') or (
             self.weather == 'sunshine' and move.type == 'fire') else 1
-        is_critical_hit = self.is_critical_hit(move)
-        random_modifier = random.randint(85, 100) // 100
+        is_critical_hit = self.is_critical_hit(move, attacker)
+        random_modifier = random.randint(85, 100) / 100
         type_modifier = self.get_type_effectiveness(move, defender)
         burn_modifier = 0.5 if move.damage_class == 'physical' and attacker.non_volatile_status_condition == 'burn' and attacker.ability != 'guts' and move.name != 'facade' else 1
         # Item boosts etc (eg choice band)
@@ -76,8 +76,8 @@ class BattleEnv(gym.Env):
 
         return int(math.floor(((((2 * attacker.level) / 5) * move.power * (offensive_effective_stat / defensive_effective_stat)) / 50) + 2) * targets_modifier * weather_modifier * (1.5 if is_critical_hit else 1) * random_modifier * stab_modifier * type_modifier * burn_modifier * other_modifier)
 
-    def is_critical_hit(self, move: PokemonMove) -> bool:
-        match self.crit_stage + move.crit_rate:
+    def is_critical_hit(self, move: PokemonMove, attacker: Pokemon) -> bool:
+        match attacker.crit_stage + move.crit_rate:
             case 0:
                 return random.randint(1, 24) == 1
             case 1:
@@ -123,6 +123,6 @@ if __name__ == "__main__":
     env = BattleEnv(team_1, team_2)
     print(f'Team 1 first pokemon {env.player_1_active_pokemon.name}')
     print(f'Team 2 first pokemon {env.player_2_active_pokemon.name}')
-    print(team_1[0].moves[3].name)
-    print(team_2[1].types)
-    print(env.get_type_effectiveness(team_1[0].moves[3], team_2[1]))
+    for i in range(10):
+        print(f'{env.player_1_active_pokemon.name} uses {env.player_1_active_pokemon.moves[3].name} on {env.player_2_active_pokemon.name} dealing {env.calculate_damage(
+            env.player_1_active_pokemon.moves[3], env.player_1_active_pokemon, env.player_2_active_pokemon)} damage')
