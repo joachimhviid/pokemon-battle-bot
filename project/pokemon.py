@@ -23,6 +23,8 @@ MoveAilment = Literal[
     'unknown', 'none', 'paralysis', 'sleep', 'freeze', 'burn', 'poison', 'confusion', 'infatuation', 'trap', 'nightmare', 'torment', 'disable', 'yawn', 'heal-block', 'no-type-immunity', 'leech-seed', 'embargo', 'perish-song', 'ingrain'
 ]
 
+NonVolatileStatusCondition = Literal['none', 'paralysis', 'sleep', 'freeze', 'burn', 'poison', 'bad-poison']
+
 pokemon_natures: PokemonNature = {
     'hardy': {},
     'lonely': {'UP': 'attack', 'DOWN': 'defense'},
@@ -116,6 +118,11 @@ class Pokemon:
     _level: int
     stats: PokemonStats
     moves: list[PokemonMove]
+    types: list[PokemonType]
+    ability: str
+    current_hp: int
+    crit_stage: int = 0
+    non_volatile_status_condition: NonVolatileStatusCondition = 'none'
 
     def __init__(self, pokemon_data):
         self.name = pokemon_data['name']
@@ -126,7 +133,10 @@ class Pokemon:
         self._level = pokemon_data['level']
         self.stats = {stat: self._calculate_stat_value(
             stat) for stat in self._base_stats}
+        self.current_hp = self.stats['hp']
         self.moves = [PokemonMove(move) for move in pokemon_data['moves']]
+        self.ability = pokemon_data['ability']
+        self.types = pokemon_data['types']
 
     def get_nature_modifier(self, stat: PokemonStatKey) -> float:
         if pokemon_natures.get(self._nature).get('UP') == stat:
@@ -146,6 +156,10 @@ class Pokemon:
             return math.floor(((2 * stat_value + iv_value + ev_value // 4) * self._level // 100) + self._level + 10)
 
         return math.floor((((2 * stat_value + iv_value + ev_value // 4) * self._level // 100) + 5) * nature_modifier)
+
+    def take_damage(self, damage: int):
+        pass
+           
 
 
 if __name__ == "__main__":

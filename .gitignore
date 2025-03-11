@@ -5,3 +5,4 @@ report/out/*
 project/input/*
 !project/input/.gitkeep
 __pycache__
+.idea
