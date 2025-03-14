@@ -36,7 +36,7 @@ def match_item(pokemon: Pokemon):
             print(f"Matched {pokemon_item} with {Item.LIFE_ORB}")
 
         case "Rocky Helmet":
-            if opponent.move[i].damage_type == "Physical":
+            if pokemon.opponent.move[i].damage_type == "Physical":
                 pokemon.opponent.stats["hp"]  -= pokemon.stats["hp"] * 0.0625
                 print(f"Matched {pokemon_item} with {Item.ROCKY_HELMET}")
 
