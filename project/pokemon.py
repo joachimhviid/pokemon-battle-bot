@@ -5,7 +5,10 @@ PokemonNatureKey = Literal[
     'hardy', 'lonely', 'brave', 'adamant', 'naughty', 'bold', 'docile', 'relaxed', 'impish', 'lax', 'timid', 'hasty', 'serious', 'jolly', 'naive', 'modest', 'mild', 'quiet', 'bashful', 'rash', 'calm', 'gentle', 'sassy', 'careful', 'quirky']
 PokemonStatKey = Literal['hp', 'attack',
                          'defense', 'special-attack', 'special-defense', 'speed']
+PokemonBoostStatKey = Literal['hp', 'attack',
+                              'defense', 'special-attack', 'special-defense', 'speed', 'accuracy', 'evasion']
 PokemonNatureModifier = Literal['UP', 'DOWN']
+PokemonStatBoostStage = Literal[-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
 PokemonStats = dict[PokemonStatKey, int]
 PokemonNature = dict[
     PokemonNatureKey, dict[PokemonNatureModifier, PokemonStatKey]]
@@ -22,8 +25,8 @@ MoveCategory = Literal[
 MoveAilment = Literal[
     'unknown', 'none', 'paralysis', 'sleep', 'freeze', 'burn', 'poison', 'confusion', 'infatuation', 'trap', 'nightmare', 'torment', 'disable', 'yawn', 'heal-block', 'no-type-immunity', 'leech-seed', 'embargo', 'perish-song', 'ingrain'
 ]
-
-NonVolatileStatusCondition = Literal['none', 'paralysis', 'sleep', 'freeze', 'burn', 'poison', 'bad-poison']
+NonVolatileStatusCondition = Literal['none', 'paralysis',
+                                     'sleep', 'freeze', 'burn', 'poison', 'bad-poison']
 
 pokemon_natures: PokemonNature = {
     'hardy': {},
@@ -59,6 +62,7 @@ class PokemonMove:
     power: int | None
     type: PokemonType
     pp: int
+    current_pp: int
     accuracy: int | None
     damage_class: DamageClass
     priority: int
@@ -68,7 +72,7 @@ class PokemonMove:
     ailment_type: MoveAilment
     ailment_chance: int
 
-    stat_changes: list[dict[PokemonStatKey, int]]
+    stat_changes: list[dict[PokemonBoostStatKey, PokemonStatBoostStage]]
     stat_chance: int
 
     hits: dict[Literal['min', 'max'], int | None] = {
@@ -90,6 +94,7 @@ class PokemonMove:
         self.power = move['power']
         self.type = move['type']
         self.pp = move['pp']
+        self.current_pp = self.pp
         self.accuracy = move['accuracy']
         self.damage_class = move['damage_class']
         self.priority = move['priority']
@@ -122,6 +127,15 @@ class Pokemon:
     ability: str
     current_hp: int
     crit_stage: int = 0
+    stat_boosts: dict[PokemonBoostStatKey, PokemonStatBoostStage] = {
+        'attack': 0,
+        'defense': 0,
+        'special-attack': 0,
+        'special-defense': 0,
+        'speed': 0,
+        'accuracy': 0,
+        'evasion': 0
+    }
     non_volatile_status_condition: NonVolatileStatusCondition = 'none'
 
     def __init__(self, pokemon_data):
@@ -158,8 +172,22 @@ class Pokemon:
         return math.floor((((2 * stat_value + iv_value + ev_value // 4) * self.level // 100) + 5) * nature_modifier)
 
     def take_damage(self, damage: int):
-        pass
-           
+        self.current_hp = self.current_hp - damage
+
+    def reset(self):
+        self.stat_boosts = {
+            'attack': 0,
+            'defense': 0,
+            'special-attack': 0,
+            'special-defense': 0,
+            'speed': 0,
+            'accuracy': 0,
+            'evasion': 0
+        }
+        self.crit_stage = 0
+        self.current_hp = self.stats['hp']
+        for move in self.moves:
+            move.current_pp = move.pp
 
 
 if __name__ == "__main__":
