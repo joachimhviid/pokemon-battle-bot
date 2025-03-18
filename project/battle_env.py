@@ -330,20 +330,32 @@ class BattleEnv(gym.Env):
         return offensive_stat, defensive_stat
 
     def get_weather_modifier(self, move: PokemonMove) -> float:
+        # TODO: is_grounded check for terrains. We should also make sure this is the correct modifier for terrain buffs
         for effect in self.battle_effects.keys():
-            if effect == 'rain':
-                if move.type == 'water':
-                    return 1.5
-                elif move.type == 'fire':
-                    return 0.5
-                else:
-                    return 1
-            if effect == 'sunshine':
-                if move.type == 'fire':
-                    return 1.5
-                elif move.type == 'water':
-                    return 0.5
-                else:
+            match effect:
+                case 'rain':
+                    if move.type == 'water':
+                        return 1.5
+                    elif move.type == 'fire':
+                        return 0.5
+                case 'sunshine':
+                    if move.type == 'fire':
+                        return 1.5
+                    elif move.type == 'water':
+                        return 0.5
+                case 'electric-terrain':
+                    if move.type == 'electric':
+                        return 1.3
+                case 'grassy-terrain':
+                    if move.type == 'grass':
+                        return 1.3
+                case 'misty-terrain':
+                    if move.type == 'dragon':
+                        return 0.5
+                case 'psychic-terrain':
+                    if move.type == 'psychic':
+                        return 1.3
+                case _:
                     return 1
             return 1
         
