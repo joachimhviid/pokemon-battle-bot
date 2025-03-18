@@ -3,7 +3,7 @@ import gymnasium as gym
 import math
 import random
 
-from pokemon import Pokemon, PokemonMove, PokemonStatBoostStage
+from pokemon import Pokemon, PokemonMove, PokemonStatBoostStage, PokemonType
 from pokemon_parser import parse_team
 
 TerrainType = Literal['grassy-terrain',
@@ -162,68 +162,36 @@ class BattleEnv(gym.Env):
 
     def get_effective_stats(self, move: PokemonMove, attacker: Pokemon, defender: Pokemon, is_critical_hit: bool) -> tuple[float, float]:
         # TODO: Handle cases where effective stat differs from standard (eg Psyshock effective attacking stat is special but deals physical damage)
-        offensive_effective_stat: float = 0
-        defensive_effective_stat: float = 0
-        match move.damage_class:
-            case 'physical':
-                if is_critical_hit:
-                    if attacker.stat_boosts['attack'] < 0:
-                        offensive_effective_stat = attacker.stats['attack']
-                    else:
-                        offensive_effective_stat = attacker.stats['attack'] * self.get_stat_modifier(
-                            attacker.stat_boosts['attack'])
-                    if defender.stat_boosts['defense'] > 0:
-                        if self.weather == 'snow' and 'ice' in defender.types:
-                            defensive_effective_stat = defender.stats['defense'] * 1.5
-                        else:
-                            defensive_effective_stat = defender.stats['defense']
-                    else:
-                        if self.weather == 'snow' and 'ice' in defender.types:
-                            defensive_effective_stat = defender.stats['defense'] * self.get_stat_modifier(
-                                defender.stat_boosts['defense']) * 1.5
-                        else:
-                            defensive_effective_stat = defender.stats['defense'] * self.get_stat_modifier(
-                                defender.stat_boosts['defense'])
-                else:
-                    offensive_effective_stat = attacker.stats['attack'] * self.get_stat_modifier(
-                        attacker.stat_boosts['attack'])
-                    if self.weather == 'snow' and 'ice' in defender.types:
-                        defensive_effective_stat = defender.stats['defense'] * self.get_stat_modifier(
-                            defender.stat_boosts['defense']) * 1.5
-                    else:
-                        defensive_effective_stat = defender.stats['defense'] * self.get_stat_modifier(
-                            defender.stat_boosts['defense'])
-            case 'special':
-                if is_critical_hit:
-                    if attacker.stat_boosts['special-attack'] < 0:
-                        offensive_effective_stat = attacker.stats['special-attack']
-                    else:
-                        offensive_effective_stat = attacker.stats['special-attack'] * self.get_stat_modifier(
-                            attacker.stat_boosts['special-attack'])
-                    if defender.stat_boosts['special-defense'] > 0:
-                        if self.weather == 'sandstorm' and 'rock' in defender.types:
-                            defensive_effective_stat = defender.stats['special-defense'] * 1.5
-                        else:
-                            defensive_effective_stat = defender.stats['special-defense']
-                    else:
-                        if self.weather == 'sandstorm' and 'rock' in defender.types:
-                            defensive_effective_stat = defender.stats['special-defense'] * self.get_stat_modifier(
-                                defender.stat_boosts['special-defense']) * 1.5
-                        else:
-                            defensive_effective_stat = defender.stats['special-defense'] * self.get_stat_modifier(
-                                defender.stat_boosts['special-defense'])
-                else:
-                    offensive_effective_stat = attacker.stats['special-attack'] * self.get_stat_modifier(
-                        attacker.stat_boosts['special-attack'])
-                    if self.weather == 'sandstorm' and 'rock' in defender.types:
-                        defensive_effective_stat = defender.stats['special-defense'] * self.get_stat_modifier(
-                            defender.stat_boosts['special-defense']) * 1.5
-                    else:
-                        defensive_effective_stat = defender.stats['special-defense'] * self.get_stat_modifier(
-                            defender.stat_boosts['special-defense'])
+        def get_offensive_stat(base_stat: float, boost: PokemonStatBoostStage) -> float:
+            """Returns the effective offensive stat, considering critical hit mechanics."""
+            if is_critical_hit and boost < 0:
+                return base_stat
+            return base_stat * self.get_stat_modifier(boost)
 
-        return offensive_effective_stat, defensive_effective_stat
-    
+        def get_defensive_stat(base_stat: float, boost: PokemonStatBoostStage, weather: WeatherType, affected_type: PokemonType) -> float:
+            """Returns the effective defensive stat, considering weather conditions and critical hit mechanics."""
+            base = base_stat if (is_critical_hit and boost >
+                                 0) else base_stat * self.get_stat_modifier(boost)
+            if weather == self.weather and affected_type in defender.types:
+                return base * 1.5
+            return base
+
+        match move.damage_class:
+            case  'physical':
+                offensive_stat = get_offensive_stat(
+                    attacker.stats['attack'], attacker.stat_boosts['attack'])
+                defensive_stat = get_defensive_stat(
+                    defender.stats['defense'], defender.stat_boosts['defense'], 'snow', 'ice')
+            case 'special':
+                offensive_stat = get_offensive_stat(
+                    attacker.stats['special-attack'], attacker.stat_boosts['special-attack'])
+                defensive_stat = get_defensive_stat(
+                    defender.stats['special-defense'], defender.stat_boosts['special-defense'], 'sandstorm', 'rock')
+            case _:
+                return 0, 0  # Fallback case if an unknown damage class is encountered
+
+        return offensive_stat, defensive_stat
+
     def get_weather_modifier(self, move: PokemonMove) -> float:
         match self.weather:
             case 'rain':
@@ -242,7 +210,6 @@ class BattleEnv(gym.Env):
                     return 1
             case _:
                 return 1
-                
 
 
 if __name__ == "__main__":
