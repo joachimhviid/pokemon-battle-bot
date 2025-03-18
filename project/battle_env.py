@@ -30,7 +30,8 @@ BattleEffect = Union[TerrainType, WeatherType, FieldType]
 
 
 class BattleEnv(gym.Env):
-    turn_count = 0
+    turn_counter: int = 0
+    turn_events: dict[int, list[str]] = {}
 
     player_1_team: list[Pokemon]
     player_2_team: list[Pokemon]
@@ -93,20 +94,21 @@ class BattleEnv(gym.Env):
 
     def _get_info(self):
         return {
-            'turn_number': self.turn_count,
-            'events': '',  # Each players action and outcomes for the turn
+            'turn_number': self.turn_counter,
+            'events': self.turn_events[self.turn_counter],  # Each players action and outcomes for the turn
         }
 
     def execute_move(self, move: PokemonMove, attacker: Pokemon, target: Pokemon):
-        print(f'{attacker.name} used {move.name} on {target.name}')
+        self._log_event(f'{attacker.name} used {move.name} on {target.name}')
         move.current_pp = move.current_pp - 1
         inflicted_damage: int = 0
         restored_health: int = 0
         if not self.is_hit(move, attacker, target):
-            print(f'{target.name} avoided the attack')
+            self._log_event(f'{target.name} avoided the attack')
             return
         match move.category:
             case 'ailment':
+                # TODO: handle known durations such as sleep
                 if move.ailment_is_volatile():
                     target.volatile_status_condition.update({
                         move.ailment_type: -1 if move.duration['min'] == None
@@ -119,10 +121,10 @@ class BattleEnv(gym.Env):
                     }
             case 'damage':
                 inflicted_damage = self.calculate_damage(move, attacker, target)
-                print(f'{target.name} took {inflicted_damage} damage')
+                self._log_event(f'{target.name} took {inflicted_damage} damage')
             case 'damage+ailment':
                 inflicted_damage = self.calculate_damage(move, attacker, target)
-                print(f'{target.name} took {inflicted_damage} damage')
+                self._log_event(f'{target.name} took {inflicted_damage} damage')
                 if random.randint(1, 100) <= move.ailment_chance:
                     if move.ailment_is_volatile():
                         target.volatile_status_condition.update({
@@ -152,21 +154,21 @@ class BattleEnv(gym.Env):
                 self.boost_stat(move, target)
             case 'damage+lower':
                 inflicted_damage = self.calculate_damage(move, attacker, target)
-                print(f'{target.name} took {inflicted_damage} damage')
+                self._log_event(f'{target.name} took {inflicted_damage} damage')
                 if random.randint(1, 100) <= move.stat_chance:
                     self.boost_stat(move, target)
             case 'damage+raise':
                 inflicted_damage = self.calculate_damage(move, attacker, target)
-                print(f'{target.name} took {inflicted_damage} damage')
+                self._log_event(f'{target.name} took {inflicted_damage} damage')
                 if random.randint(1, 100) <= move.stat_chance:
                     self.boost_stat(move, attacker)
             case 'damage+heal':
                 inflicted_damage = self.calculate_damage(move, attacker, target)
-                print(f'{target.name} took {inflicted_damage} damage')
+                self._log_event(f'{target.name} took {inflicted_damage} damage')
                 restored_health = math.floor(inflicted_damage * (move.drain / 100))
             case 'ohko':
                 inflicted_damage = target.current_hp
-                print("It's a one-hit KO!")
+                self._log_event("It's a one-hit KO!")
             case 'whole-field-effect':
                 raise NotImplementedError("Whole-field-effect moves are not supported yet.")
             case 'field-effect':
@@ -179,13 +181,13 @@ class BattleEnv(gym.Env):
         target.current_hp = target.current_hp - inflicted_damage
         attacker.current_hp = min(attacker.current_hp + restored_health, attacker.stats['hp'])
         if target.is_fainted():
-            print(f'{target.name} fainted')
+            self._log_event(f'{target.name} fainted')
 
     def boost_stat(self, move: PokemonMove, target: Pokemon):
         for stat_change in move.stat_changes:
             for stat, change in stat_change.items():
                 target.stat_boosts[stat] = max(-6, min(6, target.stat_boosts[stat] + change))
-                print(f"{target.name}'s {stat} changed by {change} stages")
+                self._log_event(f"{target.name}'s {stat} changed by {change} stages")
 
     def is_hit(self, move: PokemonMove, attacker: Pokemon, defender: Pokemon) -> bool:
         if move.accuracy == None:
@@ -344,6 +346,9 @@ class BattleEnv(gym.Env):
                 else:
                     return 1
             return 1
+        
+    def _log_event(self, event: str):
+        self.turn_events[self.turn_counter].append(event)
 
 
 if __name__ == "__main__":
