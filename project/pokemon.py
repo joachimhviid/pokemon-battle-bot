@@ -25,8 +25,10 @@ MoveCategory = Literal[
 MoveAilment = Literal[
     'unknown', 'none', 'paralysis', 'sleep', 'freeze', 'burn', 'poison', 'confusion', 'infatuation', 'trap', 'nightmare', 'torment', 'disable', 'yawn', 'heal-block', 'no-type-immunity', 'leech-seed', 'embargo', 'perish-song', 'ingrain'
 ]
-NonVolatileStatusCondition = Literal['none', 'paralysis',
+NonVolatileStatusCondition = Literal['paralysis',
                                      'sleep', 'freeze', 'burn', 'poison', 'bad-poison']
+VolatileStatusCondition = Literal['confusion', 'infatuation', 'trap', 'nightmare', 'torment', 'disable',
+                                  'yawn', 'heal-block', 'no-type-immunity', 'leech-seed', 'embargo', 'perish-song', 'ingrain']
 
 pokemon_natures: PokemonNature = {
     'hardy': {},
@@ -102,7 +104,10 @@ class PokemonMove:
         self.category = move['meta']['category']['name']
         self.ailment_type = move['meta']['ailment']['name']
         self.ailment_chance = move['meta']['ailment_chance']
-        self.stat_changes = move['stat_changes']
+        self.stat_changes = [
+            {change['stat']['name']: change['change']}
+            for change in move['stat_changes']
+        ]
         self.stat_chance = move['meta']['stat_chance']
         self.hits['max'] = move['meta']['max_hits']
         self.hits['min'] = move['meta']['min_hits']
@@ -112,6 +117,9 @@ class PokemonMove:
         self.flinch_chance = move['meta']['flinch_chance']
         self.drain = move['meta']['drain']
         self.crit_rate = move['meta']['crit_rate']
+        
+    def ailment_is_volatile(self) -> bool:
+        return self.ailment_type in VolatileStatusCondition.__args__
 
 
 class Pokemon:
@@ -136,7 +144,11 @@ class Pokemon:
         'accuracy': 0,
         'evasion': 0
     }
-    non_volatile_status_condition: NonVolatileStatusCondition = 'none'
+    non_volatile_status_condition: dict[NonVolatileStatusCondition, int] = {}
+    volatile_status_condition: dict[VolatileStatusCondition, int] = {}
+
+    # Pokemons action is cancelled (full paralysis, freeze, flinch, etc)
+    incapacitated: bool = False
 
     def __init__(self, pokemon_data):
         self.name = pokemon_data['name']
@@ -188,6 +200,9 @@ class Pokemon:
         self.current_hp = self.stats['hp']
         for move in self.moves:
             move.current_pp = move.pp
+
+    def is_fainted(self) -> bool:
+        return self.current_hp <= 0
 
 
 if __name__ == "__main__":
