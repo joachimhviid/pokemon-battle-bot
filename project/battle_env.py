@@ -26,7 +26,6 @@ FieldType = Literal[
     'crafty-shield',
     'aurora-veil'
 ]
-BattleEffect = Union[TerrainType, WeatherType, FieldType]
 
 
 class BattleEnv(gym.Env):
@@ -38,9 +37,116 @@ class BattleEnv(gym.Env):
     player_1_active_pokemon: Pokemon
     player_2_active_pokemon: Pokemon
 
-    terrain: TerrainType | None = None
-    weather: WeatherType | None = None
-    battle_effects: dict[BattleEffect, int] = {}
+    field_effects = {
+        "weather": {
+            "name": "none",
+            "duration": 0,
+        },
+        "terrain": {
+            "name": "grassy",
+            "duration": 0,
+        },
+        # "gravity": {
+        #     "duration": 0,
+        # },
+        # "auras": ['fairy-aura', 'dark-aura', 'beads-of-ruin'],
+        "rooms": [
+            {
+                "name": "wonder-room",
+                "duration": 0,
+            },
+            {
+                "name": "magic-room",
+                "duration": 0,
+            },
+            {
+                "name": "trick-room",
+                "duration": 0,
+            },
+        ],
+    }
+
+    player_1_field_effects = {
+        "hazards": [
+            {
+                "name": "spikes",
+                "layers": 0,
+            },
+            {
+                "name": "toxic-spikes",
+                "layers": 0,
+            },
+            {
+                "name": "stealth-rocks",
+                "layers": 0,
+            },
+        ],
+        "barriers": [
+            {
+                "name": "reflect",
+                "duration": 0,
+            },
+            {
+                "name": "light-screen",
+                "duration": 0,
+            },
+            {
+                "name": "aurora-veil",
+                "duration": 0,
+            },
+            {
+                "name": "protect",
+                "duration": 0,
+            }
+        ],
+        "supports": [
+            {
+                "name": "tailwind",
+                "duration": 0,
+            },
+        ],
+    }
+
+    player_2_field_effects = {
+        "hazards": [
+            {
+                "name": "spikes",
+                "layers": 0,
+            },
+            {
+                "name": "toxic-spikes",
+                "layers": 0,
+            },
+            {
+                "name": "stealth-rocks",
+                "layers": 0,
+            },
+        ],
+        "barriers": [
+            {
+                "name": "reflect",
+                "duration": 0,
+            },
+            {
+                "name": "light-screen",
+                "duration": 0,
+            },
+            {
+                "name": "aurora-veil",
+                "duration": 0,
+            },
+            {
+                "name": "protect",
+                "duration": 0,
+            }
+        ],
+        "supports": [
+            {
+                "name": "tailwind",
+                "duration": 0,
+            },
+        ],
+    }
 
     def __init__(self, player_1_team: list[Pokemon], player_2_team: list[Pokemon]):
         # TODO: set action space to game mechanics (fight: dict of moves, switch: dict of team members)
@@ -221,7 +327,7 @@ class BattleEnv(gym.Env):
         elif type_modifier > 1:
             print("It's super effective")
         burn_modifier = 0.5 if move.damage_class == 'physical' and attacker.non_volatile_status_condition == 'burn' and attacker.ability != 'guts' and move.name != 'facade' else 1
-        # Item boosts etc (eg choice band)
+        # Item, ability, aura boosts etc (eg choice band)
         other_modifier = 1
 
         return int(math.floor(((((2 * attacker.level) / 5) * move.power * (offensive_effective_stat / defensive_effective_stat)) / 50) + 2) * targets_modifier * weather_modifier * (1.5 if is_critical_hit else 1) * random_modifier * stab_modifier * type_modifier * burn_modifier * other_modifier)
@@ -309,7 +415,7 @@ class BattleEnv(gym.Env):
             """Returns the effective defensive stat, considering weather conditions and critical hit mechanics."""
             base = base_stat if (is_critical_hit and boost >
                                  0) else base_stat * self.get_stat_modifier(boost)
-            if weather == self.weather and affected_type in defender.types:
+            if weather == self.field_effects['weather']['name'] and self.field_effects['weather']['duration'] != 0 and affected_type in defender.types:
                 return base * 1.5
             return base
 
@@ -330,35 +436,23 @@ class BattleEnv(gym.Env):
         return offensive_stat, defensive_stat
 
     def get_weather_modifier(self, move: PokemonMove) -> float:
-        # TODO: is_grounded check for terrains. We should also make sure this is the correct modifier for terrain buffs
-        for effect in self.battle_effects.keys():
-            match effect:
-                case 'rain':
-                    if move.type == 'water':
-                        return 1.5
-                    elif move.type == 'fire':
-                        return 0.5
-                case 'sunshine':
-                    if move.type == 'fire':
-                        return 1.5
-                    elif move.type == 'water':
-                        return 0.5
-                case 'electric-terrain':
-                    if move.type == 'electric':
-                        return 1.3
-                case 'grassy-terrain':
-                    if move.type == 'grass':
-                        return 1.3
-                case 'misty-terrain':
-                    if move.type == 'dragon':
-                        return 0.5
-                case 'psychic-terrain':
-                    if move.type == 'psychic':
-                        return 1.3
-                case _:
-                    return 1
+        # If duration is 0 there is no weather up
+        if self.field_effects['weather']['duration'] == 0:
             return 1
-        
+        match self.field_effects['weather']['name']:
+            case 'rain':
+                if move.type == 'water':
+                    return 1.5
+                elif move.type == 'fire':
+                    return 0.5
+            case 'sunshine':
+                if move.type == 'fire':
+                    return 1.5
+                elif move.type == 'water':
+                    return 0.5
+            case _:
+                return 1
+
     def _log_event(self, event: str):
         self.turn_events[self.turn_counter].append(event)
 
