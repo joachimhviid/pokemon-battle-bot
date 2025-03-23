@@ -5,27 +5,7 @@ import random
 
 from pokemon import Pokemon, PokemonMove, PokemonStatBoostStage, PokemonType
 from pokemon_parser import parse_team
-
-TerrainType = Literal['grassy-terrain',
-                      'electric-terrain', 'misty-terrain', 'psychic-terrain']
-WeatherType = Literal['sunshine', 'rain', 'snow', 'sandstorm']
-FieldType = Literal[
-    'mist',
-    'light-screen',
-    'reflect',
-    'spikes',
-    'safeguard',
-    'tailwind',
-    'lucky-chant',
-    'toxic-spikes',
-    'stealth-rock',
-    'wide-guard',
-    'quick-guard',
-    'mat-block',
-    'sticky-web',
-    'crafty-shield',
-    'aurora-veil'
-]
+from battle_effects_manager import WeatherType
 
 base_player_field_effects = {
     "hazards": [
@@ -259,7 +239,7 @@ class BattleEnv(gym.Env):
                 self._log_event(f"{target.name}'s {stat} changed by {change} stages")
 
     def is_hit(self, move: PokemonMove, attacker: Pokemon, defender: Pokemon) -> bool:
-        if move.accuracy == None:
+        if move.accuracy is None:
             return True
         # Protect logic here?
         attacker_accuracy = self.get_stat_modifier(
@@ -270,30 +250,31 @@ class BattleEnv(gym.Env):
         to_hit_threshold = random.randint(1, 100)
         return accuracy_threshold > to_hit_threshold
 
-    def calculate_damage(self, move: PokemonMove, attacker: Pokemon, defender: Pokemon) -> int:
+    def calculate_damage(self, move: PokemonMove, attacker: Pokemon, defender: Pokemon, random_modifier: float) -> int:
         """https://bulbapedia.bulbagarden.net/wiki/Damage#Generation_V_onward"""
         stab_modifier = 2 if move.type in attacker.types and attacker.ability == 'adaptability' else 1.5 if move.type in attacker.types else 1
         is_critical_hit = self.is_critical_hit(move, attacker)
         if is_critical_hit:
-            print("It's a critical hit!")
+            self._log_event("It's a critical hit!")
         offensive_effective_stat, defensive_effective_stat = self.get_effective_stats(
             attacker=attacker, defender=defender, move=move, is_critical_hit=is_critical_hit)
         # We only model 1v1 battles so this will always be 1
         targets_modifier = 1
         weather_modifier = self.get_weather_modifier(move)
-        random_modifier = random.randint(85, 100) / 100
+        # random_modifier = random.randint(85, 101) / 100
         type_modifier = self.get_type_effectiveness(move, defender)
+        # print(random_modifier)
         if type_modifier == 0:
-            print("It didn't effect the opposing Pokemon")
+            self._log_event("It didn't effect the opposing Pokemon")
         elif type_modifier < 1:
-            print("It's not very effective")
+            self._log_event("It's not very effective")
         elif type_modifier > 1:
-            print("It's super effective")
+            self._log_event("It's super effective")
         burn_modifier = 0.5 if move.damage_class == 'physical' and attacker.non_volatile_status_condition == 'burn' and attacker.ability != 'guts' and move.name != 'facade' else 1
         # Item, ability, aura boosts etc (eg choice band)
         other_modifier = 1
+        return int(math.floor((((((2 * attacker.level) / 5) + 2) * move.power * (offensive_effective_stat / defensive_effective_stat)) / 50) + 2) * targets_modifier * weather_modifier * (1.5 if is_critical_hit else 1) * random_modifier * stab_modifier * type_modifier * burn_modifier * other_modifier)
 
-        return int(math.floor(((((2 * attacker.level) / 5) * move.power * (offensive_effective_stat / defensive_effective_stat)) / 50) + 2) * targets_modifier * weather_modifier * (1.5 if is_critical_hit else 1) * random_modifier * stab_modifier * type_modifier * burn_modifier * other_modifier)
 
     def is_critical_hit(self, move: PokemonMove, attacker: Pokemon) -> bool:
         match attacker.crit_stage + move.crit_rate:
@@ -401,7 +382,7 @@ class BattleEnv(gym.Env):
     def get_weather_modifier(self, move: PokemonMove) -> float:
         # If duration is 0 there is no weather up
         if self.field_effects['weather']['duration'] == 0:
-            return 1
+            return 1.0
         match self.field_effects['weather']['name']:
             case 'rain':
                 if move.type == 'water':
@@ -414,10 +395,13 @@ class BattleEnv(gym.Env):
                 elif move.type == 'water':
                     return 0.5
             case _:
-                return 1
+                return 1.0
+        return 1.0
 
-    def _log_event(self, event: str):
-        self.turn_events[self.turn_counter].append(event)
+    def _log_event(self, battle_event: str):
+        if self.turn_counter not in self.turn_events:
+            self.turn_events[self.turn_counter] = []
+        self.turn_events[self.turn_counter].append(battle_event)
 
 
 if __name__ == "__main__":
@@ -426,8 +410,8 @@ if __name__ == "__main__":
     env = BattleEnv(team_1, team_2)
     print(f'Team 1 first pokemon {env.player_1_active_pokemon.name}')
     print(f'Team 2 first pokemon {env.player_2_active_pokemon.name}')
-    env.execute_move(
-        env.player_1_active_pokemon.moves[2], env.player_1_active_pokemon, env.player_1_active_pokemon)
-    # for i in range(10):
-    #     print(f'{env.player_1_active_pokemon.name} uses {env.player_1_active_pokemon.moves[3].name} on {env.player_2_active_pokemon.name} dealing {env.calculate_damage(
-    #         env.player_1_active_pokemon.moves[3], env.player_1_active_pokemon, env.player_2_active_pokemon)} damage')
+    for i in range(10):
+        env.execute_move(
+            env.player_1_active_pokemon.moves[3], env.player_1_active_pokemon, env.player_2_active_pokemon)
+    for event in env.turn_events[0]:
+        print(event)
