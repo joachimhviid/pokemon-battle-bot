@@ -27,6 +27,46 @@ FieldType = Literal[
     'aurora-veil'
 ]
 
+base_player_field_effects = {
+    "hazards": [
+        {
+            "name": "spikes",
+            "layers": 0,
+        },
+        {
+            "name": "toxic-spikes",
+            "layers": 0,
+        },
+        {
+            "name": "stealth-rocks",
+            "layers": 0,
+        },
+    ],
+    "barriers": [
+        {
+            "name": "reflect",
+            "duration": 0,
+        },
+        {
+            "name": "light-screen",
+            "duration": 0,
+        },
+        {
+            "name": "aurora-veil",
+            "duration": 0,
+        },
+        {
+            "name": "protect",
+            "duration": 0,
+        }
+    ],
+    "supports": [
+        {
+            "name": "tailwind",
+            "duration": 0,
+        },
+    ],
+}
 
 class BattleEnv(gym.Env):
     turn_counter: int = 0
@@ -66,87 +106,8 @@ class BattleEnv(gym.Env):
         ],
     }
 
-    player_1_field_effects = {
-        "hazards": [
-            {
-                "name": "spikes",
-                "layers": 0,
-            },
-            {
-                "name": "toxic-spikes",
-                "layers": 0,
-            },
-            {
-                "name": "stealth-rocks",
-                "layers": 0,
-            },
-        ],
-        "barriers": [
-            {
-                "name": "reflect",
-                "duration": 0,
-            },
-            {
-                "name": "light-screen",
-                "duration": 0,
-            },
-            {
-                "name": "aurora-veil",
-                "duration": 0,
-            },
-            {
-                "name": "protect",
-                "duration": 0,
-            }
-        ],
-        "supports": [
-            {
-                "name": "tailwind",
-                "duration": 0,
-            },
-        ],
-    }
-
-    player_2_field_effects = {
-        "hazards": [
-            {
-                "name": "spikes",
-                "layers": 0,
-            },
-            {
-                "name": "toxic-spikes",
-                "layers": 0,
-            },
-            {
-                "name": "stealth-rocks",
-                "layers": 0,
-            },
-        ],
-        "barriers": [
-            {
-                "name": "reflect",
-                "duration": 0,
-            },
-            {
-                "name": "light-screen",
-                "duration": 0,
-            },
-            {
-                "name": "aurora-veil",
-                "duration": 0,
-            },
-            {
-                "name": "protect",
-                "duration": 0,
-            }
-        ],
-        "supports": [
-            {
-                "name": "tailwind",
-                "duration": 0,
-            },
-        ],
-    }
+    player_1_field_effects = base_player_field_effects
+    player_2_field_effects = base_player_field_effects
 
     def __init__(self, player_1_team: list[Pokemon], player_2_team: list[Pokemon]):
         # TODO: set action space to game mechanics (fight: dict of moves, switch: dict of team members)
@@ -216,15 +177,17 @@ class BattleEnv(gym.Env):
             case 'ailment':
                 # TODO: handle known durations such as sleep
                 if move.ailment_is_volatile():
-                    target.volatile_status_condition.update({
-                        move.ailment_type: -1 if move.duration['min'] == None
-                        else random.randint(move.duration['min'], move.duration['max'])
-                    })
+                    target.apply_volatile_status(move.ailment_type)
+                    # target.volatile_status_condition.update({
+                    #     move.ailment_type: -1 if move.duration['min'] == None
+                    #     else random.randint(move.duration['min'], move.duration['max'])
+                    # })
                 elif len(target.non_volatile_status_condition.keys()) == 0:
-                    target.non_volatile_status_condition = {
-                        move.ailment_type: -1 if move.duration['min'] == None
-                        else random.randint(move.duration['min'], move.duration['max'])
-                    }
+                    # target.non_volatile_status_condition = {
+                    #     move.ailment_type: -1 if move.duration['min'] == None
+                    #     else random.randint(move.duration['min'], move.duration['max'])
+                    # }
+                    target.apply_non_volatile_status(move.ailment_type)
             case 'damage':
                 inflicted_damage = self.calculate_damage(move, attacker, target)
                 self._log_event(f'{target.name} took {inflicted_damage} damage')

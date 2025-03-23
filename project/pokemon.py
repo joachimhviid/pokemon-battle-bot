@@ -1,3 +1,4 @@
+import random
 from typing import Literal
 import math
 
@@ -203,6 +204,20 @@ class Pokemon:
 
     def is_fainted(self) -> bool:
         return self.current_hp <= 0
+    
+    def apply_non_volatile_status(self, status: NonVolatileStatusCondition):
+        match status:
+            case 'sleep':
+                self.non_volatile_status_condition[status] = random.randint(1, 3)
+                
+                
+    def apply_volatile_status(self, status: VolatileStatusCondition):
+        match status:
+            case 'confusion':
+                self.volatile_status_condition[status] = random.randint(2, 5)
+            case 'leech-seed':
+                self.volatile_status_condition[status] = random.randint(2, 5)
+        
 
 
 if __name__ == "__main__":
