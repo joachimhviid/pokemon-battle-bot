@@ -1,93 +1,22 @@
-from typing import Literal, Union
 import gymnasium as gym
 import math
 import random
 
 from pokemon import Pokemon, PokemonMove, PokemonStatBoostStage, PokemonType
 from pokemon_parser import parse_team
-from battle_effects_manager import WeatherType
+from battle_effects_manager import BattleEffectsManager, WeatherType
 
-base_player_field_effects = {
-    "hazards": [
-        {
-            "name": "spikes",
-            "layers": 0,
-        },
-        {
-            "name": "toxic-spikes",
-            "layers": 0,
-        },
-        {
-            "name": "stealth-rocks",
-            "layers": 0,
-        },
-    ],
-    "barriers": [
-        {
-            "name": "reflect",
-            "duration": 0,
-        },
-        {
-            "name": "light-screen",
-            "duration": 0,
-        },
-        {
-            "name": "aurora-veil",
-            "duration": 0,
-        },
-        {
-            "name": "protect",
-            "duration": 0,
-        }
-    ],
-    "supports": [
-        {
-            "name": "tailwind",
-            "duration": 0,
-        },
-    ],
-}
 
 class BattleEnv(gym.Env):
     turn_counter: int = 0
     turn_events: dict[int, list[str]] = {}
 
+    battle_effects_manager: BattleEffectsManager
+
     player_1_team: list[Pokemon]
     player_2_team: list[Pokemon]
     player_1_active_pokemon: Pokemon
     player_2_active_pokemon: Pokemon
-
-    field_effects = {
-        "weather": {
-            "name": "none",
-            "duration": 0,
-        },
-        "terrain": {
-            "name": "grassy",
-            "duration": 0,
-        },
-        # "gravity": {
-        #     "duration": 0,
-        # },
-        # "auras": ['fairy-aura', 'dark-aura', 'beads-of-ruin'],
-        "rooms": [
-            {
-                "name": "wonder-room",
-                "duration": 0,
-            },
-            {
-                "name": "magic-room",
-                "duration": 0,
-            },
-            {
-                "name": "trick-room",
-                "duration": 0,
-            },
-        ],
-    }
-
-    player_1_field_effects = base_player_field_effects
-    player_2_field_effects = base_player_field_effects
 
     def __init__(self, player_1_team: list[Pokemon], player_2_team: list[Pokemon]):
         # TODO: set action space to game mechanics (fight: dict of moves, switch: dict of team members)
@@ -98,6 +27,7 @@ class BattleEnv(gym.Env):
         self.player_1_active_pokemon = player_1_team[0]
         self.player_2_team = player_2_team
         self.player_2_active_pokemon = player_2_team[0]
+        self.battle_effects_manager = BattleEffectsManager()
 
     def step(self, action: str):
         # Get action from dict based on arg
@@ -158,15 +88,7 @@ class BattleEnv(gym.Env):
                 # TODO: handle known durations such as sleep
                 if move.ailment_is_volatile():
                     target.apply_volatile_status(move.ailment_type)
-                    # target.volatile_status_condition.update({
-                    #     move.ailment_type: -1 if move.duration['min'] == None
-                    #     else random.randint(move.duration['min'], move.duration['max'])
-                    # })
                 elif len(target.non_volatile_status_condition.keys()) == 0:
-                    # target.non_volatile_status_condition = {
-                    #     move.ailment_type: -1 if move.duration['min'] == None
-                    #     else random.randint(move.duration['min'], move.duration['max'])
-                    # }
                     target.apply_non_volatile_status(move.ailment_type)
             case 'damage':
                 inflicted_damage = self.calculate_damage(move, attacker, target)
@@ -275,7 +197,6 @@ class BattleEnv(gym.Env):
         other_modifier = 1
         return int(math.floor((((((2 * attacker.level) / 5) + 2) * move.power * (offensive_effective_stat / defensive_effective_stat)) / 50) + 2) * targets_modifier * weather_modifier * (1.5 if is_critical_hit else 1) * random_modifier * stab_modifier * type_modifier * burn_modifier * other_modifier)
 
-
     def is_critical_hit(self, move: PokemonMove, attacker: Pokemon) -> bool:
         match attacker.crit_stage + move.crit_rate:
             case 0:
@@ -359,7 +280,7 @@ class BattleEnv(gym.Env):
             """Returns the effective defensive stat, considering weather conditions and critical hit mechanics."""
             base = base_stat if (is_critical_hit and boost >
                                  0) else base_stat * self.get_stat_modifier(boost)
-            if weather == self.field_effects['weather']['name'] and self.field_effects['weather']['duration'] != 0 and affected_type in defender.types:
+            if self.battle_effects_manager.weather is not None and weather == self.battle_effects_manager.weather['name'] and affected_type in defender.types:
                 return base * 1.5
             return base
 
@@ -380,10 +301,9 @@ class BattleEnv(gym.Env):
         return offensive_stat, defensive_stat
 
     def get_weather_modifier(self, move: PokemonMove) -> float:
-        # If duration is 0 there is no weather up
-        if self.field_effects['weather']['duration'] == 0:
+        if self.battle_effects_manager.weather is None:
             return 1.0
-        match self.field_effects['weather']['name']:
+        match self.battle_effects_manager.weather['name']:
             case 'rain':
                 if move.type == 'water':
                     return 1.5

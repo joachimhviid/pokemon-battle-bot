@@ -28,8 +28,8 @@ MoveAilment = Literal[
 ]
 NonVolatileStatusCondition = Literal['paralysis',
                                      'sleep', 'freeze', 'burn', 'poison', 'bad-poison']
-VolatileStatusCondition = Literal['confusion', 'infatuation', 'trap', 'nightmare', 'torment', 'disable',
-                                  'yawn', 'heal-block', 'no-type-immunity', 'leech-seed', 'embargo', 'perish-song', 'ingrain']
+VolatileStatusCondition = Literal['confusion', 'infatuation', 'trap', 'torment', 'disable',
+                                  'yawn', 'leech-seed', 'ingrain', 'encore']
 
 pokemon_natures: PokemonNature = {
     'hardy': {},
@@ -118,7 +118,7 @@ class PokemonMove:
         self.flinch_chance = move['meta']['flinch_chance']
         self.drain = move['meta']['drain']
         self.crit_rate = move['meta']['crit_rate']
-        
+
     def ailment_is_volatile(self) -> bool:
         return self.ailment_type in VolatileStatusCondition.__args__
 
@@ -150,6 +150,7 @@ class Pokemon:
 
     # Pokemons action is cancelled (full paralysis, freeze, flinch, etc)
     incapacitated: bool = False
+    active: bool = False
 
     def __init__(self, pokemon_data):
         self.name = pokemon_data['name']
@@ -204,20 +205,45 @@ class Pokemon:
 
     def is_fainted(self) -> bool:
         return self.current_hp <= 0
-    
+
     def apply_non_volatile_status(self, status: NonVolatileStatusCondition):
         match status:
             case 'sleep':
                 self.non_volatile_status_condition[status] = random.randint(1, 3)
-                
-                
+            case 'poison' | 'bad-poison' | 'burn' | 'paralysis' | 'freeze':
+                self.non_volatile_status_condition[status] = -1
+
     def apply_volatile_status(self, status: VolatileStatusCondition):
         match status:
             case 'confusion':
                 self.volatile_status_condition[status] = random.randint(2, 5)
-            case 'leech-seed':
-                self.volatile_status_condition[status] = random.randint(2, 5)
+            case 'trap':
+                self.volatile_status_condition[status] = random.randint(4, 5)
+            case 'disable':
+                self.volatile_status_condition[status] = 4
+            case 'encore':
+                self.volatile_status_condition[status] = 3
+            case 'yawn':
+                self.volatile_status_condition[status] = 1
+            case 'leech-seed' | 'infatuation' | 'ingrain':
+                self.volatile_status_condition[status] = -1
+    
+    def on_switch_out(self):
+        self.volatile_status_condition.clear()
+        self.stat_boosts = {
+            'attack': 0,
+            'defense': 0,
+            'special-attack': 0,
+            'special-defense': 0,
+            'speed': 0,
+            'accuracy': 0,
+            'evasion': 0
+        }
+        self.crit_stage = 0
+        self.active = False
         
+    def on_switch_in(self):
+        self.active = True
 
 
 if __name__ == "__main__":
