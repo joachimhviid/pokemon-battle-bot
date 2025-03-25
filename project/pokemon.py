@@ -189,6 +189,12 @@ class Pokemon:
         self.current_hp = self.current_hp - damage
 
     def reset(self):
+        self.reset_boosts()
+        self.current_hp = self.stats['hp']
+        for move in self.moves:
+            move.current_pp = move.pp
+            
+    def reset_boosts(self):
         self.stat_boosts = {
             'attack': 0,
             'defense': 0,
@@ -199,9 +205,6 @@ class Pokemon:
             'evasion': 0
         }
         self.crit_stage = 0
-        self.current_hp = self.stats['hp']
-        for move in self.moves:
-            move.current_pp = move.pp
 
     def is_fainted(self) -> bool:
         return self.current_hp <= 0

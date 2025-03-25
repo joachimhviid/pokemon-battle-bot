@@ -4,7 +4,7 @@ import random
 
 from pokemon import Pokemon, PokemonMove, PokemonStatBoostStage, PokemonType
 from pokemon_parser import parse_team
-from battle_effects_manager import BattleEffectsManager, WeatherType
+from battle_effects_manager import BattleEffectsManager, Side, TerrainType, WeatherType
 
 
 class BattleEnv(gym.Env):
@@ -28,6 +28,9 @@ class BattleEnv(gym.Env):
         self.player_2_team = player_2_team
         self.player_2_active_pokemon = player_2_team[0]
         self.battle_effects_manager = BattleEffectsManager()
+        
+        self.player_1_active_pokemon.on_switch_in()
+        self.player_2_active_pokemon.on_switch_in()
 
     def step(self, action: str):
         # Get action from dict based on arg
@@ -141,9 +144,26 @@ class BattleEnv(gym.Env):
                 inflicted_damage = target.current_hp
                 self._log_event("It's a one-hit KO!")
             case 'whole-field-effect':
-                raise NotImplementedError("Whole-field-effect moves are not supported yet.")
+                if move.name == 'rain-dance':
+                    self.battle_effects_manager.set_weather('rain')
+                if move.name == 'sunny-day':
+                    self.battle_effects_manager.set_weather('sunshine')
+                if move.name in ['snowscape', 'chilly-reception']:
+                    self.battle_effects_manager.set_weather('snow')
+                if move.name == 'sandstorm':
+                    self.battle_effects_manager.set_weather('sandstorm')
+                if move.name in TerrainType.__args__:
+                    self.battle_effects_manager.set_terrain(move.name)
+                if move.name == 'haze':
+                    self.player_1_active_pokemon.reset_boosts()
+                    self.player_2_active_pokemon.reset_boosts()
             case 'field-effect':
-                raise NotImplementedError("Field-effect moves are not supported yet.")
+                if self.battle_effects_manager.is_field(move.name):
+                    self.battle_effects_manager.add_field_effect(move.name, self.get_pokemon_side(target))
+                if self.battle_effects_manager.is_barrier(move.name):
+                    self.battle_effects_manager.add_barrier(move.name, self.get_pokemon_side(target))
+                if self.battle_effects_manager.is_hazard(move.name):
+                    self.battle_effects_manager.add_hazard(move.name, self.get_pokemon_side(target))
             case 'force-switch':
                 raise NotImplementedError("Force-switch moves are not supported yet.")
             case 'unique':
@@ -153,6 +173,15 @@ class BattleEnv(gym.Env):
         attacker.current_hp = min(attacker.current_hp + restored_health, attacker.stats['hp'])
         if target.is_fainted():
             self._log_event(f'{target.name} fainted')
+            
+    def get_pokemon_side(self, pokemon: Pokemon) -> Side:
+        # I'll believe this works when I see it
+        if pokemon in self.player_1_team:
+            return 'player_1'
+        elif pokemon in self.player_2_team:
+            return 'player_2'
+        else:
+            raise ValueError("The given Pokemon does not belong to either team.")
 
     def boost_stat(self, move: PokemonMove, target: Pokemon):
         for stat_change in move.stat_changes:

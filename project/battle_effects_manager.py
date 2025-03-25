@@ -89,6 +89,15 @@ class BattleEffectsManager:
             else:
                 self.weather['duration'] = self.weather['duration'] - 1
 
+    def is_barrier(self, value: str) -> bool:
+        return value in BarrierType.__args__
+    
+    def is_field(self, value: str) -> bool:
+        return value in FieldType.__args__
+    
+    def is_hazard(self, value: str) -> bool:
+        return value in HazardType.__args__
+    
     def reset(self):
         self.weather = None
         self.terrain = None
