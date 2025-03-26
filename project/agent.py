@@ -157,10 +157,12 @@ def plot_training(rewards, win_rates, losses):
 
 
 if __name__ == "__main__":
-    
+
+    # To start the server REMEBMER to use: NODE pokemon-showdown start --no-security
+
     server_config = ServerConfiguration("ws://localhost:8000/showdown/websocket", None)
     opponent_config = AccountConfiguration("Random-Opponent", None)
-#    agent_config = AccountConfiguration("AgentRL", None)
+
         
     agent = PokemonAgent(server_configuration=server_config)
     opponent = RandomPlayer(server_configuration=server_config, account_configuration=opponent_config)
