@@ -80,6 +80,7 @@ class BattleEnv(gym.Env):
 
     def execute_move(self, move: PokemonMove, attacker: Pokemon, target: Pokemon):
         self._log_event(f'{attacker.name} used {move.name} on {target.name}')
+        # TODO: Handle incapacitation (flinch, full para, recharge, infatuation)
         move.current_pp = move.current_pp - 1
         inflicted_damage: int = 0
         restored_health: int = 0
@@ -169,6 +170,7 @@ class BattleEnv(gym.Env):
             case 'unique':
                 raise NotImplementedError("Unique moves are not supported yet.")
 
+        # TODO: handle flinches, recoil, two-turn moves, recharge moves
         target.current_hp = target.current_hp - inflicted_damage
         attacker.current_hp = min(attacker.current_hp + restored_health, attacker.stats['hp'])
         if target.is_fainted():
