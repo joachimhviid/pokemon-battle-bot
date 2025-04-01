@@ -132,6 +132,7 @@ class Pokemon:
     level: int
     stats: PokemonStats
     moves: list[PokemonMove]
+    selected_move: PokemonMove
     types: list[PokemonType]
     ability: str
     current_hp: int
@@ -150,6 +151,7 @@ class Pokemon:
 
     # Pokemons action is cancelled (full paralysis, freeze, flinch, etc)
     incapacitated: bool = False
+    protected: bool = False
     active: bool = False
 
     def __init__(self, pokemon_data):
@@ -163,6 +165,7 @@ class Pokemon:
             stat) for stat in self._base_stats}
         self.current_hp = self.stats['hp']
         self.moves = [PokemonMove(move) for move in pokemon_data['moves']]
+        self.selected_move = self.moves[0]
         self.ability = pokemon_data['ability']
         self.types = pokemon_data['types']
 
