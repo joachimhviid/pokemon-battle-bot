@@ -1,10 +1,17 @@
+from typing import Any
+
 import gymnasium as gym
 import math
 import random
 
-from pokemon import Pokemon, PokemonMove, PokemonStatBoostStage, PokemonType
+from pokemon import Pokemon, PokemonMove, PokemonStatKey, PokemonType
 from pokemon_parser import parse_team
-from battle_effects_manager import BattleEffectsManager, Side, TerrainType, WeatherType
+from battle_effects_manager import BattleEffectsManager
+from pokemon_types import Side, TerrainType, WeatherType
+from pokemon_utils import get_stat_modifier
+
+
+
 
 
 class BattleEnv(gym.Env):
@@ -33,16 +40,27 @@ class BattleEnv(gym.Env):
         self.player_2_active_pokemon.on_switch_in()
 
     def step(self, action: str):
+        # increment turn counter
+        self.turn_counter += 1
+        speed_sorted_pokemon = [self.player_1_active_pokemon, self.player_2_active_pokemon]
+        speed_sorted_pokemon.sort(key=lambda pkm: pkm.get_boosted_stat('speed'), reverse=True)
+        # increment status counter (increase toxic damage) (pokemon wake from sleep at the start of their turn)
+        # decrement duration? Can use this for toxic damage calculation
+        self.on_turn_start(speed_sorted_pokemon)
+
+        # select move before getting turn order
+        for pkm in self.get_turn_order():
+            print(f'{pkm.name} acts')
+            # execute move
+
+        # handle end of turn
+        self.on_turn_end(speed_sorted_pokemon)
+
         # Get action from dict based on arg
         # Apply action to environment (Execute move)
         # Determine if battle is over (terminated)
         # Truncate the environment if it is too slow?
         # Reward agent
-        print('step')
-        # select move before getting turn order
-        for pkm in self.get_turn_order():
-            print(f'{pkm.name} acts')
-            # execute move
         terminated = False
         truncated = False
         reward = 0
@@ -50,7 +68,21 @@ class BattleEnv(gym.Env):
         info = self._get_info()
         return observation, reward, terminated, truncated, info
 
-    def reset(self):
+    def on_turn_start(self, sorted_active_pokemon: list[Pokemon]):
+        for pkm in sorted_active_pokemon:
+            pkm.on_turn_start()
+
+    def on_turn_end(self, sorted_active_pokemon: list[Pokemon]):
+        # apply field effects (sandstorm chip, grassy terrain healing)
+        # decrement field effect counters (weather, terrain, etc)
+        # apply status effect (burn/poison damage)
+        # trigger items (leftovers)
+        for pkm in sorted_active_pokemon:
+            pkm.on_turn_end()
+        self.battle_effects_manager.on_turn_end()
+
+    def reset(self, seed: int | None = None, options: dict[str, Any] | None = None):
+        super().reset(seed=seed)
         # Reset the HP, status effects, stat boosts and restore all PP to Pokemon on each team.
         # Set active Pokemon back to first in list
         for pokemon in self.player_1_team:
@@ -60,7 +92,7 @@ class BattleEnv(gym.Env):
 
     def _get_obs(self):
         """
-        The state as seen by an agent. We assume standard competetive team sheet knowledge.
+        The state as seen by an agent. We assume standard competitive team sheet knowledge.
         - species info (types)
         - current HP
         - current status conditions
@@ -84,24 +116,25 @@ class BattleEnv(gym.Env):
 
     def get_turn_order(self) -> list[Pokemon]:
         active_pokemon = [self.player_1_active_pokemon, self.player_2_active_pokemon]
-        active_pokemon.sort(key=lambda p: (p.selected_move.priority, p.stats['speed']), reverse=True)
-        if active_pokemon[0].stats['speed'] == active_pokemon[1].stats['speed'] and active_pokemon[0].selected_move.priority == active_pokemon[1].selected_move.priority:
+        active_pokemon.sort(key=lambda pkm: (pkm.selected_move.priority, pkm.get_boosted_stat('speed')), reverse=True)
+        if active_pokemon[0].stats['speed'] == active_pokemon[1].stats['speed'] and active_pokemon[
+            0].selected_move.priority == active_pokemon[1].selected_move.priority:
             random.shuffle(active_pokemon)
         return active_pokemon
 
     def switch_pokemon(self, side: Side):
         match side:
             case 'player_1':
-                non_active = [p for p in self.player_1_team if
-                              p is not self.player_1_active_pokemon and not p.is_fainted()]
+                non_active = [pkm for pkm in self.player_1_team if
+                              pkm is not self.player_1_active_pokemon and not pkm.is_fainted()]
                 if non_active:
                     selected_pokemon = random.choice(non_active)
                     self.player_1_active_pokemon.on_switch_out()
                     self.player_1_active_pokemon = selected_pokemon
                     self.player_1_active_pokemon.on_switch_in()
             case 'player_2':
-                non_active = [p for p in self.player_2_team if
-                              p is not self.player_2_active_pokemon and not p.is_fainted()]
+                non_active = [pkm for pkm in self.player_2_team if
+                              pkm is not self.player_2_active_pokemon and not pkm.is_fainted()]
                 if non_active:
                     selected_pokemon = random.choice(non_active)
                     self.player_2_active_pokemon.on_switch_out()
@@ -117,15 +150,12 @@ class BattleEnv(gym.Env):
         if move.target in ['all-other-pokemon', 'random-opponent', 'selected-pokemon',
                            'all-opponents'] and target.protected:
             self._log_event(f'{target.name} protected itself')
-            # Maybe move this to an "End of turn" function
-            target.protected = False
             return
         if not self.is_hit(move, attacker, target):
             self._log_event(f'{target.name} avoided the attack')
             return
         match move.category:
             case 'ailment':
-                # TODO: handle known durations such as sleep
                 if move.ailment_is_volatile():
                     target.apply_volatile_status(move.ailment_type)
                 elif len(target.non_volatile_status_condition.keys()) == 0:
@@ -208,16 +238,16 @@ class BattleEnv(gym.Env):
                     target.protected = True
 
         # TODO: handle two-turn moves, recharge moves
-        target.current_hp = target.current_hp - inflicted_damage
-        attacker.current_hp = min(attacker.current_hp + restored_health, attacker.stats['hp'])
-        # FLinching
-        if random.randint(1, 100) <= move.flinch_chance and target.ability is not 'inner-focus':
+        target.take_damage(inflicted_damage)
+        attacker.restore_health(restored_health)
+        # Flinching
+        if random.randint(1, 100) <= move.flinch_chance and target.ability != 'inner-focus':
             target.incapacitated = True
         if target.is_fainted():
             self._log_event(f'{target.name} fainted')
         # Recoil
         if move.drain is not None and move.drain < 0:
-            attacker.current_hp = int(attacker.current_hp - (inflicted_damage * (move.drain / 100)))
+            attacker.take_damage(int(inflicted_damage * (move.drain / 100)))
             self._log_event(f'{attacker.name} was damaged by the recoil')
         if attacker.is_fainted():
             self._log_event(f'{attacker.name} fainted')
@@ -240,22 +270,20 @@ class BattleEnv(gym.Env):
     def is_hit(self, move: PokemonMove, attacker: Pokemon, defender: Pokemon) -> bool:
         if move.accuracy is None:
             return True
-        attacker_accuracy = self.get_stat_modifier(
-            attacker.stat_boosts['accuracy'])
-        defender_evasion = self.get_stat_modifier(
-            defender.stat_boosts['evasion'])
-        accuracy_threshold = move.accuracy * self.get_stat_modifier(attacker_accuracy - defender_evasion)
+        attacker_accuracy = get_stat_modifier(attacker.stat_boosts['accuracy'])
+        defender_evasion = get_stat_modifier(defender.stat_boosts['evasion'])
+        accuracy_threshold = move.accuracy * get_stat_modifier(attacker_accuracy - defender_evasion)
         to_hit_threshold = random.randint(1, 100)
         return accuracy_threshold > to_hit_threshold
 
     def calculate_damage(self, move: PokemonMove, attacker: Pokemon, defender: Pokemon, random_modifier: float) -> int:
         """https://bulbapedia.bulbagarden.net/wiki/Damage#Generation_V_onward"""
         stab_modifier = 2 if move.type in attacker.types and attacker.ability == 'adaptability' else 1.5 if move.type in attacker.types else 1
-        is_critical_hit = self.is_critical_hit(move, attacker)
-        if is_critical_hit:
+        is_crit = self.is_critical_hit(move, attacker)
+        if is_crit:
             self._log_event("It's a critical hit!")
         offensive_effective_stat, defensive_effective_stat = self.get_effective_stats(
-            attacker=attacker, defender=defender, move=move, is_critical_hit=is_critical_hit)
+            attacker=attacker, defender=defender, move=move, is_crit=is_crit)
         # We only model 1v1 battles so this will always be 1
         targets_modifier = 1
         weather_modifier = self.get_weather_modifier(move)
@@ -273,8 +301,38 @@ class BattleEnv(gym.Env):
         other_modifier = 1
         return int(math.floor((((((2 * attacker.level) / 5) + 2) * move.power * (
                 offensive_effective_stat / defensive_effective_stat)) / 50) + 2) * targets_modifier * weather_modifier * (
-                       1.5 if is_critical_hit else 1) * random_modifier * stab_modifier * type_modifier * burn_modifier * other_modifier)
+                       1.5 if is_crit else 1) * random_modifier * stab_modifier * type_modifier * burn_modifier * other_modifier)
 
+    def get_effective_stats(self, move: PokemonMove, attacker: Pokemon, defender: Pokemon, is_crit: bool) -> \
+            tuple[float, float]:
+        # TODO: Handle cases where effective stat differs from standard (eg Psyshock effective attacking stat is special but deals physical damage)
+        def get_offensive_stat(pkm: Pokemon, stat: PokemonStatKey) -> float:
+            """Returns the effective offensive stat, considering critical hit mechanics."""
+            if is_crit and pkm.stat_boosts[stat] < 0:
+                return pkm.stats[stat]
+            return pkm.get_boosted_stat(stat)
+
+        def get_defensive_stat(pkm: Pokemon, stat: PokemonStatKey, weather: WeatherType,
+                               affected_type: PokemonType) -> float:
+            """Returns the effective defensive stat, considering weather conditions and critical hit mechanics."""
+            base = pkm.stats[stat] if (is_crit and pkm.stat_boosts[stat] > 0) else pkm.get_boosted_stat(stat)
+            if self.battle_effects_manager.weather is not None and weather == self.battle_effects_manager.weather[
+                'name'] and affected_type in defender.types:
+                return base * 1.5
+            return base
+
+        match move.damage_class:
+            case 'physical':
+                offensive_stat = get_offensive_stat(attacker, 'attack')
+                defensive_stat = get_defensive_stat(defender, 'defense', 'snow', 'ice')
+            case 'special':
+                offensive_stat = get_offensive_stat(attacker, 'special-attack')
+                defensive_stat = get_defensive_stat(defender, 'special-defense', 'sandstorm', 'rock')
+            case _:
+                return 0, 0  # Fallback case if an unknown damage class is encountered
+
+        return offensive_stat, defensive_stat
+    
     def is_critical_hit(self, move: PokemonMove, attacker: Pokemon) -> bool:
         match attacker.crit_stage + move.crit_rate:
             case 0:
@@ -288,6 +346,7 @@ class BattleEnv(gym.Env):
             case _:
                 return True
 
+
     def get_type_effectiveness(self, attacking_move: PokemonMove, defender: Pokemon) -> float:
         effectiveness = 1.0
         type_chart = {
@@ -296,14 +355,14 @@ class BattleEnv(gym.Env):
             'water': {'fire': 2, 'water': 0.5, 'grass': 0.5, 'ground': 2, 'rock': 2, 'dragon': 0.5},
             'electric': {'water': 2, 'electric': 0.5, 'grass': 0.5, 'ground': 0, 'flying': 2, 'dragon': 0.5},
             'grass': {'fire': 0.5, 'water': 2, 'grass': 0.5, 'poison': 0.5, 'ground': 2, 'flying': 0.5, 'bug': 0.5,
-                      'rock': 2, 'dragon': 0.5, 'steel': 0.5},
+                    'rock': 2, 'dragon': 0.5, 'steel': 0.5},
             'ice': {'fire': 0.5, 'water': 0.5, 'grass': 2, 'ice': 0.5, 'ground': 2, 'flying': 2, 'dragon': 2,
                     'steel': 0.5},
             'fighting': {'normal': 2, 'ice': 2, 'poison': 0.5, 'flying': 0.5, 'psychic': 0.5, 'bug': 0.5, 'rock': 2,
-                         'ghost': 0, 'dark': 2, 'steel': 2, 'fairy': 0.5},
+                        'ghost': 0, 'dark': 2, 'steel': 2, 'fairy': 0.5},
             'poison': {'grass': 2, 'poison': 0.5, 'ground': 0.5, 'rock': 0.5, 'ghost': 0.5, 'steel': 0, 'fairy': 2},
             'ground': {'fire': 2, 'electric': 2, 'grass': 0.5, 'poison': 2, 'flying': 0, 'bug': 0.5, 'rock': 2,
-                       'steel': 2},
+                    'steel': 2},
             'flying': {'electric': 0.5, 'grass': 2, 'fighting': 2, 'bug': 2, 'rock': 0.5, 'steel': 0.5},
             'psychic': {'fighting': 2, 'poison': 2, 'psychic': 0.5, 'dark': 0, 'steel': 0.5},
             'bug': {'fire': 0.5, 'grass': 2, 'fighting': 0.5, 'poison': 0.5, 'flying': 0.5, 'psychic': 2, 'ghost': 0.5,
@@ -316,75 +375,8 @@ class BattleEnv(gym.Env):
             'fairy': {'fire': 0.5, 'fighting': 2, 'poison': 0.5, 'dragon': 2, 'dark': 2, 'steel': 0.5}
         }
         for defender_type in defender.types:
-            effectiveness *= type_chart.get(attacking_move.type,
-                                            {}).get(defender_type, 1)
+            effectiveness *= type_chart.get(attacking_move.type, {}).get(defender_type, 1)
         return effectiveness
-
-    def get_stat_modifier(self, stat_stage: PokemonStatBoostStage) -> float:
-        match stat_stage:
-            case 0:
-                return 2 / 2
-            case 1:
-                return 3 / 2
-            case 2:
-                return 4 / 2
-            case 3:
-                return 5 / 2
-            case 4:
-                return 6 / 2
-            case 5:
-                return 7 / 2
-            case 6:
-                return 8 / 2
-            case -1:
-                return 2 / 3
-            case -2:
-                return 2 / 4
-            case -3:
-                return 2 / 5
-            case -4:
-                return 2 / 6
-            case -5:
-                return 2 / 7
-            case -6:
-                return 2 / 8
-            case _:
-                return 1
-
-    def get_effective_stats(self, move: PokemonMove, attacker: Pokemon, defender: Pokemon, is_critical_hit: bool) -> \
-            tuple[float, float]:
-        # TODO: Handle cases where effective stat differs from standard (eg Psyshock effective attacking stat is special but deals physical damage)
-        def get_offensive_stat(base_stat: float, boost: PokemonStatBoostStage) -> float:
-            """Returns the effective offensive stat, considering critical hit mechanics."""
-            if is_critical_hit and boost < 0:
-                return base_stat
-            return base_stat * self.get_stat_modifier(boost)
-
-        def get_defensive_stat(base_stat: float, boost: PokemonStatBoostStage, weather: WeatherType,
-                               affected_type: PokemonType) -> float:
-            """Returns the effective defensive stat, considering weather conditions and critical hit mechanics."""
-            base = base_stat if (is_critical_hit and boost >
-                                 0) else base_stat * self.get_stat_modifier(boost)
-            if self.battle_effects_manager.weather is not None and weather == self.battle_effects_manager.weather[
-                'name'] and affected_type in defender.types:
-                return base * 1.5
-            return base
-
-        match move.damage_class:
-            case 'physical':
-                offensive_stat = get_offensive_stat(
-                    attacker.stats['attack'], attacker.stat_boosts['attack'])
-                defensive_stat = get_defensive_stat(
-                    defender.stats['defense'], defender.stat_boosts['defense'], 'snow', 'ice')
-            case 'special':
-                offensive_stat = get_offensive_stat(
-                    attacker.stats['special-attack'], attacker.stat_boosts['special-attack'])
-                defensive_stat = get_defensive_stat(
-                    defender.stats['special-defense'], defender.stat_boosts['special-defense'], 'sandstorm', 'rock')
-            case _:
-                return 0, 0  # Fallback case if an unknown damage class is encountered
-
-        return offensive_stat, defensive_stat
 
     def get_weather_modifier(self, move: PokemonMove) -> float:
         if self.battle_effects_manager.weather is None:
