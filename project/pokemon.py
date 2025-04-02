@@ -1,35 +1,9 @@
 import random
 from typing import Literal
 import math
+from pokemon_utils import get_stat_modifier
+from pokemon_types import PokemonNature, PokemonNatureKey, PokemonStatKey, PokemonType, DamageClass, MoveTarget, MoveCategory, MoveAilment, PokemonBoostStatKey, PokemonStatBoostStage, VolatileStatusCondition, NonVolatileStatusCondition, PokemonStats
 
-PokemonNatureKey = Literal[
-    'hardy', 'lonely', 'brave', 'adamant', 'naughty', 'bold', 'docile', 'relaxed', 'impish', 'lax', 'timid', 'hasty', 'serious', 'jolly', 'naive', 'modest', 'mild', 'quiet', 'bashful', 'rash', 'calm', 'gentle', 'sassy', 'careful', 'quirky']
-PokemonStatKey = Literal['hp', 'attack',
-                         'defense', 'special-attack', 'special-defense', 'speed']
-PokemonBoostStatKey = Literal['hp', 'attack',
-                              'defense', 'special-attack', 'special-defense', 'speed', 'accuracy', 'evasion']
-PokemonNatureModifier = Literal['UP', 'DOWN']
-PokemonStatBoostStage = Literal[-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
-PokemonStats = dict[PokemonStatKey, int]
-PokemonNature = dict[
-    PokemonNatureKey, dict[PokemonNatureModifier, PokemonStatKey]]
-PokemonType = Literal[
-    'normal', 'fire', 'water', 'electric', 'grass', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy']
-DamageClass = Literal['status', 'special', 'physical']
-MoveTarget = Literal['specific-move', 'selected-pokemon-me-first', 'ally', 'users-field', 'user-or-ally', 'opponents-field', 'user', 'random-opponent', 'all-other-pokemon'
-                     'selected-pokemon', 'all-opponents', 'entire-field', 'user-and-allies', 'all-pokemon', 'all-allies', 'fainting-pokemon']
-MoveCategory = Literal[
-    'damage', 'ailment', 'net-good-stats', 'heal', 'damage+ailment', 'swagger',
-    'damage+lower', 'damage+raise', 'damage+heal', 'ohko', 'whole-field-effect',
-    'field-effect', 'force-switch', 'unique'
-]
-MoveAilment = Literal[
-    'unknown', 'none', 'paralysis', 'sleep', 'freeze', 'burn', 'poison', 'confusion', 'infatuation', 'trap', 'nightmare', 'torment', 'disable', 'yawn', 'heal-block', 'no-type-immunity', 'leech-seed', 'embargo', 'perish-song', 'ingrain'
-]
-NonVolatileStatusCondition = Literal['paralysis',
-                                     'sleep', 'freeze', 'burn', 'poison', 'bad-poison']
-VolatileStatusCondition = Literal['confusion', 'infatuation', 'trap', 'torment', 'disable',
-                                  'yawn', 'leech-seed', 'ingrain', 'encore']
 
 pokemon_natures: PokemonNature = {
     'hardy': {},
@@ -132,7 +106,10 @@ class Pokemon:
     level: int
     stats: PokemonStats
     moves: list[PokemonMove]
+    # Used to determine turn order
     selected_move: PokemonMove
+    # Used to determine 2 turn moves, double protect, etc
+    previous_move: PokemonMove | None
     types: list[PokemonType]
     ability: str
     current_hp: int
@@ -148,6 +125,8 @@ class Pokemon:
     }
     non_volatile_status_condition: dict[NonVolatileStatusCondition, int] = {}
     volatile_status_condition: dict[VolatileStatusCondition, int] = {}
+
+    held_item: str | None
 
     # Pokemons action is cancelled (full paralysis, freeze, flinch, etc)
     incapacitated: bool = False
@@ -168,6 +147,7 @@ class Pokemon:
         self.selected_move = self.moves[0]
         self.ability = pokemon_data['ability']
         self.types = pokemon_data['types']
+        self.held_item = pokemon_data['held_item']
 
     def get_nature_modifier(self, stat: PokemonStatKey) -> float:
         if pokemon_natures.get(self._nature).get('UP') == stat:
@@ -189,14 +169,17 @@ class Pokemon:
         return math.floor((((2 * stat_value + iv_value + ev_value // 4) * self.level // 100) + 5) * nature_modifier)
 
     def take_damage(self, damage: int):
-        self.current_hp = self.current_hp - damage
+        self.current_hp -= damage
+        
+    def restore_health(self, healing: int):
+        self.current_hp = min(self.current_hp + healing, self.stats['hp'])
 
     def reset(self):
         self.reset_boosts()
         self.current_hp = self.stats['hp']
         for move in self.moves:
             move.current_pp = move.pp
-            
+
     def reset_boosts(self):
         self.stat_boosts = {
             'attack': 0,
@@ -233,9 +216,45 @@ class Pokemon:
                 self.volatile_status_condition[status] = 1
             case 'leech-seed' | 'infatuation' | 'ingrain':
                 self.volatile_status_condition[status] = -1
-    
+
+    def get_boosted_stat(self, stat: PokemonStatKey) -> int:
+        if stat == 'hp':
+            return self.stats['hp']
+        return self.stats[stat] * get_stat_modifier(self.stat_boosts[stat])
+
+    def on_turn_start(self):
+        for duration in self.volatile_status_condition.values():
+            duration -= 1
+        for duration in self.non_volatile_status_condition.values():
+            duration -= 1
+
+    def on_turn_end(self):
+        self.protected = False
+        for status in self.non_volatile_status_condition.keys():
+            match status:
+                case 'poison':
+                    self.current_hp -= self.stats['hp'] // 8
+                case 'bad-poison':
+                    self.current_hp -= self.stats['hp'] * abs(self.non_volatile_status_condition['bad-poison']) // 16
+                case 'burn':
+                    self.current_hp -= self.stats['hp'] // 16
+        for status in self.volatile_status_condition.keys():
+            match status:
+                case 'leech-seed':
+                    # TODO: Handle leeching effect. Somehow get the damage taken from here and add it to the opposing pokemon
+                    self.current_hp -= self.stats['hp'] // 8
+                case 'ingrain':
+                    self.current_hp = min(self.current_hp + self.stats['hp'] // 16, self.stats['hp'])
+                case 'yawn':
+                    if self.volatile_status_condition['yawn'] == 0 and len(self.non_volatile_status_condition.keys()) == 0:
+                        self.apply_non_volatile_status('sleep')
+                case 'trap':
+                    self.current_hp -= self.stats['hp'] // 8
+
     def on_switch_out(self):
         self.volatile_status_condition.clear()
+        if 'bad-poison' in self.non_volatile_status_condition:
+            self.non_volatile_status_condition['bad-poison'] = -1
         self.stat_boosts = {
             'attack': 0,
             'defense': 0,
@@ -247,10 +266,15 @@ class Pokemon:
         }
         self.crit_stage = 0
         self.active = False
-        
+
     def on_switch_in(self):
         self.active = True
 
 
 if __name__ == "__main__":
     print('pokemon')
+    max_hp = 200
+    current = max_hp
+    for counter in [-1, -2, -3, -4, -5]:
+        dt = max_hp * abs(counter) // 16
+        print(dt)
