@@ -63,19 +63,25 @@ class BattleEffectsManager:
         reduce_barriers('player_2')
 
         if self.terrain is not None:
-            if self.terrain['name'] == 'grassy-terrain':
-                for pkm in active_pokemon:
-                    pkm.restore_health(pkm.stats['hp'] // 16)
             if self.terrain['duration'] == 0:
                 self.terrain = None
             else:
                 self.terrain['duration'] -= 1
 
+            if self.terrain['name'] == 'grassy-terrain':
+                for pkm in active_pokemon:
+                    pkm.restore_health(pkm.stats['hp'] // 16)
+
         if self.weather is not None:
+            if self.weather['duration'] == 0:
+                self.weather = None
+            else:
+                self.weather['duration'] -= 1
+
             for pkm in active_pokemon:
                 if self.weather['name'] == 'sandstorm' and not any(type_ in pkm.types for type_ in ['rock', 'steel', 'ground']) and pkm.held_item != 'safety-goggles':
                     pkm.take_damage(pkm.stats['hp'] // 16)
-                if self.weather['name'] == 'rain': 
+                if self.weather['name'] == 'rain':
                     if pkm.ability == 'rain-dish':
                         pkm.restore_health(pkm.stats['hp'] // 16)
                     if pkm.ability == 'dry-skin':
@@ -85,11 +91,6 @@ class BattleEffectsManager:
                         pkm.take_damage(pkm.stats['hp'] // 8)
                     if pkm.ability == 'solar-power':
                         pkm.take_damage(pkm.stats['hp'] // 8)
-
-            if self.weather['duration'] == 0:
-                self.weather = None
-            else:
-                self.weather['duration'] -= 1
 
     def is_barrier(self, value: str) -> bool:
         return value in BarrierType.__args__
