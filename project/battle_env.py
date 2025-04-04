@@ -21,6 +21,8 @@ class BattleEnv(gym.Env):
     player_2_team: list[Pokemon]
     player_1_active_pokemon: Pokemon
     player_2_active_pokemon: Pokemon
+    
+    battle_field: dict[Side, list[Pokemon]] = { 'player_1': [], 'player_2': [] }
 
     def __init__(self, player_1_team: list[Pokemon], player_2_team: list[Pokemon]):
         # TODO: set action space to game mechanics (fight: dict of moves, switch: dict of team members)
@@ -28,13 +30,17 @@ class BattleEnv(gym.Env):
         # TODO: set observation space to visible game info (enemy hp, type, etc)
         self.observation_space = gym.spaces.Discrete(4)
         self.player_1_team = player_1_team
-        self.player_1_active_pokemon = player_1_team[0]
         self.player_2_team = player_2_team
-        self.player_2_active_pokemon = player_2_team[0]
+        # self.player_1_active_pokemon = player_1_team[0]
+        # self.player_2_active_pokemon = player_2_team[0]
+        self.battle_field['player_1'].append(player_1_team[0])
+        self.battle_field['player_2'].append(player_2_team[0])
         self.battle_effects_manager = BattleEffectsManager()
 
-        self.player_1_active_pokemon.on_switch_in()
-        self.player_2_active_pokemon.on_switch_in()
+        for pkm in self.battle_field['player_1'] + self.battle_field['player_2']:
+            pkm.on_switch_in()
+        # self.player_1_active_pokemon.on_switch_in()
+        # self.player_2_active_pokemon.on_switch_in()
 
     def step(self, action: str):
         # increment turn counter
@@ -86,6 +92,7 @@ class BattleEnv(gym.Env):
             pokemon.reset()
         for pokemon in self.player_2_team:
             pokemon.reset()
+        self.battle_effects_manager.reset()
 
     def _get_obs(self):
         """

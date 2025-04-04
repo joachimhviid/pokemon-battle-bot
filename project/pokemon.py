@@ -1,8 +1,8 @@
 import random
-from typing import Literal
+from typing import Literal, TypedDict
 import math
 from pokemon_utils import get_stat_modifier
-from pokemon_types import PokemonNature, PokemonNatureKey, PokemonStatKey, PokemonType, DamageClass, MoveTarget, MoveCategory, MoveAilment, PokemonBoostStatKey, PokemonStatBoostStage, VolatileStatusCondition, NonVolatileStatusCondition, PokemonStats
+from pokemon_types import PokemonNature, PokemonNatureKey, PokemonStatKey, PokemonType, DamageClass, MoveTarget, MoveCategory, MoveAilment, PokemonBoostStatKey, PokemonStatBoostStage, Side, VolatileStatusCondition, NonVolatileStatusCondition, PokemonStats
 
 
 pokemon_natures: PokemonNature = {
@@ -169,7 +169,7 @@ class Pokemon:
 
     def take_damage(self, damage: int):
         self.current_hp -= damage
-        
+
     def restore_health(self, healing: int):
         self.current_hp = min(self.current_hp + healing, self.stats['hp'])
 
@@ -275,7 +275,7 @@ class Pokemon:
 
     def on_switch_in(self):
         self.active = True
-        
+
     def is_incapacitated(self) -> bool:
         if self.flinched:
             return True
@@ -301,6 +301,49 @@ class Pokemon:
                     return True
                 case 'sleep':
                     return True
+
+
+# TODO: indicate if move hits all available targets or just one
+# TODO: target slot index?
+def get_available_targets(user: Pokemon, user_side: Side, move: PokemonMove, active_pokemon: dict[Side, list[Pokemon]]) -> list[list[Pokemon]]:
+    opponent_side = [side for side in active_pokemon.keys() if side != user_side][0]
+    match move.target:
+        # Since we are only modelling single battles there should be no elligible targets here
+        case 'ally' | 'all-allies':
+            active_pokemon[user_side].remove(user)
+            return [active_pokemon[user_side]]
+        case 'users-field' | 'user-and-allies':
+            return [active_pokemon[user_side]]
+        case 'user-or-ally':
+            targets = []
+            for pkm in active_pokemon[user_side]:
+                targets.append([pkm])
+            return targets
+        case 'opponents-field':
+            return [active_pokemon[opponent_side]]
+        case 'random-opponent':
+            targets = []
+            for pkm in active_pokemon[opponent_side]:
+                targets.append([pkm])
+            return targets
+        case 'user':
+            return [[user]]
+        case 'all-other-pokemon':
+            active_pokemon[user_side].remove(user)
+            return [active_pokemon[opponent_side] + active_pokemon[user_side]]
+        case 'selected-pokemon':
+            targets = []
+            active_pokemon[user_side].remove(user)
+            for pkm in active_pokemon[opponent_side] + active_pokemon[user_side]:
+                targets.append([pkm])
+            return targets
+        case 'all-opponents':
+            return [active_pokemon[opponent_side]]
+        case 'entire-field' | 'all-pokemon':
+            return [active_pokemon[opponent_side] + active_pokemon[user_side]]
+        case 'fainting-pokemon':
+            raise NotImplementedError('Fainted pokemon target not implemented')
+            
 
 
 if __name__ == "__main__":
