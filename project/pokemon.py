@@ -128,8 +128,7 @@ class Pokemon:
 
     held_item: str | None
 
-    # Pokemons action is cancelled (full paralysis, freeze, flinch, etc)
-    incapacitated: bool = False
+    flinched: bool = False
     protected: bool = False
     active: bool = False
 
@@ -199,7 +198,9 @@ class Pokemon:
         match status:
             case 'sleep':
                 self.non_volatile_status_condition[status] = random.randint(1, 3)
-            case 'poison' | 'bad-poison' | 'burn' | 'paralysis' | 'freeze':
+            case 'poison' | 'bad-poison' | 'burn' | 'paralysis':
+                self.non_volatile_status_condition[status] = -1
+            case 'freeze':
                 self.non_volatile_status_condition[status] = -1
 
     def apply_volatile_status(self, status: VolatileStatusCondition):
@@ -223,10 +224,14 @@ class Pokemon:
         return self.stats[stat] * get_stat_modifier(self.stat_boosts[stat])
 
     def on_turn_start(self):
-        for duration in self.volatile_status_condition.values():
+        for status, duration in self.volatile_status_condition.items():
             duration -= 1
-        for duration in self.non_volatile_status_condition.values():
+            if duration == 0:
+                self.volatile_status_condition.pop(status)
+        for status, duration in self.non_volatile_status_condition.items():
             duration -= 1
+            if duration == 0:
+                self.non_volatile_status_condition.clear()
 
     def on_turn_end(self):
         self.protected = False
@@ -248,6 +253,7 @@ class Pokemon:
                 case 'yawn':
                     if self.volatile_status_condition['yawn'] == 0 and len(self.non_volatile_status_condition.keys()) == 0:
                         self.apply_non_volatile_status('sleep')
+                        self.volatile_status_condition.pop(status)
                 case 'trap':
                     self.current_hp -= self.stats['hp'] // 8
 
@@ -269,6 +275,32 @@ class Pokemon:
 
     def on_switch_in(self):
         self.active = True
+        
+    def is_incapacitated(self) -> bool:
+        if self.flinched:
+            return True
+        for status in list(self.volatile_status_condition.keys()) + list(self.non_volatile_status_condition.keys()):
+            match status:
+                case 'confusion':
+                    if random.randint(1, 3) == 1:
+                        random_modifier = random.randint(85, 101) / 100
+                        # 40 base power typeless physical move
+                        inflicted_damage = int(math.floor((((((2 * self.level) / 5) + 2) * 40 * (
+                            self.stats['attack'] / self.stats['defense'])) / 50) + 2) * random_modifier)
+                        self.take_damage(inflicted_damage)
+                        return True
+                    return False
+                case 'infatuation':
+                    return True if random.randint(1, 2) == 1 else False
+                case 'paralysis':
+                    return True if random.randint(1, 4) == 1 else False
+                case 'freeze':
+                    if random.randint(1, 5) == 1:
+                        self.non_volatile_status_condition.pop('freeze')
+                        return False
+                    return True
+                case 'sleep':
+                    return True
 
 
 if __name__ == "__main__":

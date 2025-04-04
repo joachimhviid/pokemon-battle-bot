@@ -11,9 +11,6 @@ from pokemon_types import Side, TerrainType, WeatherType
 from pokemon_utils import get_stat_modifier
 
 
-
-
-
 class BattleEnv(gym.Env):
     turn_counter: int = 0
     turn_events: dict[int, list[str]] = {}
@@ -118,7 +115,7 @@ class BattleEnv(gym.Env):
         active_pokemon = [self.player_1_active_pokemon, self.player_2_active_pokemon]
         active_pokemon.sort(key=lambda pkm: (pkm.selected_move.priority, pkm.get_boosted_stat('speed')), reverse=True)
         if active_pokemon[0].stats['speed'] == active_pokemon[1].stats['speed'] and active_pokemon[
-            0].selected_move.priority == active_pokemon[1].selected_move.priority:
+                0].selected_move.priority == active_pokemon[1].selected_move.priority:
             random.shuffle(active_pokemon)
         return active_pokemon
 
@@ -128,7 +125,7 @@ class BattleEnv(gym.Env):
                 non_active = [pkm for pkm in self.player_1_team if
                               pkm is not self.player_1_active_pokemon and not pkm.is_fainted()]
                 if non_active:
-                    selected_pokemon = random.choice(non_active)
+                    selected_pokemon = random.choice(non_active)  # make not random
                     self.player_1_active_pokemon.on_switch_out()
                     self.player_1_active_pokemon = selected_pokemon
                     self.player_1_active_pokemon.on_switch_in()
@@ -136,12 +133,15 @@ class BattleEnv(gym.Env):
                 non_active = [pkm for pkm in self.player_2_team if
                               pkm is not self.player_2_active_pokemon and not pkm.is_fainted()]
                 if non_active:
-                    selected_pokemon = random.choice(non_active)
+                    selected_pokemon = random.choice(non_active)  # make not random
                     self.player_2_active_pokemon.on_switch_out()
                     self.player_2_active_pokemon = selected_pokemon
                     self.player_2_active_pokemon.on_switch_in()
 
     def execute_move(self, move: PokemonMove, attacker: Pokemon, target: Pokemon):
+        if attacker.is_incapacitated():
+            self._log_event(f'{attacker.name} was unable to execute move')
+            return
         self._log_event(f'{attacker.name} used {move.name} on {target.name}')
         # TODO: Handle incapacitation (flinch, full para, recharge, infatuation)
         move.current_pp = move.current_pp - 1
@@ -242,7 +242,7 @@ class BattleEnv(gym.Env):
         attacker.restore_health(restored_health)
         # Flinching
         if random.randint(1, 100) <= move.flinch_chance and target.ability != 'inner-focus':
-            target.incapacitated = True
+            target.flinched = True
         if target.is_fainted():
             self._log_event(f'{target.name} fainted')
         # Recoil
@@ -276,7 +276,7 @@ class BattleEnv(gym.Env):
         to_hit_threshold = random.randint(1, 100)
         return accuracy_threshold > to_hit_threshold
 
-    def calculate_damage(self, move: PokemonMove, attacker: Pokemon, defender: Pokemon, random_modifier: float) -> int:
+    def calculate_damage(self, move: PokemonMove, attacker: Pokemon, defender: Pokemon) -> int:
         """https://bulbapedia.bulbagarden.net/wiki/Damage#Generation_V_onward"""
         stab_modifier = 2 if move.type in attacker.types and attacker.ability == 'adaptability' else 1.5 if move.type in attacker.types else 1
         is_crit = self.is_critical_hit(move, attacker)
@@ -287,9 +287,8 @@ class BattleEnv(gym.Env):
         # We only model 1v1 battles so this will always be 1
         targets_modifier = 1
         weather_modifier = self.get_weather_modifier(move)
-        # random_modifier = random.randint(85, 101) / 100
+        random_modifier = random.randint(85, 101) / 100
         type_modifier = self.get_type_effectiveness(move, defender)
-        # print(random_modifier)
         if type_modifier == 0:
             self._log_event("It didn't effect the opposing Pokemon")
         elif type_modifier < 1:
@@ -300,8 +299,8 @@ class BattleEnv(gym.Env):
         # Item, ability, aura boosts etc (eg choice band)
         other_modifier = 1
         return int(math.floor((((((2 * attacker.level) / 5) + 2) * move.power * (
-                offensive_effective_stat / defensive_effective_stat)) / 50) + 2) * targets_modifier * weather_modifier * (
-                       1.5 if is_crit else 1) * random_modifier * stab_modifier * type_modifier * burn_modifier * other_modifier)
+            offensive_effective_stat / defensive_effective_stat)) / 50) + 2) * targets_modifier * weather_modifier * (
+            1.5 if is_crit else 1) * random_modifier * stab_modifier * type_modifier * burn_modifier * other_modifier)
 
     def get_effective_stats(self, move: PokemonMove, attacker: Pokemon, defender: Pokemon, is_crit: bool) -> \
             tuple[float, float]:
@@ -317,7 +316,7 @@ class BattleEnv(gym.Env):
             """Returns the effective defensive stat, considering weather conditions and critical hit mechanics."""
             base = pkm.stats[stat] if (is_crit and pkm.stat_boosts[stat] > 0) else pkm.get_boosted_stat(stat)
             if self.battle_effects_manager.weather is not None and weather == self.battle_effects_manager.weather[
-                'name'] and affected_type in defender.types:
+                    'name'] and affected_type in defender.types:
                 return base * 1.5
             return base
 
@@ -332,7 +331,7 @@ class BattleEnv(gym.Env):
                 return 0, 0  # Fallback case if an unknown damage class is encountered
 
         return offensive_stat, defensive_stat
-    
+
     def is_critical_hit(self, move: PokemonMove, attacker: Pokemon) -> bool:
         match attacker.crit_stage + move.crit_rate:
             case 0:
@@ -346,7 +345,6 @@ class BattleEnv(gym.Env):
             case _:
                 return True
 
-
     def get_type_effectiveness(self, attacking_move: PokemonMove, defender: Pokemon) -> float:
         effectiveness = 1.0
         type_chart = {
@@ -355,14 +353,14 @@ class BattleEnv(gym.Env):
             'water': {'fire': 2, 'water': 0.5, 'grass': 0.5, 'ground': 2, 'rock': 2, 'dragon': 0.5},
             'electric': {'water': 2, 'electric': 0.5, 'grass': 0.5, 'ground': 0, 'flying': 2, 'dragon': 0.5},
             'grass': {'fire': 0.5, 'water': 2, 'grass': 0.5, 'poison': 0.5, 'ground': 2, 'flying': 0.5, 'bug': 0.5,
-                    'rock': 2, 'dragon': 0.5, 'steel': 0.5},
+                      'rock': 2, 'dragon': 0.5, 'steel': 0.5},
             'ice': {'fire': 0.5, 'water': 0.5, 'grass': 2, 'ice': 0.5, 'ground': 2, 'flying': 2, 'dragon': 2,
                     'steel': 0.5},
             'fighting': {'normal': 2, 'ice': 2, 'poison': 0.5, 'flying': 0.5, 'psychic': 0.5, 'bug': 0.5, 'rock': 2,
-                        'ghost': 0, 'dark': 2, 'steel': 2, 'fairy': 0.5},
+                         'ghost': 0, 'dark': 2, 'steel': 2, 'fairy': 0.5},
             'poison': {'grass': 2, 'poison': 0.5, 'ground': 0.5, 'rock': 0.5, 'ghost': 0.5, 'steel': 0, 'fairy': 2},
             'ground': {'fire': 2, 'electric': 2, 'grass': 0.5, 'poison': 2, 'flying': 0, 'bug': 0.5, 'rock': 2,
-                    'steel': 2},
+                       'steel': 2},
             'flying': {'electric': 0.5, 'grass': 2, 'fighting': 2, 'bug': 2, 'rock': 0.5, 'steel': 0.5},
             'psychic': {'fighting': 2, 'poison': 2, 'psychic': 0.5, 'dark': 0, 'steel': 0.5},
             'bug': {'fire': 0.5, 'grass': 2, 'fighting': 0.5, 'poison': 0.5, 'flying': 0.5, 'psychic': 2, 'ghost': 0.5,
