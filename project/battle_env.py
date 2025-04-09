@@ -1,8 +1,9 @@
-from typing import Any, cast
+from typing import Any, TypeAlias, Union, cast
 
 import gymnasium as gym
 import math
 import random
+import numpy as np
 
 from pokemon import Pokemon, PokemonMove, PokemonStatKey, PokemonType
 from pokemon_parser import parse_team
@@ -11,9 +12,12 @@ from pokemon_types import NonVolatileStatusCondition, Side, VolatileStatusCondit
 from pokemon_utils import get_stat_modifier
 
 # TODO: Finalize the ObsType and ActType
+# ObsType = dict[str, Union[np.integer, list[np.integer]]]
+ObsType = Any
+ActType: TypeAlias = np.integer
 
 
-class BattleEnv(gym.Env[Any, Any]):
+class BattleEnv(gym.Env[ObsType, ActType]):
     turn_counter: int = 0
     turn_events: dict[int, list[str]] = {}
 
@@ -28,7 +32,11 @@ class BattleEnv(gym.Env[Any, Any]):
 
     def __init__(self, player_1_team: list[Pokemon], player_2_team: list[Pokemon]):
         # TODO: set action space to game mechanics (fight: dict of moves, switch: dict of team members)
-        self.action_space = gym.spaces.Discrete(4)
+        MAX_PLAYER_SWITCH_OPTIONS = 5
+        MAX_PLAYER_MOVES = 4
+        MAX_MOVE_TARGETS = 2
+        # TODO: implement masking and map integer to action
+        self.action_space = gym.spaces.Discrete(MAX_PLAYER_MOVES * MAX_MOVE_TARGETS + MAX_PLAYER_SWITCH_OPTIONS)
         # TODO: set observation space to visible game info (enemy hp, type, etc)
         self.observation_space = gym.spaces.Discrete(4)
         self.player_1_team = player_1_team
@@ -101,38 +109,49 @@ class BattleEnv(gym.Env[Any, Any]):
     #     return observation, info
 
     # TODO: this return type should be
-    # def _get_obs(self) -> gym.Space[Any]:
-    #     """
-    #     The state as seen by an agent. We assume standard competitive team sheet knowledge.
-    #     """
-    #     # {
-    #     #     'player_1_active_pokemon': [pkm.to_dict() for pkm in self.battle_field['player_1']],
-    #     #     'player_1_team': [pkm.to_dict() for pkm in self.player_1_team],
-    #     #     'player_1_fields': self.battle_effects_manager.fields.player_1,
-    #     #     'player_1_hazards': self.battle_effects_manager.hazards.player_1,
-    #     #     'player_1_barriers': self.battle_effects_manager.barriers.player_1,
-    #     #     'player_2_active_pokemon': [pkm.to_dict() for pkm in self.battle_field['player_2']],
-    #     #     'player_2_team': [pkm.to_dict() for pkm in self.player_2_team],
-    #     #     'player_2_fields': self.battle_effects_manager.fields.player_2,
-    #     #     'player_2_hazards': self.battle_effects_manager.hazards.player_2,
-    #     #     'player_2_barriers': self.battle_effects_manager.barriers.player_2,
-    #     #     'weather': self.battle_effects_manager.weather.to_dict() if self.battle_effects_manager.weather else None,
-    #     #     'terrain': self.battle_effects_manager.terrain.to_dict() if self.battle_effects_manager.terrain else None,
-    #     # }
-    #     return gym.spaces.Dict({
-    #         'player_1_active_pokemon': self.battle_field['player_1'],
-    #         'player_1_team': self.player_1_team,
-    #         'player_1_fields': self.battle_effects_manager.fields.player_1,
-    #         'player_1_hazards': self.battle_effects_manager.hazards.player_1,
-    #         'player_1_barriers': self.battle_effects_manager.barriers.player_1,
-    #         'player_2_active_pokemon': self.battle_field['player_2'],
-    #         'player_2_team': self.player_2_team,
-    #         'player_2_fields': self.battle_effects_manager.fields.player_2,
-    #         'player_2_hazards': self.battle_effects_manager.hazards.player_2,
-    #         'player_2_barriers': self.battle_effects_manager.barriers.player_2,
-    #         'weather': self.battle_effects_manager.weather,
-    #         'terrain': self.battle_effects_manager.terrain,
-    #     })
+    def _get_obs(self) -> ObsType:
+        """
+        The state as seen by an agent. We assume standard competitive team sheet knowledge.
+        """
+        # return gym.spaces.Dict({
+        #     'player_1_hp': gym.spaces.Box(0, 1, shape=()),
+        #     'player_2_hp': gym.spaces.Box(0, 1, shape=()),
+        # })
+        # {
+        #     'player_1_active_pokemon': [pkm.to_dict() for pkm in self.battle_field['player_1']],
+        #     'player_1_team': [pkm.to_dict() for pkm in self.player_1_team],
+        #     'player_1_fields': self.battle_effects_manager.fields.player_1,
+        #     'player_1_hazards': self.battle_effects_manager.hazards.player_1,
+        #     'player_1_barriers': self.battle_effects_manager.barriers.player_1,
+        #     'player_2_active_pokemon': [pkm.to_dict() for pkm in self.battle_field['player_2']],
+        #     'player_2_team': [pkm.to_dict() for pkm in self.player_2_team],
+        #     'player_2_fields': self.battle_effects_manager.fields.player_2,
+        #     'player_2_hazards': self.battle_effects_manager.hazards.player_2,
+        #     'player_2_barriers': self.battle_effects_manager.barriers.player_2,
+        #     'weather': self.battle_effects_manager.weather.to_dict() if self.battle_effects_manager.weather else None,
+        #     'terrain': self.battle_effects_manager.terrain.to_dict() if self.battle_effects_manager.terrain else None,
+        # }
+        return gym.spaces.Dict({
+            # TODO: Encode pokemon to valid space
+            # 'player_1_active_pokemon': self.battle_field['player_1'],
+            # 'player_1_team': self.player_1_team,
+            
+            'player_1_fields': gym.spaces.MultiBinary(5),
+            'player_2_fields': gym.spaces.MultiBinary(5),
+            # 2 stacks of toxic spikes, 3 stacks of spikes, stealth rocks, sticky web
+            'player_1_hazards': gym.spaces.MultiBinary(7),
+            'player_2_hazards': gym.spaces.MultiBinary(7),
+            
+            'player_1_barriers': gym.spaces.MultiBinary(3),
+            'player_2_barriers': gym.spaces.MultiBinary(3),
+            # 'player_2_active_pokemon': self.battle_field['player_2'],
+            # 'player_2_team': self.player_2_team,
+            # 'player_2_fields': self.battle_effects_manager.fields.player_2,
+            # 'player_2_hazards': self.battle_effects_manager.hazards.player_2,
+            # 'player_2_barriers': self.battle_effects_manager.barriers.player_2,
+            'weather': gym.spaces.Discrete(5),
+            'terrain': gym.spaces.Discrete(5),
+        })
 
     # def _get_info(self):
     #     return {
