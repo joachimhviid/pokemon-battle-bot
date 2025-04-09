@@ -1,5 +1,5 @@
 import numpy as np
-import math, time, random, inspect, os, asyncio
+import math, time, random, inspect, os, asyncio, traceback
 from collections import deque, namedtuple
 
 from gymnasium import spaces
@@ -20,7 +20,7 @@ from poke_env.environment.pokemon_type import PokemonType
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {DEVICE}")
 
-N_BATTLES = 10         # Total number of battles to train for (Reduced for faster testing)
+N_BATTLES = 10     # Total number of battles to train for (Reduced for faster testing)
 BATCH_SIZE = 128       # Number of experiences to sample from buffer for learning
 GAMMA = 0.99           # Discount factor for future rewards
 EPSILON_START = 0.9    # Starting exploration rate (Changed name for consistency)
@@ -47,8 +47,7 @@ SERVER_CONF = ServerConfiguration("ws://localhost:8000/showdown/websocket", None
 OPP_ACC_CONF = AccountConfiguration(f"RandomOpponent", None)
 AGENT_ACC_CONF = AccountConfiguration(f"DQNAgent-{random.randint(0,10000)}", None) # Make agent name unique too
 
-# --- Helper Function to Print Args/Kwargs ---
-# (Keep existing print_args function - omitted here for brevity)
+
 def print_args(func_name, *args, **kwargs):
     print(f"--- Entering {func_name} ---")
     if args:
@@ -73,8 +72,6 @@ def print_args(func_name, *args, **kwargs):
             print(f"  Keyword Args: {kwargs}")
     print(f"--- Finished Args for {func_name} ---")
 
-
-# --- 4. DQN Model --- (Defined before Agent)
 class DQN(nn.Module):
     def __init__(self, n_observations, n_actions):
         print_args("DQN.__init__", n_observations=n_observations, n_actions=n_actions)
@@ -94,8 +91,6 @@ class DQN(nn.Module):
         x = F.relu(self.layer2(x))
         return self.layer3(x)
 
-# --- 2. Environment Wrapper ---
-# Use correct base class for Gen 9
 class MyAgent(Gen9EnvSinglePlayer):
     def __init__(self, *args, **kwargs):
         print_args("MyAgent.__init__", *args, **kwargs) # Use actual class name
@@ -108,7 +103,6 @@ class MyAgent(Gen9EnvSinglePlayer):
 
         # Correct status map keys to match poke-env standard status names (uppercase)
         self.status_map = {None: 0, 'PAR': 1, 'BRN': 2, 'FRZ': 3, 'PSN': 4, 'SLP': 5, 'TOX': 6}
-
 
     def embed_battle(self, battle: AbstractBattle) -> np.ndarray:
         """
@@ -207,7 +201,6 @@ class MyAgent(Gen9EnvSinglePlayer):
         step_reward = current_reward - last_reward
         return step_reward
 
-
     def action_to_move(self, action_idx: int, battle: AbstractBattle):
         """Converts action index back to poke-env move/switch order."""
         current_moves = battle.available_moves
@@ -237,7 +230,6 @@ class MyAgent(Gen9EnvSinglePlayer):
                   f"Choosing random valid action.")
             return self.choose_random_move(battle) # Fallback
 
-# --- 3. Replay Buffer ---
 Experience = namedtuple('Experience', ('state', 'action', 'reward', 'next_state', 'done'))
 
 class ReplayBuffer:
@@ -265,8 +257,6 @@ class ReplayBuffer:
     def __len__(self):
         return len(self.memory)
 
-
-# --- 5. DQN Agent ---
 class DQNAgent:
     def __init__(self, state_dim, action_dim):
         # print_args("DQNAgent.__init__", state_dim=state_dim, action_dim=action_dim) # Keep prints minimal
@@ -390,7 +380,6 @@ class DQNAgent:
             target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key] * (1-TAU)
         self.target_net.load_state_dict(target_net_state_dict)
 
-
 async def train_agent(n_battles_to_run):
     print(f"\n--- Starting Training Function: train_agent ---")
     print(f"  n_battles_to_run: {n_battles_to_run}")
@@ -408,18 +397,15 @@ async def train_agent(n_battles_to_run):
         opponent=opponent,
         account_configuration=AGENT_ACC_CONF,
         battle_format=BATTLE_FORMAT,
-        log_level=20, # Keep log level if desired
-        server_configuration=SERVER_CONF,
+        log_level=5, # Increase or Decrease as desired        server_configuration=SERVER_CONF,
         start_challenging=True
 
     )
     print(f"  RL Player ({type(env_player).__name__}) set up.")
 
     _ = env_player.describe_embedding()
-    print(f"  Environment embedding space described.")
-
     env = env_player
-    print(f"  Environment set to RL Player instance.")
+
 
     print(f"\n--- Initializing DQNAgent ---")
     agent = DQNAgent(STATE_SIZE, ACTION_SPACE_SIZE)
@@ -432,133 +418,203 @@ async def train_agent(n_battles_to_run):
     # recent_losses = deque(maxlen=LOG_FREQ) # Uncomment if tracking loss
     # total_losses = 0.0 # Uncomment if tracking loss
 
+    # --- Lists for plotting ---
+    episode_log_points = []
+    avg_rewards_log = []
+    avg_losses_log = []
+    win_rates_log = []
+    # --- Interval accumulators ---
+    interval_total_loss = 0.0
+    interval_total_steps = 0
+
     for episode in range(1, n_battles_to_run + 1):
-        state_dict, info = env.reset()
-
-        if env.current_battle is None:
-            print(f"ERROR: env.current_battle is None after reset in Episode {episode}! Skipping episode.")
-            await asyncio.sleep(1) # Add a small delay before potentially retrying
-            continue # Skip to the next episode
-
-        state = env.embed_battle(env.current_battle)
-        if episode == 1:
-            print(f"  Initial state shape from embed_battle: {state.shape}")
-        if state.shape[0] != STATE_SIZE:
-             print(f"  ERROR: Initial state shape {state.shape} does not match STATE_SIZE {STATE_SIZE}! Stopping.")
-             break
-
+        state = None
         done = False
         episode_reward = 0.0
         episode_loss = 0.0
-        steps = 0 # Use 'steps' for steps where learning occurs
+        steps = 0
         turn = 0
+
+        try:
+            state_dict, info = env.reset()
+            if env.current_battle is None:
+                print(f"ERROR: env.current_battle is None after reset in Ep {episode}! Skipping.")
+                await asyncio.sleep(1)
+                continue
+            state = env.embed_battle(env.current_battle)
+            if not isinstance(state, np.ndarray) or state.shape[0] != (STATE_SIZE, ):
+                 print(f"ERROR: Initial state shape {state.shape} != STATE_SIZE {STATE_SIZE}! Stopping.")
+                 break
+
+        except Exception as e:
+            print(f"ERROR during env.reset()/embed_battle in Ep {episode}: {e}")
+            traceback.print_exc(); await asyncio.sleep(5); continue
 
         while not done:
             turn += 1
-            assert isinstance(env.action_space, spaces.Discrete), \
-                f"Expected Discrete action space, but got {type(env.action_space)}"
-            current_action_space_size = env.action_space.n
-            # Correct typo: available_action_indencies -> available_action_indices
-            available_action_indices = list(range(current_action_space_size))
+            try:
+                # --- Pre-action Check ---
+                if state is None:
+                     print(f"ERROR: State is None at start of turn {turn} Ep {episode}. Breaking.")
+                     break
+                if isinstance(state, torch.Tensor): state = state.cpu().numpy()
+                if not isinstance(state, np.ndarray) or state.shape[0] != STATE_SIZE:
+                     print(f"ERROR: State shape {state.shape} != STATE_SIZE {STATE_SIZE}. Breaking.")
+                     break
 
-            if state is None:
-                 print(f"ERROR: State is None before selecting action in Ep {episode}, Turn {turn}. Breaking episode.")
-                 break
-            if isinstance(state, torch.Tensor): state = state.cpu().numpy()
-            if state.shape[0] != STATE_SIZE:
-                 print(f"ERROR: State shape is {state.shape} before select_action! Expected ({STATE_SIZE},). Breaking episode.")
-                 break
-
-            action_tensor = agent.select_action(state, available_action_indices)
-            action = action_tensor.item()
+                assert isinstance(env.action_space, spaces.Discrete), f"Expected Discrete action space, got {type(env.action_space)}"
+                # Get max possible actions from env space (e.g., 26 or more)
+                current_max_possible_actions = env.action_space.n
+                available_action_indices = list(range(current_max_possible_actions))
+                action_tensor = agent.select_action(state, available_action_indices)
+                action = action_tensor.item() # Action chosen by agent (0-29)
 
 
-            if action >= current_action_space_size:
-                 if turn <= DEBUG_STEPS:
-                     print(f"  [Ep {episode}, Turn {turn}] Warning: Agent chose invalid action {action} (>= {current_action_space_size}). Choosing random.")
-                 # Ensure random choice is made from non-empty list
-                 if not available_action_indices:
-                      print("ERROR: No available actions to choose randomly from!")
-                      break
-                 action = random.choice(available_action_indices)
-                 # No need to update action_tensor, 'action' (int) is used
+                if env.current_battle: # Ensure battle object exists
+                    current_moves = env.current_battle.available_moves
+                    current_switches = env.current_battle.available_switches
+                    actual_total_actions = len(current_moves) + len(current_switches)
 
-            next_state_dict, reward, terminated, truncated, info = env.step(action)
-            done = terminated or truncated
+                    if actual_total_actions == 0 and not env.current_battle.finished:
+                        action = 0 # Default to action 0 if nothing else possible
+                    elif action >= actual_total_actions:
+                        if actual_total_actions > 0:
+                            action = random.choice(list(range(actual_total_actions))) # Choose from 0 to actual_total_actions-1
+                        else: action = 0
 
-            next_state = env.embed_battle(env.current_battle) if not done else None
-
-            if turn <= DEBUG_STEPS:
-                print(f"  [Ep {episode}, Turn {turn}] Action Chosen: {action}, Reward: {reward:.4f}, Done: {done}" # Use Action Chosen
-                      f", Available Actions: {current_action_space_size}")
-                if next_state is not None:
-                     print(f"     Next State (Embed shape): {next_state.shape}")
                 else:
-                     print("     Next State: None (Episode Ended)")
-
-            agent.replay_buffer.push(state, action, reward, next_state, done)
-            state = next_state
-
-            loss = agent.learn()
-            if loss is not None:
-                episode_loss += loss
-                steps += 1 # Increment steps only when learning occurs
-            elif len(agent.replay_buffer) >= BATCH_SIZE:
-                 print(f"  [Ep {episode}, Turn {turn}] Learning step skipped/failed (Buffer full but learn returned None).")
+                    print(f"ERROR: env.current_battle is None before action correction in Ep {episode}, Turn {turn}. Breaking.")
+                    break
 
 
-            episode_reward += reward
+                # --- Perform Step ---
+                next_state = None
+                try:
+                    # Use the potentially corrected 'action'
+                    next_state_dict, reward, terminated, truncated, info = env.step(action)
+                    done = terminated or truncated
+                except KeyError as e:
+                    if e.args and e.args[0] in ('[p', '[o'):
+                        print(f"\nWARNING: Caught KeyError ('{e.args[0]}') during env.step() in Ep {episode}, Turn {turn}. Skipping episode.")
+                        traceback.print_exc(); done = True; next_state = None; reward = 0; terminated = True; truncated = False
+                    else: raise
+                
+                # --- Post-Step Check ---
+                if not done and env.current_battle is not None:
+                    next_state = env.embed_battle(env.current_battle)
+                    if not isinstance(next_state, np.ndarray) or next_state.shape[0] != STATE_SIZE:
+                        print(f"ERROR: Next state shape {next_state.shape} != STATE_SIZE {STATE_SIZE}. Breaking.")
+                        done = True
+                        next_state = None
+                else:
+                    next_state = None
 
-            if done:
-                break
+                if state is not None:
+                    agent.replay_buffer.push(state, action, reward, next_state, done)
+                
+                state = next_state
+                
+                loss = agent.learn()
+                if loss is not None:
+                    episode_loss += loss
+                    steps += 1
 
+                if done: break
+
+            except Exception as e:
+                print(f"ERROR during battle loop (Ep {episode}, Turn {turn}): {e}")
+                traceback.print_exc(); done = True
+
+        # --- End of Episode ---
         total_reward += episode_reward
         recent_rewards.append(episode_reward)
-        # Safely check win condition
-        battle_won = hasattr(env.current_battle, 'won') and env.current_battle.won
+        battle_won = env.current_battle is not None and hasattr(env.current_battle, 'won') and env.current_battle.won
         if battle_won: wins += 1
 
-        if episode % TARGET_UPDATE_FREQ == 0:
-            agent.update_target_network()
+        if episode % TARGET_UPDATE_FREQ == 0: agent.update_target_network()
 
         if episode % LOG_FREQ == 0:
-            avg_loss = (episode_loss / steps) if steps > 0 else 0 # Use steps where learning happened
-            avg_reward = sum(recent_rewards) / len(recent_rewards) if recent_rewards else 0
-            win_rate = wins / LOG_FREQ # This tracks wins over the last LOG_FREQ episodes
-            # Correct typo: elasped_time -> elapsed_time
+            # Calculate interval metrics
+            avg_loss_interval = interval_total_loss / interval_total_steps if interval_total_steps > 0 else 0
+            avg_reward_interval = sum(recent_rewards) / len(recent_rewards) if recent_rewards else 0 # recent_rewards already holds last LOG_FREQ
+            win_rate_interval = wins / LOG_FREQ # Wins over the last LOG_FREQ episodes
+            
+            # Append data for plotting
+            episode_log_points.append(episode)
+            avg_rewards_log.append(avg_reward_interval)
+            avg_losses_log.append(avg_loss_interval)
+            win_rates_log.append(win_rate_interval)
+
             elapsed_time = time.time() - start_time
-            # Correct typo: current_epsilon -> current_eps_threshold (or similar)
             current_epsilon_val = EPSILON_END + (EPSILON_START - EPSILON_END) * \
                 math.exp(-1.0 * agent.steps_done / EPSILON_DECAY)
             print(f"\n--- Episode Log ---")
             print(f"  Episode: {episode}/{n_battles_to_run}")
-            print(f"  Avg Reward (Last {LOG_FREQ}): {avg_reward:.3f}")
-            print(f"  Avg Loss (This Episode): {avg_loss:.5f}")
-            print(f"  Win Rate (Last {LOG_FREQ}): {win_rate:.2f}")
-            print(f"  Current Epsilon: {current_epsilon_val:.3f}") # Use correct variable
-            print(f"  Total Steps Done (Agent Decisions): {agent.steps_done}") # Clarify steps_done
+            print(f"  Avg Reward (Last {LOG_FREQ}): {avg_reward_interval:.3f}")
+            print(f"  Avg Loss (Episodes in Log): {avg_loss_interval:.5f}")
+            print(f"  Win Rate (Last {LOG_FREQ}): {win_rate_interval:.2f}")
+            print(f"  Current Epsilon: {current_epsilon_val:.3f}")
+            print(f"  Total Steps Done: {agent.steps_done}")
             print(f"  Buffer Size: {len(agent.replay_buffer)}")
             print(f"  Elapsed Time: {elapsed_time:.1f}s")
             print(f"-------------------\n")
-            wins = 0 # Reset win count for the next logging interval
+            wins = 0
 
+    plot_training_results(episode_log_points, avg_rewards_log, avg_losses_log, win_rates_log)
     # --- Save Model ---
-    # Use relative paths
-    save_dir = "./project/output" # Save in current directory
-    os.makedirs(save_dir, exist_ok=True) # Ensure directory exists
-    policy_path = os.path.join(save_dir, "Model-V0.1.pth")
-    target_path = os.path.join(save_dir, "Model-V0.1.pth")
-    torch.save(agent.policy_net.state_dict(), policy_path)
-    torch.save(agent.target_net.state_dict(), target_path)
-    print(f"Models saved to {policy_path} and {target_path}")
+    save_dir = "./"
+    os.makedirs(save_dir, exist_ok=True)
+    policy_path = os.path.join(save_dir, "dqn_pokemon_policy.pth")
+    target_path = os.path.join(save_dir, "dqn_pokemon_target.pth")
+    try:
+        if 'agent' in locals() and agent is not None:
+            torch.save(agent.policy_net.state_dict(), policy_path)
+            torch.save(agent.target_net.state_dict(), target_path)
+            print(f"Models saved to {policy_path} and {target_path}")
+        else: print("Agent not initialized, models not saved.")
+    except Exception as e: print(f"Error saving models: {e}")
+
 
 
     env.close()
     print("\n--- Training Finished ---")
-    print(f"  Total reward accumulated: {total_reward}")
-    print(f"  Total steps taken (Agent Decisions): {agent.steps_done}") # Clarify steps_done
-    elapsed_time = time.time() - start_time
-    print(f"  Total training time: {elapsed_time:.1f}s")
+    # (Final print statements omitted for brevity)
+
+
+# --- Plotting Function ---
+def plot_training_results(episodes, rewards, losses, win_rates, save_path="./project/output/training_plot.png"):
+    """Generates and saves plots for training metrics."""
+    print(f"Generating plot with {len(episodes)} data points...")
+    fig, axs = plt.subplots(3, 1, figsize=(10, 15), sharex=True)
+
+    # Plot Average Reward
+    axs[0].plot(episodes, rewards, label='Avg Reward per Interval', color='blue')
+    axs[0].set_ylabel('Average Reward')
+    axs[0].set_title('Training Progress')
+    axs[0].grid(True)
+    axs[0].legend()
+
+    # Plot Average Loss
+    axs[1].plot(episodes, losses, label='Avg Loss per Interval', color='red')
+    axs[1].set_ylabel('Average Loss')
+    axs[1].grid(True)
+    axs[1].legend()
+
+    # Plot Win Rate
+    axs[2].plot(episodes, win_rates, label='Win Rate per Interval', color='green')
+    axs[2].set_ylabel('Win Rate')
+    axs[2].set_xlabel(f'Episodes (Intervals of {LOG_FREQ})')
+    axs[2].grid(True)
+    axs[2].legend()
+    axs[2].set_ylim(0, 1) # Win rate is between 0 and 1
+
+    plt.tight_layout()
+    try:
+        plt.savefig(save_path)
+        print(f"Training plot saved to {save_path}")
+    except Exception as e:
+        print(f"Error saving plot: {e}")
+    plt.close(fig) # Close the figure to free memory
 
 
 # --- 7. Main Execution ---
@@ -568,8 +624,8 @@ if __name__ == "__main__":
     print(f"Script will train for N_BATTLES = {N_BATTLES}")
     print(f"Using STATE_SIZE = {STATE_SIZE}, ACTION_SPACE_SIZE = {ACTION_SPACE_SIZE}")
     print(f"Hyperparameters: BATCH_SIZE={BATCH_SIZE}, GAMMA={GAMMA}, EPS_START={EPSILON_START}, \
-EPS_END={EPSILON_END}, EPS_DECAY={EPSILON_DECAY}, TAU={TAU}, LR={LR}, \
-BUFFER_SIZE={BUFFER_SIZE}, TARGET_UPDATE_FREQ={TARGET_UPDATE_FREQ}")
+            EPS_END={EPSILON_END}, EPS_DECAY={EPSILON_DECAY}, TAU={TAU}, LR={LR}, \
+            BUFFER_SIZE={BUFFER_SIZE}, TARGET_UPDATE_FREQ={TARGET_UPDATE_FREQ}")
     print("-" * 30)
 
     try:
