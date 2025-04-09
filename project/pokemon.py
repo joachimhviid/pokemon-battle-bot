@@ -158,6 +158,16 @@ class Pokemon:
         self.types = pokemon_data['types']
         self.held_item = pokemon_data['held_item']
         self.non_volatile_status_condition = None
+        self.volatile_status_conditions = []
+        self.stat_boosts = {
+            'attack': 0,
+            'defense': 0,
+            'special-attack': 0,
+            'special-defense': 0,
+            'speed': 0,
+            'accuracy': 0,
+            'evasion': 0
+        }
 
     def get_nature_modifier(self, stat: PokemonStatKey) -> float:
         nature = pokemon_natures.get(self._nature)

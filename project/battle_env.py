@@ -425,10 +425,10 @@ if __name__ == "__main__":
     team_1 = parse_team('player_1')
     team_2 = parse_team('player_2')
     env = BattleEnv(team_1, team_2)
-    print(f'Team 1 first pokemon {env.player_1_active_pokemon.name}')
-    print(f'Team 2 first pokemon {env.player_2_active_pokemon.name}')
+    print(f'Team 1 first pokemon {env.battle_field["player_1"][0].name}')
+    print(f'Team 2 first pokemon {env.battle_field["player_2"][0].name}')
     for i in range(10):
         env.execute_move(
-            env.player_1_active_pokemon.moves[3], env.player_1_active_pokemon, env.player_2_active_pokemon)
+            env.battle_field["player_1"][0].moves[3], env.battle_field["player_1"][0], env.battle_field["player_2"][0])
     for event in env.turn_events[0]:
         print(event)
