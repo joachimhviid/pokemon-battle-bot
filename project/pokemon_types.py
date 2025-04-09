@@ -1,4 +1,5 @@
-from typing import Literal, TypedDict
+from typing import Literal, Union, TypeGuard
+from dataclasses import dataclass
 
 
 WeatherType = Literal['sunshine', 'rain', 'snow', 'sandstorm']
@@ -12,11 +13,20 @@ FieldType = Literal[
     'wide-guard',  # 1 turn
     'quick-guard',  # 1 turn
 ]
-Weather = TypedDict('Weather', {'name': WeatherType, 'duration': int})
-Terrain = TypedDict('Terrain', {'name': TerrainType, 'duration': int})
-BiasedEffect = TypedDict('BiasedEffect', {
-                         'player_1': dict[BarrierType | HazardType | FieldType, int], 'player_2': dict[BarrierType | HazardType | FieldType, int]})
+EffectType = Union[BarrierType, HazardType, FieldType]
 Side = Literal['player_1', 'player_2']
+
+
+@dataclass
+class Weather:
+    name: WeatherType
+    duration: int
+
+
+@dataclass
+class Terrain:
+    name: TerrainType
+    duration: int
 
 
 PokemonNatureKey = Literal[
@@ -47,6 +57,36 @@ NonVolatileStatusCondition = Literal['paralysis',
                                      'sleep', 'freeze', 'burn', 'poison', 'bad-poison']
 VolatileStatusCondition = Literal['confusion', 'infatuation', 'trap', 'torment', 'disable',
                                   'yawn', 'leech-seed', 'ingrain', 'encore']
+SIDES: tuple[Side, Side] = 'player_1', 'player_2'
+
+
+@dataclass
+class VolatileStatus:
+    name: VolatileStatusCondition
+    duration: int
+
+
+@dataclass
+class NonVolatileStatus:
+    name: NonVolatileStatusCondition
+    duration: int
+
+
+def is_barrier(value: str) -> TypeGuard[BarrierType]:
+    return value in BarrierType.__args__
+
+
+def is_field(value: str) -> TypeGuard[FieldType]:
+    return value in FieldType.__args__
+
+def is_hazard(value: str) -> TypeGuard[HazardType]:
+    return value in HazardType.__args__
+
+def is_terrain(value: str) -> TypeGuard[TerrainType]:
+    return value in TerrainType.__args__
+
+def is_valid_boost_stage(value: int) -> TypeGuard[PokemonStatBoostStage]:
+    return value in PokemonStatBoostStage.__args__
 
 
 if __name__ == "__main__":

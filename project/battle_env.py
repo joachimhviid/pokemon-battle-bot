@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 import gymnasium as gym
 import math
@@ -7,11 +7,13 @@ import random
 from pokemon import Pokemon, PokemonMove, PokemonStatKey, PokemonType
 from pokemon_parser import parse_team
 from battle_effects_manager import BattleEffectsManager
-from pokemon_types import Side, TerrainType, WeatherType
+from pokemon_types import NonVolatileStatusCondition, Side, VolatileStatusCondition, WeatherType, is_barrier, is_field, is_hazard, is_terrain, is_valid_boost_stage
 from pokemon_utils import get_stat_modifier
 
+# TODO: Finalize the ObsType and ActType
 
-class BattleEnv(gym.Env):
+
+class BattleEnv(gym.Env[Any, Any]):
     turn_counter: int = 0
     turn_events: dict[int, list[str]] = {}
 
@@ -21,8 +23,8 @@ class BattleEnv(gym.Env):
     player_2_team: list[Pokemon]
     player_1_active_pokemon: Pokemon
     player_2_active_pokemon: Pokemon
-    
-    battle_field: dict[Side, list[Pokemon]] = { 'player_1': [], 'player_2': [] }
+
+    battle_field: dict[Side, list[Pokemon]] = {'player_1': [], 'player_2': []}
 
     def __init__(self, player_1_team: list[Pokemon], player_2_team: list[Pokemon]):
         # TODO: set action space to game mechanics (fight: dict of moves, switch: dict of team members)
@@ -42,7 +44,7 @@ class BattleEnv(gym.Env):
         # self.player_1_active_pokemon.on_switch_in()
         # self.player_2_active_pokemon.on_switch_in()
 
-    def step(self, action: str):
+    def step(self, action: str):  # type: ignore
         # increment turn counter
         self.turn_counter += 1
         speed_sorted_pokemon = [self.player_1_active_pokemon, self.player_2_active_pokemon]
@@ -67,9 +69,9 @@ class BattleEnv(gym.Env):
         terminated = False
         truncated = False
         reward = 0
-        observation = self._get_obs()
-        info = self._get_info()
-        return observation, reward, terminated, truncated, info
+        # observation = self._get_obs()
+        # info = self._get_info()
+        return observation, reward, terminated, truncated, info  # type: ignore
 
     def on_turn_start(self, sorted_active_pokemon: list[Pokemon]):
         for pkm in sorted_active_pokemon:
@@ -82,41 +84,61 @@ class BattleEnv(gym.Env):
         # trigger items (leftovers)
         for pkm in sorted_active_pokemon:
             pkm.on_turn_end()
-        self.battle_effects_manager.on_turn_end()
+        self.battle_effects_manager.on_turn_end(sorted_active_pokemon)
 
-    def reset(self, seed: int | None = None, options: dict[str, Any] | None = None):
-        super().reset(seed=seed)
-        # Reset the HP, status effects, stat boosts and restore all PP to Pokemon on each team.
-        # Set active Pokemon back to first in list
-        for pokemon in self.player_1_team:
-            pokemon.reset()
-        for pokemon in self.player_2_team:
-            pokemon.reset()
-        self.battle_effects_manager.reset()
+    # def reset(self, seed: int | None = None, options: dict[str, Any] | None = None):
+    #     super().reset(seed=seed)
+    #     # Reset the HP, status effects, stat boosts and restore all PP to Pokemon on each team.
+    #     # Set active Pokemon back to first in list
+    #     for pokemon in self.player_1_team:
+    #         pokemon.reset()
+    #     for pokemon in self.player_2_team:
+    #         pokemon.reset()
+    #     self.battle_effects_manager.reset()
+    #     observation = self._get_obs()
+    #     info = self._get_info()
 
-    def _get_obs(self):
-        """
-        The state as seen by an agent. We assume standard competitive team sheet knowledge.
-        - species info (types)
-        - current HP
-        - current status conditions
-        - current stat boosts
-        - list of moves
-        - held items
-        - ability
-        """
-        return {
-            'player_1_active_pokemon': self.player_1_active_pokemon,
-            'player_1_team': self.player_1_team,
-            'player_2_active_pokemon': self.player_2_active_pokemon,
-            'player_2_team': self.player_2_team,
-        }
+    #     return observation, info
 
-    def _get_info(self):
-        return {
-            'turn_number': self.turn_counter,
-            'events': self.turn_events[self.turn_counter],  # Each players action and outcomes for the turn
-        }
+    # TODO: this return type should be
+    # def _get_obs(self) -> gym.Space[Any]:
+    #     """
+    #     The state as seen by an agent. We assume standard competitive team sheet knowledge.
+    #     """
+    #     # {
+    #     #     'player_1_active_pokemon': [pkm.to_dict() for pkm in self.battle_field['player_1']],
+    #     #     'player_1_team': [pkm.to_dict() for pkm in self.player_1_team],
+    #     #     'player_1_fields': self.battle_effects_manager.fields.player_1,
+    #     #     'player_1_hazards': self.battle_effects_manager.hazards.player_1,
+    #     #     'player_1_barriers': self.battle_effects_manager.barriers.player_1,
+    #     #     'player_2_active_pokemon': [pkm.to_dict() for pkm in self.battle_field['player_2']],
+    #     #     'player_2_team': [pkm.to_dict() for pkm in self.player_2_team],
+    #     #     'player_2_fields': self.battle_effects_manager.fields.player_2,
+    #     #     'player_2_hazards': self.battle_effects_manager.hazards.player_2,
+    #     #     'player_2_barriers': self.battle_effects_manager.barriers.player_2,
+    #     #     'weather': self.battle_effects_manager.weather.to_dict() if self.battle_effects_manager.weather else None,
+    #     #     'terrain': self.battle_effects_manager.terrain.to_dict() if self.battle_effects_manager.terrain else None,
+    #     # }
+    #     return gym.spaces.Dict({
+    #         'player_1_active_pokemon': self.battle_field['player_1'],
+    #         'player_1_team': self.player_1_team,
+    #         'player_1_fields': self.battle_effects_manager.fields.player_1,
+    #         'player_1_hazards': self.battle_effects_manager.hazards.player_1,
+    #         'player_1_barriers': self.battle_effects_manager.barriers.player_1,
+    #         'player_2_active_pokemon': self.battle_field['player_2'],
+    #         'player_2_team': self.player_2_team,
+    #         'player_2_fields': self.battle_effects_manager.fields.player_2,
+    #         'player_2_hazards': self.battle_effects_manager.hazards.player_2,
+    #         'player_2_barriers': self.battle_effects_manager.barriers.player_2,
+    #         'weather': self.battle_effects_manager.weather,
+    #         'terrain': self.battle_effects_manager.terrain,
+    #     })
+
+    # def _get_info(self):
+    #     return {
+    #         'turn_number': self.turn_counter,
+    #         'events': self.turn_events[self.turn_counter],  # Each players action and outcomes for the turn
+    #     }
 
     def get_turn_order(self) -> list[Pokemon]:
         active_pokemon = [self.player_1_active_pokemon, self.player_2_active_pokemon]
@@ -164,9 +186,9 @@ class BattleEnv(gym.Env):
         match move.category:
             case 'ailment':
                 if move.ailment_is_volatile():
-                    target.apply_volatile_status(move.ailment_type)
-                elif len(target.non_volatile_status_condition.keys()) == 0:
-                    target.apply_non_volatile_status(move.ailment_type)
+                    target.apply_volatile_status(cast(VolatileStatusCondition, move.ailment_type))
+                elif target.non_volatile_status_condition is None:
+                    target.apply_non_volatile_status(cast(NonVolatileStatusCondition, move.ailment_type))
             case 'damage':
                 inflicted_damage = self.calculate_damage(move, attacker, target)
                 self._log_event(f'{target.name} took {inflicted_damage} damage')
@@ -175,30 +197,18 @@ class BattleEnv(gym.Env):
                 self._log_event(f'{target.name} took {inflicted_damage} damage')
                 if random.randint(1, 100) <= move.ailment_chance:
                     if move.ailment_is_volatile():
-                        target.volatile_status_condition.update({
-                            move.ailment_type: -1 if move.duration['min'] == None
-                            else random.randint(move.duration['min'], move.duration['max'])
-                        })
-                    elif len(target.non_volatile_status_condition.keys()) == 0:
-                        target.non_volatile_status_condition = {
-                            move.ailment_type: -1 if move.duration['min'] == None
-                            else random.randint(move.duration['min'], move.duration['max'])
-                        }
+                        target.apply_volatile_status(cast(VolatileStatusCondition, move.ailment_type))
+                    elif target.non_volatile_status_condition is None:
+                        target.apply_non_volatile_status(cast(NonVolatileStatusCondition, move.ailment_type))
             case 'net-good-stats':
                 self.boost_stat(move, target)
             case 'heal':
                 restored_health = math.floor(attacker.stats['hp'] * (move.healing / 100))
             case 'swagger':
                 if move.ailment_is_volatile():
-                    target.volatile_status_condition.update({
-                        move.ailment_type: -1 if move.duration['min'] == None
-                        else random.randint(move.duration['min'], move.duration['max'])
-                    })
-                elif len(target.non_volatile_status_condition.keys()) == 0:
-                    target.non_volatile_status_condition = {
-                        move.ailment_type: -1 if move.duration['min'] == None
-                        else random.randint(move.duration['min'], move.duration['max'])
-                    }
+                    target.apply_volatile_status(cast(VolatileStatusCondition, move.ailment_type))
+                elif target.non_volatile_status_condition is None:
+                    target.apply_non_volatile_status(cast(NonVolatileStatusCondition, move.ailment_type))
                 self.boost_stat(move, target)
             case 'damage+lower':
                 inflicted_damage = self.calculate_damage(move, attacker, target)
@@ -226,17 +236,17 @@ class BattleEnv(gym.Env):
                     self.battle_effects_manager.set_weather('snow')
                 if move.name == 'sandstorm':
                     self.battle_effects_manager.set_weather('sandstorm')
-                if move.name in TerrainType.__args__:
+                if is_terrain(move.name):
                     self.battle_effects_manager.set_terrain(move.name)
                 if move.name == 'haze':
                     self.player_1_active_pokemon.reset_boosts()
                     self.player_2_active_pokemon.reset_boosts()
             case 'field-effect':
-                if self.battle_effects_manager.is_field(move.name):
+                if is_field(move.name):
                     self.battle_effects_manager.add_field_effect(move.name, self.get_pokemon_side(target))
-                if self.battle_effects_manager.is_barrier(move.name):
+                if is_barrier(move.name):
                     self.battle_effects_manager.add_barrier(move.name, self.get_pokemon_side(target))
-                if self.battle_effects_manager.is_hazard(move.name):
+                if is_hazard(move.name):
                     self.battle_effects_manager.add_hazard(move.name, self.get_pokemon_side(target))
             case 'force-switch':
                 raise NotImplementedError("Force-switch moves are not supported yet.")
@@ -253,7 +263,7 @@ class BattleEnv(gym.Env):
         if target.is_fainted():
             self._log_event(f'{target.name} fainted')
         # Recoil
-        if move.drain is not None and move.drain < 0:
+        if move.drain < 0:
             attacker.take_damage(int(inflicted_damage * (move.drain / 100)))
             self._log_event(f'{attacker.name} was damaged by the recoil')
         if attacker.is_fainted():
@@ -271,15 +281,20 @@ class BattleEnv(gym.Env):
     def boost_stat(self, move: PokemonMove, target: Pokemon):
         for stat_change in move.stat_changes:
             for stat, change in stat_change.items():
-                target.stat_boosts[stat] = max(-6, min(6, target.stat_boosts[stat] + change))
-                self._log_event(f"{target.name}'s {stat} changed by {change} stages")
+                boost = max(-6, min(6, target.stat_boosts[stat] + change))
+                if is_valid_boost_stage(boost):
+                    target.stat_boosts[stat] = boost
+                    self._log_event(f"{target.name}'s {stat} changed by {change} stages")
 
     def is_hit(self, move: PokemonMove, attacker: Pokemon, defender: Pokemon) -> bool:
         if move.accuracy is None:
             return True
-        attacker_accuracy = get_stat_modifier(attacker.stat_boosts['accuracy'])
-        defender_evasion = get_stat_modifier(defender.stat_boosts['evasion'])
-        accuracy_threshold = move.accuracy * get_stat_modifier(attacker_accuracy - defender_evasion)
+        attacker_accuracy = attacker.stat_boosts['accuracy']
+        defender_evasion = defender.stat_boosts['evasion']
+        acc_evasion_delta = attacker_accuracy - defender_evasion
+        accuracy_threshold = move.accuracy
+        if is_valid_boost_stage(acc_evasion_delta):
+            accuracy_threshold = move.accuracy * get_stat_modifier(acc_evasion_delta)
         to_hit_threshold = random.randint(1, 100)
         return accuracy_threshold > to_hit_threshold
 
@@ -302,10 +317,10 @@ class BattleEnv(gym.Env):
             self._log_event("It's not very effective")
         elif type_modifier > 1:
             self._log_event("It's super effective")
-        burn_modifier = 0.5 if move.damage_class == 'physical' and attacker.non_volatile_status_condition == 'burn' and attacker.ability != 'guts' and move.name != 'facade' else 1
+        burn_modifier = 0.5 if move.damage_class == 'physical' and attacker.non_volatile_status_condition and attacker.non_volatile_status_condition.name == 'burn' and attacker.ability != 'guts' and move.name != 'facade' else 1
         # Item, ability, aura boosts etc (eg choice band)
         other_modifier = 1
-        return int(math.floor((((((2 * attacker.level) / 5) + 2) * move.power * (
+        return int(math.floor((((((2 * attacker.level) / 5) + 2) * (move.power if move.power else 0) * (
             offensive_effective_stat / defensive_effective_stat)) / 50) + 2) * targets_modifier * weather_modifier * (
             1.5 if is_crit else 1) * random_modifier * stab_modifier * type_modifier * burn_modifier * other_modifier)
 
@@ -322,8 +337,7 @@ class BattleEnv(gym.Env):
                                affected_type: PokemonType) -> float:
             """Returns the effective defensive stat, considering weather conditions and critical hit mechanics."""
             base = pkm.stats[stat] if (is_crit and pkm.stat_boosts[stat] > 0) else pkm.get_boosted_stat(stat)
-            if self.battle_effects_manager.weather is not None and weather == self.battle_effects_manager.weather[
-                    'name'] and affected_type in defender.types:
+            if self.battle_effects_manager.weather is not None and weather == self.battle_effects_manager.weather.name and affected_type in defender.types:
                 return base * 1.5
             return base
 
@@ -354,7 +368,7 @@ class BattleEnv(gym.Env):
 
     def get_type_effectiveness(self, attacking_move: PokemonMove, defender: Pokemon) -> float:
         effectiveness = 1.0
-        type_chart = {
+        type_chart: dict[PokemonType, dict[PokemonType, float]] = {
             'normal': {'rock': 0.5, 'ghost': 0, 'steel': 0.5},
             'fire': {'fire': 0.5, 'water': 0.5, 'grass': 2, 'ice': 2, 'bug': 2, 'rock': 0.5, 'dragon': 0.5, 'steel': 2},
             'water': {'fire': 2, 'water': 0.5, 'grass': 0.5, 'ground': 2, 'rock': 2, 'dragon': 0.5},
@@ -386,7 +400,7 @@ class BattleEnv(gym.Env):
     def get_weather_modifier(self, move: PokemonMove) -> float:
         if self.battle_effects_manager.weather is None:
             return 1.0
-        match self.battle_effects_manager.weather['name']:
+        match self.battle_effects_manager.weather.name:
             case 'rain':
                 if move.type == 'water':
                     return 1.5

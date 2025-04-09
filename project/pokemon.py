@@ -1,8 +1,9 @@
+from dataclasses import dataclass, field
 import random
-from typing import Literal, TypedDict
+from typing import Any, Literal, Optional, Union, cast
 import math
 from pokemon_utils import get_stat_modifier
-from pokemon_types import PokemonNature, PokemonNatureKey, PokemonStatKey, PokemonType, DamageClass, MoveTarget, MoveCategory, MoveAilment, PokemonBoostStatKey, PokemonStatBoostStage, Side, VolatileStatusCondition, NonVolatileStatusCondition, PokemonStats
+from pokemon_types import NonVolatileStatus, PokemonNature, PokemonNatureKey, PokemonStatKey, PokemonType, DamageClass, MoveTarget, MoveCategory, MoveAilment, PokemonBoostStatKey, PokemonStatBoostStage, Side, VolatileStatus, VolatileStatusCondition, NonVolatileStatusCondition, PokemonStats, SIDES
 
 
 pokemon_natures: PokemonNature = {
@@ -34,13 +35,14 @@ pokemon_natures: PokemonNature = {
 }
 
 
+@dataclass(init=False)
 class PokemonMove:
     name: str
-    power: int | None
+    power: Optional[int]
     type: PokemonType
     pp: int
     current_pp: int
-    accuracy: int | None
+    accuracy: Optional[int]
     damage_class: DamageClass
     priority: int
     target: MoveTarget
@@ -52,21 +54,21 @@ class PokemonMove:
     stat_changes: list[dict[PokemonBoostStatKey, PokemonStatBoostStage]]
     stat_chance: int
 
-    hits: dict[Literal['min', 'max'], int | None] = {
+    hits: dict[Literal['min', 'max'], Optional[int]] = field(default_factory=lambda: {
         'min': None,
         'max': None,
-    }
-    duration: dict[Literal['min', 'max'], int | None] = {
+    })
+    duration: dict[Literal['min', 'max'], Optional[int]] = field(default_factory=lambda: {
         'min': None,
         'max': None,
-    }
+    })
 
     healing: int
     flinch_chance: int
     drain: int
     crit_rate: int
 
-    def __init__(self, move):
+    def __init__(self, move: Any):
         self.name = move['name']
         self.power = move['power']
         self.type = move['type']
@@ -84,10 +86,14 @@ class PokemonMove:
             for change in move['stat_changes']
         ]
         self.stat_chance = move['meta']['stat_chance']
-        self.hits['max'] = move['meta']['max_hits']
-        self.hits['min'] = move['meta']['min_hits']
-        self.duration['max'] = move['meta']['max_turns']
-        self.duration['min'] = move['meta']['min_turns']
+        self.hits = {
+            'min': move['meta']['min_hits'],
+            'max': move['meta']['max_hits']
+        }
+        self.duration = {
+            'min': move['meta']['min_turns'],
+            'max': move['meta']['max_turns']
+        }
         self.healing = move['meta']['healing']
         self.flinch_chance = move['meta']['flinch_chance']
         self.drain = move['meta']['drain']
@@ -97,6 +103,7 @@ class PokemonMove:
         return self.ailment_type in VolatileStatusCondition.__args__
 
 
+@dataclass(init=False)
 class Pokemon:
     name: str
     _base_stats: PokemonStats
@@ -109,12 +116,12 @@ class Pokemon:
     # Used to determine turn order
     selected_move: PokemonMove
     # Used to determine 2 turn moves, double protect, etc
-    previous_move: PokemonMove | None
+    previous_move: Optional[PokemonMove]
     types: list[PokemonType]
     ability: str
     current_hp: int
     crit_stage: int = 0
-    stat_boosts: dict[PokemonBoostStatKey, PokemonStatBoostStage] = {
+    stat_boosts: dict[Union[PokemonStatKey, PokemonBoostStatKey], PokemonStatBoostStage] = field(default_factory=lambda: {
         'attack': 0,
         'defense': 0,
         'special-attack': 0,
@@ -122,17 +129,19 @@ class Pokemon:
         'speed': 0,
         'accuracy': 0,
         'evasion': 0
-    }
-    non_volatile_status_condition: dict[NonVolatileStatusCondition, int] = {}
-    volatile_status_condition: dict[VolatileStatusCondition, int] = {}
+    })
+    # non_volatile_status_condition: dict[NonVolatileStatusCondition, int] = field(default_factory=dict)
+    # volatile_status_condition: dict[VolatileStatusCondition, int] = field(default_factory=dict)
+    non_volatile_status_condition: Optional[NonVolatileStatus]
+    volatile_status_conditions: list[VolatileStatus] = field(default_factory=list)
 
-    held_item: str | None
+    held_item: Optional[str]
 
     flinched: bool = False
     protected: bool = False
     active: bool = False
 
-    def __init__(self, pokemon_data):
+    def __init__(self, pokemon_data: Any):
         self.name = pokemon_data['name']
         self._base_stats = pokemon_data['stats']
         self._ivs = pokemon_data['ivs']
@@ -144,14 +153,17 @@ class Pokemon:
         self.current_hp = self.stats['hp']
         self.moves = [PokemonMove(move) for move in pokemon_data['moves']]
         self.selected_move = self.moves[0]
+        self.previous_move = None
         self.ability = pokemon_data['ability']
         self.types = pokemon_data['types']
         self.held_item = pokemon_data['held_item']
+        self.non_volatile_status_condition = None
 
     def get_nature_modifier(self, stat: PokemonStatKey) -> float:
-        if pokemon_natures.get(self._nature).get('UP') == stat:
+        nature = pokemon_natures.get(self._nature)
+        if nature and nature.get('UP') == stat:
             return 1.1
-        elif pokemon_natures.get(self._nature).get('DOWN') == stat:
+        elif nature and nature.get('DOWN') == stat:
             return 0.9
         else:
             return 1.0
@@ -161,6 +173,13 @@ class Pokemon:
         stat_value = self._base_stats.get(stat)
         iv_value = self._ivs.get(stat)
         ev_value = self._evs.get(stat)
+
+        if stat_value is None:
+            raise RuntimeError(f'Missing base stats for Pokemon {self.name}')
+        if iv_value is None:
+            raise RuntimeError(f'Missing ivs for Pokemon {self.name}')
+        if ev_value is None:
+            raise RuntimeError(f'Missing evs for Pokemon {self.name}')
 
         if stat == 'hp':
             return math.floor(((2 * stat_value + iv_value + ev_value // 4) * self.level // 100) + self.level + 10)
@@ -197,70 +216,74 @@ class Pokemon:
     def apply_non_volatile_status(self, status: NonVolatileStatusCondition):
         match status:
             case 'sleep':
-                self.non_volatile_status_condition[status] = random.randint(1, 3)
-            case 'poison' | 'bad-poison' | 'burn' | 'paralysis':
-                self.non_volatile_status_condition[status] = -1
-            case 'freeze':
-                self.non_volatile_status_condition[status] = -1
+                self.non_volatile_status_condition = NonVolatileStatus(status, random.randint(1, 3))
+            case 'poison' | 'bad-poison' | 'burn' | 'paralysis' | 'freeze':
+                self.non_volatile_status_condition = NonVolatileStatus(status, -1)
 
     def apply_volatile_status(self, status: VolatileStatusCondition):
         match status:
             case 'confusion':
-                self.volatile_status_condition[status] = random.randint(2, 5)
+                self.volatile_status_conditions.append(VolatileStatus(status, random.randint(2, 5)))
             case 'trap':
-                self.volatile_status_condition[status] = random.randint(4, 5)
+                self.volatile_status_conditions.append(VolatileStatus(status, random.randint(4, 5)))
             case 'disable':
-                self.volatile_status_condition[status] = 4
+                self.volatile_status_conditions.append(VolatileStatus(status, 4))
             case 'encore':
-                self.volatile_status_condition[status] = 3
+                self.volatile_status_conditions.append(VolatileStatus(status, 3))
             case 'yawn':
-                self.volatile_status_condition[status] = 1
-            case 'leech-seed' | 'infatuation' | 'ingrain':
-                self.volatile_status_condition[status] = -1
+                self.volatile_status_conditions.append(VolatileStatus(status, 1))
+            case 'leech-seed' | 'infatuation' | 'ingrain' | 'torment':
+                self.volatile_status_conditions.append(VolatileStatus(status, -1))
 
     def get_boosted_stat(self, stat: PokemonStatKey) -> int:
         if stat == 'hp':
             return self.stats['hp']
-        return self.stats[stat] * get_stat_modifier(self.stat_boosts[stat])
+        return int(self.stats[stat] * get_stat_modifier(self.stat_boosts[stat]))
 
     def on_turn_start(self):
-        for status, duration in self.volatile_status_condition.items():
-            duration -= 1
-            if duration == 0:
-                self.volatile_status_condition.pop(status)
-        for status, duration in self.non_volatile_status_condition.items():
-            duration -= 1
-            if duration == 0:
-                self.non_volatile_status_condition.clear()
+        for status in self.volatile_status_conditions:
+            status.duration -= 1
+            if status.duration == 0:
+                self.volatile_status_conditions.remove(status)
+
+        if self.non_volatile_status_condition:
+            self.non_volatile_status_condition.duration -= 1
+            if self.non_volatile_status_condition.duration == 0:
+                self.non_volatile_status_condition = None
 
     def on_turn_end(self):
         self.protected = False
-        for status in self.non_volatile_status_condition.keys():
-            match status:
+        if self.non_volatile_status_condition:
+            match self.non_volatile_status_condition.name:
                 case 'poison':
                     self.current_hp -= self.stats['hp'] // 8
                 case 'bad-poison':
-                    self.current_hp -= self.stats['hp'] * abs(self.non_volatile_status_condition['bad-poison']) // 16
+                    self.current_hp -= self.stats['hp'] * abs(self.non_volatile_status_condition.duration) // 16
                 case 'burn':
                     self.current_hp -= self.stats['hp'] // 16
-        for status in self.volatile_status_condition.keys():
-            match status:
+                case _:
+                    pass
+
+        for status in self.volatile_status_conditions:
+            match status.name:
                 case 'leech-seed':
                     # TODO: Handle leeching effect. Somehow get the damage taken from here and add it to the opposing pokemon
                     self.current_hp -= self.stats['hp'] // 8
                 case 'ingrain':
                     self.current_hp = min(self.current_hp + self.stats['hp'] // 16, self.stats['hp'])
                 case 'yawn':
-                    if self.volatile_status_condition['yawn'] == 0 and len(self.non_volatile_status_condition.keys()) == 0:
+                    if status.duration == 0 and self.non_volatile_status_condition is None:
                         self.apply_non_volatile_status('sleep')
-                        self.volatile_status_condition.pop(status)
+                        self.volatile_status_conditions.remove(status)
                 case 'trap':
                     self.current_hp -= self.stats['hp'] // 8
+                case _:
+                    pass
 
     def on_switch_out(self):
-        self.volatile_status_condition.clear()
-        if 'bad-poison' in self.non_volatile_status_condition:
-            self.non_volatile_status_condition['bad-poison'] = -1
+        self.volatile_status_conditions.clear()
+        if self.non_volatile_status_condition and self.non_volatile_status_condition.name == 'bad-poison':
+            self.non_volatile_status_condition.duration = -1
         self.stat_boosts = {
             'attack': 0,
             'defense': 0,
@@ -279,7 +302,7 @@ class Pokemon:
     def is_incapacitated(self) -> bool:
         if self.flinched:
             return True
-        for status in list(self.volatile_status_condition.keys()) + list(self.non_volatile_status_condition.keys()):
+        for status in [vol_status.name for vol_status in self.volatile_status_conditions] + ([self.non_volatile_status_condition.name] if self.non_volatile_status_condition else []):
             match status:
                 case 'confusion':
                     if random.randint(1, 3) == 1:
@@ -296,17 +319,20 @@ class Pokemon:
                     return True if random.randint(1, 4) == 1 else False
                 case 'freeze':
                     if random.randint(1, 5) == 1:
-                        self.non_volatile_status_condition.pop('freeze')
+                        self.non_volatile_status_condition = None
                         return False
                     return True
                 case 'sleep':
                     return True
+                case _:
+                    return False
+        return False
 
 
 # TODO: indicate if move hits all available targets or just one
 # TODO: target slot index?
 def get_available_targets(user: Pokemon, user_side: Side, move: PokemonMove, active_pokemon: dict[Side, list[Pokemon]]) -> list[list[Pokemon]]:
-    opponent_side = [side for side in active_pokemon.keys() if side != user_side][0]
+    opponent_side = cast(Side, [side for side in SIDES if side != user_side][0])
     match move.target:
         # Since we are only modelling single battles there should be no elligible targets here
         case 'ally' | 'all-allies':
@@ -315,7 +341,7 @@ def get_available_targets(user: Pokemon, user_side: Side, move: PokemonMove, act
         case 'users-field' | 'user-and-allies':
             return [active_pokemon[user_side]]
         case 'user-or-ally':
-            targets = []
+            targets: list[list[Pokemon]] = []
             for pkm in active_pokemon[user_side]:
                 targets.append([pkm])
             return targets
@@ -343,7 +369,8 @@ def get_available_targets(user: Pokemon, user_side: Side, move: PokemonMove, act
             return [active_pokemon[opponent_side] + active_pokemon[user_side]]
         case 'fainting-pokemon':
             raise NotImplementedError('Fainted pokemon target not implemented')
-            
+        case 'selected-pokemon-me-first' | 'specific-move':
+            raise NotImplementedError('Target type not implemented')
 
 
 if __name__ == "__main__":
