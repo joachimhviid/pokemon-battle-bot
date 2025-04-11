@@ -2,8 +2,9 @@ from dataclasses import dataclass, field
 import random
 from typing import Any, Literal, Optional, Union, cast
 import math
+import numpy as np
 from pokemon_utils import get_stat_modifier
-from pokemon_types import NonVolatileStatus, PokemonNature, PokemonNatureKey, PokemonStatKey, PokemonType, DamageClass, MoveTarget, MoveCategory, MoveAilment, PokemonBoostStatKey, PokemonStatBoostStage, Side, VolatileStatus, VolatileStatusCondition, NonVolatileStatusCondition, PokemonStats, SIDES
+from pokemon_types import NonVolatileStatus, PokemonNature, PokemonNatureKey, PokemonStatKey, PokemonType, DamageClass, MoveTarget, MoveCategory, MoveAilment, PokemonBoostStatKey, PokemonStatBoostStage, Side, VolatileStatus, VolatileStatusCondition, NonVolatileStatusCondition, PokemonStats, SIDES, encode_type
 
 
 pokemon_natures: PokemonNature = {
@@ -337,6 +338,25 @@ class Pokemon:
                 case _:
                     return False
         return False
+
+    def encode(self) -> np.ndarray[Any, np.dtype[np.float32]]:
+        hp = self.current_hp / self.stats['hp'] if self.stats['hp'] > 0 else 0.0
+        non_vol_status = self.non_volatile_status_condition.encode() if self.non_volatile_status_condition else 0.0
+        vol_status = [status.encode() for status in self.volatile_status_conditions] if len(
+            self.volatile_status_conditions) > 0 else [0.0]
+        type_1 = encode_type(self.types[0]) / 18
+        type_2 = encode_type(self.types[1]) / 18 if self.types[1] else 0.0
+
+        atk = self.stats['attack'] / 255.0
+        def_ = self.stats['defense'] / 255.0
+        sp_atk = self.stats['special-attack'] / 255.0
+        sp_def = self.stats['special-defense'] / 255.0
+        spd = self.stats['speed'] / 255.0
+        level = self.level / 100.0
+        
+        return np.array([
+            hp, non_vol_status, vol_status, type_1, type_2, atk, def_, sp_atk, sp_def, spd, level
+        ], dtype=np.float32)
 
 
 # TODO: indicate if move hits all available targets or just one

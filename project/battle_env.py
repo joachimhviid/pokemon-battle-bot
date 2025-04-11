@@ -1,4 +1,4 @@
-from typing import Any, TypeAlias, Union, cast
+from typing import Any, TypeAlias, cast
 
 import gymnasium as gym
 import math
@@ -13,7 +13,7 @@ from pokemon_utils import get_stat_modifier
 
 # TODO: Finalize the ObsType and ActType
 # ObsType = dict[str, Union[np.integer, list[np.integer]]]
-ObsType = Any
+ObsType = dict[str, Any]
 ActType: TypeAlias = np.integer
 
 
@@ -38,7 +38,22 @@ class BattleEnv(gym.Env[ObsType, ActType]):
         # TODO: implement masking and map integer to action
         self.action_space = gym.spaces.Discrete(MAX_PLAYER_MOVES * MAX_MOVE_TARGETS + MAX_PLAYER_SWITCH_OPTIONS)
         # TODO: set observation space to visible game info (enemy hp, type, etc)
-        self.observation_space = gym.spaces.Discrete(4)
+        self.observation_space = gym.spaces.Dict({
+            'player_1_active_pokemon': gym.spaces.Box(0, 1, shape=(11,), dtype=np.float32),
+            'player_1_team': gym.spaces.Box(0, 1, shape=(6, 11), dtype=np.float32),
+            'player_1_fields': gym.spaces.MultiBinary(5),
+            'player_1_hazards': gym.spaces.MultiBinary(4),
+            'player_1_barriers': gym.spaces.MultiBinary(3),
+
+            'player_2_active_pokemon': gym.spaces.Box(0, 1, shape=(11,), dtype=np.float32),
+            'player_2_team': gym.spaces.Box(0, 1, shape=(6, 11), dtype=np.float32),
+            'player_2_fields': gym.spaces.MultiBinary(5),
+            'player_2_hazards': gym.spaces.MultiBinary(4),
+            'player_2_barriers': gym.spaces.MultiBinary(3),
+
+            'weather': gym.spaces.Discrete(5),
+            'terrain': gym.spaces.Discrete(5),
+        })
         self.player_1_team = player_1_team
         self.player_2_team = player_2_team
         # self.player_1_active_pokemon = player_1_team[0]
@@ -108,50 +123,36 @@ class BattleEnv(gym.Env[ObsType, ActType]):
 
     #     return observation, info
 
-    # TODO: this return type should be
     def _get_obs(self) -> ObsType:
         """
-        The state as seen by an agent. We assume standard competitive team sheet knowledge.
+        The current state as seen by an agent.
         """
-        # return gym.spaces.Dict({
-        #     'player_1_hp': gym.spaces.Box(0, 1, shape=()),
-        #     'player_2_hp': gym.spaces.Box(0, 1, shape=()),
-        # })
-        # {
-        #     'player_1_active_pokemon': [pkm.to_dict() for pkm in self.battle_field['player_1']],
-        #     'player_1_team': [pkm.to_dict() for pkm in self.player_1_team],
-        #     'player_1_fields': self.battle_effects_manager.fields.player_1,
-        #     'player_1_hazards': self.battle_effects_manager.hazards.player_1,
-        #     'player_1_barriers': self.battle_effects_manager.barriers.player_1,
-        #     'player_2_active_pokemon': [pkm.to_dict() for pkm in self.battle_field['player_2']],
-        #     'player_2_team': [pkm.to_dict() for pkm in self.player_2_team],
-        #     'player_2_fields': self.battle_effects_manager.fields.player_2,
-        #     'player_2_hazards': self.battle_effects_manager.hazards.player_2,
-        #     'player_2_barriers': self.battle_effects_manager.barriers.player_2,
-        #     'weather': self.battle_effects_manager.weather.to_dict() if self.battle_effects_manager.weather else None,
-        #     'terrain': self.battle_effects_manager.terrain.to_dict() if self.battle_effects_manager.terrain else None,
-        # }
-        return gym.spaces.Dict({
-            # TODO: Encode pokemon to valid space
-            # 'player_1_active_pokemon': self.battle_field['player_1'],
-            # 'player_1_team': self.player_1_team,
-            
-            'player_1_fields': gym.spaces.MultiBinary(5),
-            'player_2_fields': gym.spaces.MultiBinary(5),
-            # 2 stacks of toxic spikes, 3 stacks of spikes, stealth rocks, sticky web
-            'player_1_hazards': gym.spaces.MultiBinary(7),
-            'player_2_hazards': gym.spaces.MultiBinary(7),
-            
-            'player_1_barriers': gym.spaces.MultiBinary(3),
-            'player_2_barriers': gym.spaces.MultiBinary(3),
-            # 'player_2_active_pokemon': self.battle_field['player_2'],
-            # 'player_2_team': self.player_2_team,
-            # 'player_2_fields': self.battle_effects_manager.fields.player_2,
-            # 'player_2_hazards': self.battle_effects_manager.hazards.player_2,
-            # 'player_2_barriers': self.battle_effects_manager.barriers.player_2,
-            'weather': gym.spaces.Discrete(5),
-            'terrain': gym.spaces.Discrete(5),
-        })
+        return {
+            'player_1_active_pokemon': self.battle_field['player_1'][0].encode(),
+            'player_1_team': self.encode_team(self.player_1_team),
+            'player_1_fields': self.battle_effects_manager.encode_fields('player_1'),
+            'player_1_barriers': self.battle_effects_manager.encode_barriers('player_1'),
+            'player_1_hazards': self.battle_effects_manager.encode_hazards('player_1'),
+
+            'player_2_active_pokemon': self.battle_field['player_2'][0].encode(),
+            'player_2_team': self.encode_team(self.player_2_team),
+            'player_2_fields': self.battle_effects_manager.encode_fields('player_2'),
+            'player_2_barriers': self.battle_effects_manager.encode_barriers('player_2'),
+            'player_2_hazards': self.battle_effects_manager.encode_hazards('player_2'),
+
+            'weather': self.battle_effects_manager.encode_weather(),
+            'terrain': self.battle_effects_manager.encode_terrain(),
+        }
+        
+    def validate_observation(self):
+        assert self.observation_space.contains(self._get_obs()), 'Invalid observation'
+
+    def encode_team(self, team: list[Pokemon]) -> np.ndarray[Any, np.dtype[np.float32]]:
+        team_vecs = [pkm.encode() for pkm in team]
+        # Pad with zeros if fewer than 6 Pokémon
+        while len(team_vecs) < 6:
+            team_vecs.append(np.zeros(11, dtype=np.float32))
+        return np.stack(team_vecs[:6])
 
     # def _get_info(self):
     #     return {

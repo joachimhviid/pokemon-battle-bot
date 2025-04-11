@@ -1,4 +1,5 @@
-from typing import Optional
+import numpy as np
+from typing import Any, Optional
 from pokemon import Pokemon
 from pokemon_parser import parse_team
 from pokemon_types import BarrierType, FieldType, HazardType, Side, Terrain, TerrainType, Weather, WeatherType
@@ -43,7 +44,7 @@ class BattleEffectsManager:
                 turns = 4
             case 'quick-guard' | 'wide-guard':
                 turns = 1
-                
+
         self.fields.add_effect(field_effect_type, side, turns)
 
     def _reduce_effects(self):
@@ -99,6 +100,40 @@ class BattleEffectsManager:
         self.barriers.reset()
         self.fields.reset()
         self.hazards.reset()
+
+    def encode_hazards(self, side: Side) -> np.ndarray[Any, np.dtype[np.int8]]:
+        return np.array([
+            1 if self.hazards.effects_for_side(side)['spikes'] else 0,
+            1 if self.hazards.effects_for_side(side)['toxic-spikes'] else 0,
+            1 if self.hazards.effects_for_side(side)['stealth-rocks'] else 0,
+            1 if self.hazards.effects_for_side(side)['sticky-web'] else 0,
+        ], dtype=np.int8)
+
+    def encode_barriers(self, side: Side) -> np.ndarray[Any, np.dtype[np.int8]]:
+        return np.array([
+            1 if self.barriers.effects_for_side(side)['reflect'] else 0,
+            1 if self.barriers.effects_for_side(side)['light-screen'] else 0,
+            1 if self.barriers.effects_for_side(side)['aurora-veil'] else 0,
+        ], dtype=np.int8)
+
+    def encode_fields(self, side: Side) -> np.ndarray[Any, np.dtype[np.int8]]:
+        return np.array([
+            1 if self.fields.effects_for_side(side)['mist'] else 0,
+            1 if self.fields.effects_for_side(side)['safeguard'] else 0,
+            1 if self.fields.effects_for_side(side)['tailwind'] else 0,
+            1 if self.fields.effects_for_side(side)['wide-guard'] else 0,
+            1 if self.fields.effects_for_side(side)['quick-guard'] else 0,
+        ], dtype=np.int8)
+        
+    def encode_weather(self) -> int:
+        if self.weather is None:
+            return 0
+        return self.weather.encode()
+    
+    def encode_terrain(self) -> int:
+        if self.terrain is None:
+            return 0
+        return self.terrain.encode()
 
 
 if __name__ == "__main__":
