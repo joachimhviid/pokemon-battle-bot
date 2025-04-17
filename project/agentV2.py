@@ -11,16 +11,17 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from poke_env.environment import observation
 from poke_env import Player, AccountConfiguration, ServerConfiguration
-from poke_env.environment import AbstractBattle
+from poke_env.environment import AbstractBattle, Move
 from poke_env.player import Gen9EnvSinglePlayer, RandomPlayer, MaxBasePowerPlayer
 from poke_env.environment.pokemon_type import PokemonType
+from poke_env.player.battle_order import BattleOrder
 
 
 # --- 1. Hyperparameters ---
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {DEVICE}")
 
-N_BATTLES = 10     # Total number of battles to train for (Reduced for faster testing)
+N_BATTLES = 100     # Total number of battles to train for (Reduced for faster testing)
 BATCH_SIZE = 128       # Number of experiences to sample from buffer for learning
 GAMMA = 0.99           # Discount factor for future rewards
 EPSILON_START = 0.9    # Starting exploration rate (Changed name for consistency)
@@ -41,12 +42,210 @@ ACTION_SPACE_SIZE = 30 # Increased for Gen9RandomBattle
 print(f"Using ACTION_SPACE_SIZE: {ACTION_SPACE_SIZE}")
 
 # --- Server/Account Config ---
-BATTLE_FORMAT = "gen9randombattle" # Battle format for the environment
+BATTLE_FORMAT = "gen9ou" # vgc2025regg
 SERVER_CONF = ServerConfiguration("ws://localhost:8000/showdown/websocket", None)# type: ignore # Assuming default local server
 # Ensure unique names for concurrent runs if needed
-OPP_ACC_CONF = AccountConfiguration(f"RandomOpponent", None)
+OPP_ACC_CONF = AccountConfiguration(f"FixedTeamOpp-OU", None)
 AGENT_ACC_CONF = AccountConfiguration(f"DQNAgent-{random.randint(0,10000)}", None) # Make agent name unique too
 
+Wolfey_TEAM = """
+
+    Urshifu-Rapid-Strike @ Focus Sash
+    Level: 50
+    Ability: unseen-fist
+    Tera Type: Water    
+    EVs: 4 Hp / 252 Atk / 252 Spe
+    IVs: 31 Hp / 31 Atk / 31 Def / 0 SpA / 31 SpD / 31 Spe
+    Adamant Nature
+    - Detect
+    - Close Combat
+    - Aqua Jet
+    - Surging Strikes
+
+    Calyrex-Shadow @ Covert Cloak
+    Level: 50
+    Ability: As One (spectrier)
+    Tera Type: Ghost
+    EVs: 140 Hp / 4 Def / 100 SpA / 12 SpD / 252 Spe
+    IVs: 31 Hp / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+    Timid Nature
+    - Nasty Plot
+    - Psyshock
+    - Astral Barrage
+    - Protect
+
+    Incineroar @ Safety Goggles
+    Level: 50
+    Ability: Intimidate
+    Tera Type: Ghost
+    EVs: 252 Hp / 180 Def / 76 SpD
+    IVs: 31 Hp / 31 Atk / 31 Def / 31 SpA / 31 SpD / 0 Spe
+    Sassy Nature
+    - Fake Out
+    - Parting Shot
+    - Knock Off
+    - Helping Hand
+
+    Rillaboom @ Assault Vest
+    Level: 50
+    Ability: Grassy Surge
+    Tera Type: Fire
+    EVs: 244 Hp / 36 Atk / 4 Def / 220 SpD / 4 Spe
+    IVs: 31 Hp / 31 Atk / 31 Def / 0 SpA / 31 SpD / 31 Spe
+    Adamant Nature
+    - Fake Out
+    - U-turn
+    - Wood Hammer
+    - Grassy Glide
+
+    Farigiraf @ Throat Spray
+    Level: 50
+    Ability: Armor Tail
+    Tera Type: Psychic
+    EVs: 228 Hp / 12 Def / 156 SpA / 112 SpD
+    IVs: 31 Hp / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+    Modest Nature
+    - Protect
+    - Hyper Voice
+    - Trick Room
+    - Dazzling Gleam
+
+    Raging Bolt @ Booster Energy
+    Level: 50
+    Ability: Protosynthesis
+    Tera Type: Fairy
+    EVs: 196 Hp / 108 Def / 196 SpA / 4 SpD / 4 Spe
+    IVs: 31 Hp / 20 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+    Modest Nature
+    - Thunderclap
+    - Thunderbolt
+    - Protect
+    - Dragon Pulse
+"""
+
+AGENT_TEAM = """
+Glimmora @ Focus Sash
+Ability: Toxic Debris
+Tera Type: Ghost
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+- Mortal Spin
+- Stealth Rock
+- Energy Ball
+- Earth Power
+
+Great Tusk @ Booster Energy
+Ability: Protosynthesis
+Tera Type: Ground
+EVs: 252 Atk / 4 SpD / 252 Spe
+Jolly Nature
+- Headlong Rush
+- Close Combat
+- Ice Spinner
+- Rapid Spin
+
+Iron Valiant @ Booster Energy
+Ability: Quark Drive
+Tera Type: Fairy
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+- Moonblast
+- Psyshock
+- Shadow Ball
+- Thunderbolt
+
+Kingambit @ Black Glasses
+Ability: Supreme Overlord
+Tera Type: Dark
+EVs: 252 Atk / 4 SpD / 252 Spe
+Adamant Nature
+- Kowtow Cleave
+- Sucker Punch
+- Iron Head
+- Swords Dance
+
+Dragapult @ Choice Specs
+Ability: Infiltrator
+Tera Type: Ghost
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+- Shadow Ball
+- Draco Meteor
+- U-turn
+- Thunderbolt
+
+Cinderace @ Heavy-Duty Boots
+Ability: Libero
+Tera Type: Fire
+EVs: 252 Atk / 4 SpD / 252 Spe
+Jolly Nature
+- Pyro Ball
+- U-turn
+- Court Change
+- Will-O-Wisp
+"""
+
+OPPONENT_TEAM = """
+Gholdengo @ Choice Scarf
+Ability: Good as Gold
+Tera Type: Steel
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+- Make It Rain
+- Shadow Ball
+- Focus Blast
+- Trick
+
+Dragonite @ Heavy-Duty Boots
+Ability: Multiscale
+Tera Type: Normal
+EVs: 252 Atk / 4 SpD / 252 Spe
+Adamant Nature
+- Extreme Speed
+- Earthquake
+- Dragon Dance
+- Ice Spinner
+
+Garganacl @ Leftovers
+Ability: Purifying Salt
+Tera Type: Fairy
+EVs: 252 HP / 4 Def / 252 SpD
+Careful Nature
+- Salt Cure
+- Recover
+- Protect
+- Earthquake
+
+Iron Moth @ Booster Energy
+Ability: Quark Drive
+Tera Type: Grass
+EVs: 104 Def / 148 SpA / 4 SpD / 252 Spe
+Timid Nature
+- Fiery Dance
+- Sludge Wave
+- Energy Ball
+- Dazzling Gleam
+
+Ting-Lu @ Leftovers
+Ability: Vessel of Ruin
+Tera Type: Water
+EVs: 252 HP / 4 Def / 252 SpD
+Careful Nature
+- Stealth Rock
+- Spikes
+- Ruination
+- Earthquake
+
+Meowscarada @ Heavy-Duty Boots
+Ability: Protean
+Tera Type: Grass
+EVs: 252 Atk / 4 SpD / 252 Spe
+Jolly Nature
+- Flower Trick
+- Knock Off
+- U-turn
+- Spikes
+"""
 
 def print_args(func_name, *args, **kwargs):
     print(f"--- Entering {func_name} ---")
@@ -103,40 +302,7 @@ class MyAgent(Gen9EnvSinglePlayer):
 
         # Correct status map keys to match poke-env standard status names (uppercase)
         self.status_map = {None: 0, 'PAR': 1, 'BRN': 2, 'FRZ': 3, 'PSN': 4, 'SLP': 5, 'TOX': 6}
-    
-    async def _handle_battle_message(self, split_message: list[list[str]]):
-        try:
-            await super()._handle_battle_message(split_message) # type: ignore
-        except KeyError as e:
-            if e.args and e.args[0] in ["[p", "[o]"]:
-                if hasattr(self, "logger"):
-                    self.logger.warning(
-                        "Caught KeyError ('%s') during battle message parsing. "
-                        "Likely a poke-env parsing error related to specific moves/states (e.g., Chilly Reception). "
-                        "Ignoring message fragment and returning.",
-                        e.args[0],
-                    )
-                else:
-                    print(f"WARNING: Caught KeyError ('{e.args[0]}') during battle message parsing. Ignoring message fragment.")
-            else:
-                if hasattr(self, 'logger'): 
-                    self.logger.error("Unhandled KeyError during parsing: %s", e)
-                else: print(f"ERROR: Unhandled KeyError during parsing: {e}")
-                raise e
-            
-        except Exception as e:
-            if hasattr(self, 'logger'): 
-                self.logger.error("Unhandled Exception during _handle_battle_message: %s", e)
-            else: 
-                print(f"ERROR: Unhandled Exception during _handle_battle_message: {e}")
-            traceback.print_exc()
-            raise e
-
     def embed_battle(self, battle: AbstractBattle) -> np.ndarray:
-        """
-        Computes a numerical representation of the battle state.
-        Output vector size must match STATE_SIZE.
-        """
         my_active = battle.active_pokemon
         opp_active = battle.opponent_active_pokemon
         my_hp = my_active.current_hp_fraction if my_active else 0.0
@@ -185,13 +351,13 @@ class MyAgent(Gen9EnvSinglePlayer):
 
         # --- Debug Print for component shapes (Uncommented) ---
         print(f"DEBUG embed_battle shapes: c1={c1.shape}, c2={c2.shape}, c3={c3.shape}, c4={c4.shape}, c5={c5.shape}, c6={c6.shape}, c7={c7.shape}")
-        # Expected: (2,), (2,), (36,), (36,), (7,), (7,) -> Total 88
+        # Expected: (2,), (2,), (36,), (36,), (7,), (7,) -> Total 90
 
-        state = np.concatenate([c1, c2, c3, c4, c5, c6, c7])
+        state = np.concatenate([c1, c2, c3, c4, c5, c6, c7]) # Expects 90 ???
 
         if state.shape[0] != STATE_SIZE:
              print(f"\n!!! CRITICAL WARNING: embed_battle produced state size {state.shape[0]}, but STATE_SIZE is set to {STATE_SIZE}. !!!")
-
+        """
         # Pad or truncate to ensure state size is exactly STATE_SIZE (90)
         if state.shape[0] < STATE_SIZE:
             # print(f"Warning: Padding state from {state.shape[0]} to {STATE_SIZE}") # Optional print
@@ -200,14 +366,10 @@ class MyAgent(Gen9EnvSinglePlayer):
         elif state.shape[0] > STATE_SIZE:
             # print(f"Warning: Truncating state from {state.shape[0]} to {STATE_SIZE}") # Optional print
             state = state[:STATE_SIZE]
-
+        """
         return state.astype(np.float32)
 
     def describe_embedding(self) -> spaces.Space:
-        """
-        Returns the description of the embedding space (observation space).
-        Uses the global STATE_SIZE.
-        """
         low = np.zeros(STATE_SIZE, dtype=np.float32)
         high = np.ones(STATE_SIZE, dtype=np.float32)
         print(f"--- Describing Embedding Space ---")
@@ -219,9 +381,7 @@ class MyAgent(Gen9EnvSinglePlayer):
         return spaces.Box(low=low, high=high, shape=(STATE_SIZE,), dtype=np.float32)
 
     def calc_reward(self, last_battle: AbstractBattle, current_battle: AbstractBattle) -> float:
-        """
-        Calculates the reward difference between the last state and the current state.
-        """
+        
         def get_reward_for_battle(battle: AbstractBattle) -> float:
             if battle is None: return 0.0
             if battle.won: return 10.0
@@ -234,7 +394,6 @@ class MyAgent(Gen9EnvSinglePlayer):
         return step_reward
 
     def action_to_move(self, action_idx: int, battle: AbstractBattle):
-        """Converts action index back to poke-env move/switch order."""
         current_moves = battle.available_moves
         current_switches = battle.available_switches
         n_moves = len(current_moves)
@@ -417,7 +576,8 @@ async def train_agent(n_battles_to_run):
     opponent = RandomPlayer(
         account_configuration=OPP_ACC_CONF,
         battle_format=BATTLE_FORMAT,
-        server_configuration=SERVER_CONF
+        server_configuration=SERVER_CONF,
+        team=OPPONENT_TEAM
     )
     print(f"  Opponent Player ({type(opponent).__name__}) Config:")
     print(f"    Battle Format: {BATTLE_FORMAT}")
@@ -426,15 +586,18 @@ async def train_agent(n_battles_to_run):
         opponent=opponent,
         account_configuration=AGENT_ACC_CONF,
         battle_format=BATTLE_FORMAT,
-        log_level=5, # Increase or Decrease as desired        server_configuration=SERVER_CONF,
-        start_challenging=True
-
+        log_level=5,     
+        server_configuration=SERVER_CONF,
+        team=AGENT_TEAM,
+        start_challenging=True,
     )
     print(f"  RL Player ({type(env_player).__name__}) set up.")
 
+    print("  Allowing time for players to connect and challenge...")
+    await asyncio.sleep(3)
+
     _ = env_player.describe_embedding()
     env = env_player
-
 
     print(f"\n--- Initializing DQNAgent ---")
     agent = DQNAgent(STATE_SIZE, ACTION_SPACE_SIZE)
@@ -444,8 +607,7 @@ async def train_agent(n_battles_to_run):
     wins = 0
     total_reward = 0
     recent_rewards = deque(maxlen=LOG_FREQ)
-    # recent_losses = deque(maxlen=LOG_FREQ) # Uncomment if tracking loss
-    # total_losses = 0.0 # Uncomment if tracking loss
+
 
     # --- Lists for plotting ---
     episode_log_points = []
@@ -456,7 +618,7 @@ async def train_agent(n_battles_to_run):
     interval_total_loss = 0.0
     interval_total_steps = 0
 
-    for episode in range(1, n_battles_to_run + 1):
+    for episode in range(1, n_battles_to_run):
         state = None
         done = False
         episode_reward = 0.0
@@ -497,10 +659,10 @@ async def train_agent(n_battles_to_run):
                 current_max_possible_actions = env.action_space.n
                 available_action_indices = list(range(current_max_possible_actions))
                 action_tensor = agent.select_action(state, available_action_indices)
-                action = action_tensor.item() # Action chosen by agent (0-29)
+                action = action_tensor.item() 
 
 
-                if env.current_battle: # Ensure battle object exists
+                if env.current_battle:
                     current_moves = env.current_battle.available_moves
                     current_switches = env.current_battle.available_switches
                     actual_total_actions = len(current_moves) + len(current_switches)
@@ -516,8 +678,6 @@ async def train_agent(n_battles_to_run):
                     print(f"ERROR: env.current_battle is None before action correction in Ep {episode}, Turn {turn}. Breaking.")
                     break
 
-
-                # Use the potentially corrected 'action'
                 next_state_dict, reward, terminated, truncated, info = env.step(action)
                 
                 done = terminated or truncated
@@ -553,7 +713,7 @@ async def train_agent(n_battles_to_run):
         if battle_won: 
             wins += 1
 
-        if episode % TARGET_UPDATE_FREQ == 10: 
+        if episode % TARGET_UPDATE_FREQ == 0: 
             agent.update_target_network()
 
         if episode % LOG_FREQ == 10:
@@ -573,22 +733,15 @@ async def train_agent(n_battles_to_run):
                 math.exp(-1.0 * agent.steps_done / EPSILON_DECAY)
             print(f"\n--- Episode Log ---")
             print(f"  Episode: {episode}/{n_battles_to_run}")
-            print(f"  Avg Reward (Last {LOG_FREQ}): {avg_reward_interval:.3f}")
-            print(f"  Avg Loss (Episodes in Log): {avg_loss_interval:.5f}")
-            print(f"  Win Rate (Last {LOG_FREQ}): {win_rate_interval:.2f}")
-            print(f"  Current Epsilon: {current_epsilon_val:.3f}")
-            print(f"  Total Steps Done: {agent.steps_done}")
-            print(f"  Buffer Size: {len(agent.replay_buffer)}")
-            print(f"  Elapsed Time: {elapsed_time:.1f}s")
             print(f"-------------------\n")
             wins = 0
 
     plot_training_results(episode_log_points, avg_rewards_log, avg_losses_log, win_rates_log)
     # --- Save Model ---
-    save_dir = "./project/output/"
+    save_dir = "./project/output/models"
     os.makedirs(save_dir, exist_ok=True)
-    policy_path = os.path.join(save_dir, "dqn_pokemon_policy.pth")
-    target_path = os.path.join(save_dir, "dqn_pokemon_target.pth")
+    policy_path = os.path.join(save_dir, "Model_Policy-v1.0.0.pth")
+    target_path = os.path.join(save_dir, "Model_target-v1.0.0.pth")
     try:
         if 'agent' in locals() and agent is not None:
             torch.save(agent.policy_net.state_dict(), policy_path)
@@ -601,36 +754,32 @@ async def train_agent(n_battles_to_run):
 
     env.close()
     print("\n--- Training Finished ---")
-    # (Final print statements omitted for brevity)
 
-# --- Plotting Function ---
 def plot_training_results(episodes, rewards, losses, win_rates, save_path="./project/output/training_plot.png"):
     """Generates and saves plots for training metrics."""
     print(f"Generating plot with {len(episodes)} data points...")
     fig, axs = plt.subplots(3, 1, figsize=(10, 15), sharex=True)
-    
-    axs[0].plot(episodes, rewards, label='Avg Reward per Interval', color='blue'); 
-    axs[0].set_ylabel('Average Reward'); 
-    axs[0].set_title('Training Progress'); 
-    axs[0].grid(True); 
+
+    # Plot Average Reward
+    axs[0].plot(episodes, rewards, label='Avg Reward per Interval', color='blue')
+    axs[0].set_ylabel('Average Reward')
+    axs[0].set_title('Training Progress')
+    axs[0].grid(True)
     axs[0].legend()
-    
-    axs[1].plot(episodes, losses, label='Avg Loss per Interval', color='red'); 
-    axs[1].set_ylabel('Average Loss'); 
-    axs[1].grid(True); 
+
+    # Plot Average Loss
+    axs[1].plot(episodes, losses, label='Avg Loss per Interval', color='red')
+    axs[1].set_ylabel('Average Loss')
+    axs[1].grid(True)
     axs[1].legend()
-    
-    axs[2].plot(episodes, win_rates, label='Win Rate per Interval', color='green'); 
-    axs[2].set_ylabel('Win Rate'); 
-    axs[2].set_xlabel(f'Episodes (Intervals of {LOG_FREQ})'); 
-    axs[2].grid(True); 
-    axs[2].legend(); 
-    axs[2].set_ylim(0, 1)
-    
-    plt.tight_layout();
-    try: plt.savefig(save_path); print(f"Training plot saved to {save_path}")
-    except Exception as e: print(f"Error saving plot: {e}")
-    plt.close(fig)
+
+    # Plot Win Rate
+    axs[2].plot(episodes, win_rates, label='Win Rate per Interval', color='green')
+    axs[2].set_ylabel('Win Rate')
+    axs[2].set_xlabel(f'Episodes (Intervals of {LOG_FREQ})')
+    axs[2].grid(True)
+    axs[2].legend()
+    axs[2].set_ylim(0, 1) # Win rate is between 0 and 1
 
     plt.tight_layout()
     try:
@@ -641,16 +790,11 @@ def plot_training_results(episodes, rewards, losses, win_rates, save_path="./pro
     plt.close(fig) # Close the figure to free memory
 
 
-# --- 7. Main Execution ---
 if __name__ == "__main__":
     print("--- Script Execution Started ---")
     print("Reminder: Make sure a Pokemon Showdown server is running locally!")
     print(f"Script will train for N_BATTLES = {N_BATTLES}")
     print(f"Using STATE_SIZE = {STATE_SIZE}, ACTION_SPACE_SIZE = {ACTION_SPACE_SIZE}")
-    print(f"Hyperparameters: BATCH_SIZE={BATCH_SIZE}, GAMMA={GAMMA}, EPS_START={EPSILON_START}, \
-            EPS_END={EPSILON_END}, EPS_DECAY={EPSILON_DECAY}, TAU={TAU}, LR={LR}, \
-            BUFFER_SIZE={BUFFER_SIZE}, TARGET_UPDATE_FREQ={TARGET_UPDATE_FREQ}")
-    print("-" * 30)
 
     try:
         asyncio.run(train_agent(N_BATTLES))
@@ -664,5 +808,4 @@ if __name__ == "__main__":
         traceback.print_exc()
     finally:
         print("\n--- Script Execution Finished ---")
-        # Saving moved to end of train_agent function
 
