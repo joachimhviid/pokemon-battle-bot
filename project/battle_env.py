@@ -8,13 +8,14 @@ import numpy as np
 from pokemon import Pokemon, PokemonMove, PokemonStatKey, PokemonType
 from pokemon_parser import parse_team
 from battle_effects_manager import BattleEffectsManager
-from pokemon_types import NonVolatileStatusCondition, Side, VolatileStatusCondition, WeatherType, is_barrier, is_field, is_hazard, is_terrain, is_valid_boost_stage
+from pokemon_types import NonVolatileStatusCondition, Side, VolatileStatusCondition, WeatherType, is_barrier, is_field, \
+    is_hazard, is_terrain, is_valid_boost_stage
 from pokemon_utils import get_stat_modifier
 
 # TODO: Finalize the ObsType and ActType
 # ObsType = dict[str, Union[np.integer, list[np.integer]]]
 ObsType = dict[str, Any]
-ActType: TypeAlias = np.integer
+ActType: TypeAlias = int
 
 
 class BattleEnv(gym.Env[ObsType, ActType]):
@@ -25,19 +26,16 @@ class BattleEnv(gym.Env[ObsType, ActType]):
 
     player_1_team: list[Pokemon]
     player_2_team: list[Pokemon]
-    player_1_active_pokemon: Pokemon
-    player_2_active_pokemon: Pokemon
 
     battle_field: dict[Side, list[Pokemon]] = {'player_1': [], 'player_2': []}
 
     def __init__(self, player_1_team: list[Pokemon], player_2_team: list[Pokemon]):
         # TODO: set action space to game mechanics (fight: dict of moves, switch: dict of team members)
-        MAX_PLAYER_SWITCH_OPTIONS = 5
+        MAX_PLAYER_SWITCH_OPTIONS = 6
         MAX_PLAYER_MOVES = 4
         MAX_MOVE_TARGETS = 2
         # TODO: implement masking and map integer to action
         self.action_space = gym.spaces.Discrete(MAX_PLAYER_MOVES * MAX_MOVE_TARGETS + MAX_PLAYER_SWITCH_OPTIONS)
-        # TODO: set observation space to visible game info (enemy hp, type, etc)
         self.observation_space = gym.spaces.Dict({
             'player_1_active_pokemon': gym.spaces.Box(0, 1, shape=(11,), dtype=np.float32),
             'player_1_team': gym.spaces.Box(0, 1, shape=(6, 11), dtype=np.float32),
@@ -56,30 +54,58 @@ class BattleEnv(gym.Env[ObsType, ActType]):
         })
         self.player_1_team = player_1_team
         self.player_2_team = player_2_team
-        # self.player_1_active_pokemon = player_1_team[0]
-        # self.player_2_active_pokemon = player_2_team[0]
+
         self.battle_field['player_1'].append(player_1_team[0])
         self.battle_field['player_2'].append(player_2_team[0])
+
         self.battle_effects_manager = BattleEffectsManager()
 
         for pkm in self.battle_field['player_1'] + self.battle_field['player_2']:
             pkm.on_switch_in()
-        # self.player_1_active_pokemon.on_switch_in()
-        # self.player_2_active_pokemon.on_switch_in()
 
-    def step(self, action: str):  # type: ignore
+    def action_to_move(self) -> dict[ActType, tuple[PokemonMove, Pokemon] | Pokemon]:
+        """
+        Should return a tuple of a move and a target or a switch to another Pokémon
+        """
+        return {
+            0: (self.battle_field['player_1'][0].moves[0], self.battle_field['player_1'][0]),
+            1: (self.battle_field['player_1'][0].moves[0], self.battle_field['player_2'][0]),
+            2: (self.battle_field['player_1'][0].moves[1], self.battle_field['player_1'][0]),
+            3: (self.battle_field['player_1'][0].moves[1], self.battle_field['player_2'][0]),
+            4: (self.battle_field['player_1'][0].moves[2], self.battle_field['player_1'][0]),
+            5: (self.battle_field['player_1'][0].moves[2], self.battle_field['player_2'][0]),
+            6: (self.battle_field['player_1'][0].moves[3], self.battle_field['player_1'][0]),
+            7: (self.battle_field['player_1'][0].moves[3], self.battle_field['player_2'][0]),
+            8: self.player_1_team[0],
+            9: self.player_1_team[1],
+            10: self.player_1_team[2],
+            11: self.player_1_team[3],
+            12: self.player_1_team[4],
+            13: self.player_1_team[5],
+        }
+
+    def step(self, action: ActType):  # type: ignore
+        _action = self.action_to_move()[action]
         # increment turn counter
         self.turn_counter += 1
-        speed_sorted_pokemon = [self.player_1_active_pokemon, self.player_2_active_pokemon]
+        speed_sorted_pokemon = self.battle_field['player_1'] + self.battle_field['player_2']
         speed_sorted_pokemon.sort(key=lambda pkm: pkm.get_boosted_stat('speed'), reverse=True)
         # increment status counter (increase toxic damage) (pokemon wake from sleep at the start of their turn)
         # decrement duration? Can use this for toxic damage calculation
         self.on_turn_start(speed_sorted_pokemon)
 
-        # select move before getting turn order
-        for pkm in self.get_turn_order():
-            print(f'{pkm.name} acts')
+        if isinstance(_action, tuple):
+            move, target = _action
+            for pkm in self.get_turn_order():
+                print(f'{pkm.name} acts')
+                self.execute_move(move=move, attacker=pkm, target=target)
+        else:
+            for pkm in self.get_turn_order():
+                print(f'{pkm.name} acts')
+                self.switch_pokemon(side=self.get_pokemon_side(pkm))
             # execute move
+
+        # select move before getting turn order
 
         # handle end of turn
         self.on_turn_end(speed_sorted_pokemon)
@@ -127,7 +153,7 @@ class BattleEnv(gym.Env[ObsType, ActType]):
         """
         The current state as seen by an agent.
         """
-        return {
+        obs = {
             'player_1_active_pokemon': self.battle_field['player_1'][0].encode(),
             'player_1_team': self.encode_team(self.player_1_team),
             'player_1_fields': self.battle_effects_manager.encode_fields('player_1'),
@@ -143,9 +169,11 @@ class BattleEnv(gym.Env[ObsType, ActType]):
             'weather': self.battle_effects_manager.encode_weather(),
             'terrain': self.battle_effects_manager.encode_terrain(),
         }
-        
-    def validate_observation(self):
-        assert self.observation_space.contains(self._get_obs()), 'Invalid observation'
+        self.validate_observation(obs)
+        return obs
+
+    def validate_observation(self, observation: ObsType):
+        assert self.observation_space.contains(observation), 'Invalid observation'
 
     def encode_team(self, team: list[Pokemon]) -> np.ndarray[Any, np.dtype[np.float32]]:
         team_vecs = [pkm.encode() for pkm in team]
@@ -161,10 +189,10 @@ class BattleEnv(gym.Env[ObsType, ActType]):
     #     }
 
     def get_turn_order(self) -> list[Pokemon]:
-        active_pokemon = [self.player_1_active_pokemon, self.player_2_active_pokemon]
+        active_pokemon = self.battle_field['player_1'] + self.battle_field['player_2']
         active_pokemon.sort(key=lambda pkm: (pkm.selected_move.priority, pkm.get_boosted_stat('speed')), reverse=True)
         if active_pokemon[0].stats['speed'] == active_pokemon[1].stats['speed'] and active_pokemon[
-                0].selected_move.priority == active_pokemon[1].selected_move.priority:
+            0].selected_move.priority == active_pokemon[1].selected_move.priority:
             random.shuffle(active_pokemon)
         return active_pokemon
 
@@ -172,20 +200,20 @@ class BattleEnv(gym.Env[ObsType, ActType]):
         match side:
             case 'player_1':
                 non_active = [pkm for pkm in self.player_1_team if
-                              pkm is not self.player_1_active_pokemon and not pkm.is_fainted()]
+                              pkm is not self.battle_field['player_1'][0] and not pkm.is_fainted()]
                 if non_active:
                     selected_pokemon = random.choice(non_active)  # make not random
-                    self.player_1_active_pokemon.on_switch_out()
-                    self.player_1_active_pokemon = selected_pokemon
-                    self.player_1_active_pokemon.on_switch_in()
+                    self.battle_field['player_1'][0].on_switch_out()
+                    self.battle_field['player_1'][0] = selected_pokemon
+                    self.battle_field['player_1'][0].on_switch_in()
             case 'player_2':
                 non_active = [pkm for pkm in self.player_2_team if
-                              pkm is not self.player_2_active_pokemon and not pkm.is_fainted()]
+                              pkm is not self.battle_field['player_2'][0] and not pkm.is_fainted()]
                 if non_active:
                     selected_pokemon = random.choice(non_active)  # make not random
-                    self.player_2_active_pokemon.on_switch_out()
-                    self.player_2_active_pokemon = selected_pokemon
-                    self.player_2_active_pokemon.on_switch_in()
+                    self.battle_field['player_2'][0].on_switch_out()
+                    self.battle_field['player_2'][0] = selected_pokemon
+                    self.battle_field['player_2'][0].on_switch_in()
 
     def execute_move(self, move: PokemonMove, attacker: Pokemon, target: Pokemon):
         if attacker.is_incapacitated():
@@ -259,8 +287,8 @@ class BattleEnv(gym.Env[ObsType, ActType]):
                 if is_terrain(move.name):
                     self.battle_effects_manager.set_terrain(move.name)
                 if move.name == 'haze':
-                    self.player_1_active_pokemon.reset_boosts()
-                    self.player_2_active_pokemon.reset_boosts()
+                    self.battle_field['player_1'][0].reset_boosts()
+                    self.battle_field['player_2'][0].reset_boosts()
             case 'field-effect':
                 if is_field(move.name):
                     self.battle_effects_manager.add_field_effect(move.name, self.get_pokemon_side(target))
@@ -341,8 +369,8 @@ class BattleEnv(gym.Env[ObsType, ActType]):
         # Item, ability, aura boosts etc (eg choice band)
         other_modifier = 1
         return int(math.floor((((((2 * attacker.level) / 5) + 2) * (move.power if move.power else 0) * (
-            offensive_effective_stat / defensive_effective_stat)) / 50) + 2) * targets_modifier * weather_modifier * (
-            1.5 if is_crit else 1) * random_modifier * stab_modifier * type_modifier * burn_modifier * other_modifier)
+                offensive_effective_stat / defensive_effective_stat)) / 50) + 2) * targets_modifier * weather_modifier * (
+                       1.5 if is_crit else 1) * random_modifier * stab_modifier * type_modifier * burn_modifier * other_modifier)
 
     def get_effective_stats(self, move: PokemonMove, attacker: Pokemon, defender: Pokemon, is_crit: bool) -> \
             tuple[float, float]:
