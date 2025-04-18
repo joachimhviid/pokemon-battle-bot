@@ -1,5 +1,4 @@
-def main():
-  print("hello")
+import gymnasium as gym
 
-if __name__ == "__main__":
-  main()
+env = gym.make("Pokemon-v0")
+print(env.action_space)
