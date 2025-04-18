@@ -102,7 +102,7 @@ class BattleEnv(gym.Env[ObsType, ActType]):
         else:
             for pkm in self.get_turn_order():
                 print(f'{pkm.name} acts')
-                self.switch_pokemon(side=self.get_pokemon_side(pkm))
+                self.switch_pokemon(side=self.get_pokemon_side(pkm), selected_pokemon=_action)
 
         self.on_turn_end(speed_sorted_pokemon)
 
@@ -193,13 +193,12 @@ class BattleEnv(gym.Env[ObsType, ActType]):
             random.shuffle(active_pokemon)
         return active_pokemon
 
-    def switch_pokemon(self, side: Side):
+    def switch_pokemon(self, side: Side, selected_pokemon: Pokemon):
         match side:
             case 'player_1':
                 non_active = [pkm for pkm in self.player_1_team if
                               pkm is not self.battle_field['player_1'][0] and not pkm.is_fainted()]
                 if non_active:
-                    selected_pokemon = random.choice(non_active)  # make not random
                     self.battle_field['player_1'][0].on_switch_out()
                     self.battle_field['player_1'][0] = selected_pokemon
                     self.battle_field['player_1'][0].on_switch_in()
@@ -207,7 +206,6 @@ class BattleEnv(gym.Env[ObsType, ActType]):
                 non_active = [pkm for pkm in self.player_2_team if
                               pkm is not self.battle_field['player_2'][0] and not pkm.is_fainted()]
                 if non_active:
-                    selected_pokemon = random.choice(non_active)  # make not random
                     self.battle_field['player_2'][0].on_switch_out()
                     self.battle_field['player_2'][0] = selected_pokemon
                     self.battle_field['player_2'][0].on_switch_in()
