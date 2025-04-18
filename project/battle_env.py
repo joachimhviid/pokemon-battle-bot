@@ -97,6 +97,8 @@ class BattleEnv(gym.Env[ObsType, ActType]):
         if isinstance(_action, tuple):
             move, target = _action
             for pkm in self.get_turn_order():
+                if pkm.is_fainted():
+                    continue
                 print(f'{pkm.name} acts')
                 self.execute_move(move=move, attacker=pkm, target=target)
         else:
@@ -124,9 +126,6 @@ class BattleEnv(gym.Env[ObsType, ActType]):
             pkm.on_turn_start()
 
     def on_turn_end(self, sorted_active_pokemon: list[Pokemon]):
-        # apply field effects (sandstorm chip, grassy terrain healing)
-        # decrement field effect counters (weather, terrain, etc)
-        # apply status effect (burn/poison damage)
         # trigger items (leftovers)
         for pkm in sorted_active_pokemon:
             pkm.on_turn_end()
@@ -134,8 +133,6 @@ class BattleEnv(gym.Env[ObsType, ActType]):
 
     def reset(self, seed: int | None = None, options: dict[str, Any] | None = None):
         super().reset(seed=seed)
-        # Reset the HP, status effects, stat boosts and restore all PP to Pokemon on each team.
-        # Set active Pokemon back to first in list
         for pokemon in self.player_1_team:
             pokemon.reset()
         for pokemon in self.player_2_team:
@@ -215,7 +212,6 @@ class BattleEnv(gym.Env[ObsType, ActType]):
             self._log_event(f'{attacker.name} was unable to execute move')
             return
         self._log_event(f'{attacker.name} used {move.name} on {target.name}')
-        # TODO: Handle incapacitation (flinch, full para, recharge, infatuation)
         move.current_pp = move.current_pp - 1
         inflicted_damage: int = 0
         restored_health: int = 0
