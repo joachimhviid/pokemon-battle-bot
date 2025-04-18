@@ -1,9 +1,11 @@
 import numpy as np
 from typing import Any, Optional
-from pokemon import Pokemon
-from pokemon_parser import parse_team
-from pokemon_types import BarrierType, FieldType, HazardType, Side, Terrain, TerrainType, Weather, WeatherType
-from biased_effect import BiasedEffect
+from project.core.pokemon import Pokemon
+from project.data.parsers import parse_team
+from project.effects.biased_effect import BiasedEffect
+from project.effects.terrain import Terrain
+from project.effects.weather import Weather
+from project.utils.constants import WeatherType, TerrainType, HazardType, BarrierType, Side, FieldType
 
 
 class BattleEffectsManager:
@@ -76,7 +78,8 @@ class BattleEffectsManager:
         self.weather.duration -= 1
 
         for pkm in active_pokemon:
-            if self.weather.name == 'sandstorm' and not any(type_ in pkm.types for type_ in ['rock', 'steel', 'ground']) and pkm.held_item != 'safety-goggles':
+            if self.weather.name == 'sandstorm' and not any(
+                    type_ in pkm.types for type_ in ['rock', 'steel', 'ground']) and pkm.held_item != 'safety-goggles':
                 pkm.take_damage(pkm.stats['hp'] // 16)
             if self.weather.name == 'rain':
                 if pkm.ability == 'rain-dish':
@@ -124,12 +127,12 @@ class BattleEffectsManager:
             1 if self.fields.effects_for_side(side)['wide-guard'] else 0,
             1 if self.fields.effects_for_side(side)['quick-guard'] else 0,
         ], dtype=np.int8)
-        
+
     def encode_weather(self) -> int:
         if self.weather is None:
             return 0
         return self.weather.encode()
-    
+
     def encode_terrain(self) -> int:
         if self.terrain is None:
             return 0

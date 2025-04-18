@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from pokemon_types import EffectType, Side, is_hazard
+from project.utils.constants import EffectType, Side
+from project.utils.type_utils import is_hazard
 
 STACKABLE_HAZARDS = {'spikes': 3, 'toxic-spikes': 2}
 

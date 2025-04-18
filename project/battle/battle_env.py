@@ -5,12 +5,12 @@ import math
 import random
 import numpy as np
 
-from pokemon import Pokemon, PokemonMove, PokemonStatKey, PokemonType
-from pokemon_parser import parse_team
-from battle_effects_manager import BattleEffectsManager
-from pokemon_types import NonVolatileStatusCondition, Side, VolatileStatusCondition, WeatherType, is_barrier, is_field, \
-    is_hazard, is_terrain, is_valid_boost_stage
-from pokemon_utils import get_stat_modifier
+from project.core.pokemon import Pokemon, PokemonMove, PokemonStatKey, PokemonType
+from project.data.parsers import parse_team
+from project.effects.effects_manager import BattleEffectsManager
+from project.utils.constants import Side, VolatileStatusCondition, NonVolatileStatusCondition, WeatherType
+from project.utils.type_utils import is_terrain, is_field, is_barrier, is_hazard, is_valid_boost_stage, \
+    get_stat_modifier
 
 # ObsType = dict[str, Union[np.integer, list[np.integer]]]
 ObsType = dict[str, Any]

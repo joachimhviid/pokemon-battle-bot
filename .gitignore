@@ -6,3 +6,5 @@ project/input/*
 !project/input/.gitkeep
 __pycache__
 .idea
+*.egg-info/
+*.egg
