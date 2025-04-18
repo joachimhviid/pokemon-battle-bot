@@ -14,7 +14,7 @@ FieldType = Literal[
     'quick-guard',  # 1 turn
 ]
 EffectType = Union[BarrierType, HazardType, FieldType]
-Side = Literal['player_1', 'player_2']
+Side = Literal['player', 'opponent']
 
 
 @dataclass
@@ -79,7 +79,7 @@ NonVolatileStatusCondition = Literal['paralysis',
                                      'sleep', 'freeze', 'burn', 'poison', 'bad-poison']
 VolatileStatusCondition = Literal['confusion', 'infatuation', 'trap', 'torment', 'disable',
                                   'yawn', 'leech-seed', 'ingrain', 'encore']
-SIDES: tuple[Side, Side] = 'player_1', 'player_2'
+SIDES: tuple[Side, Side] = 'player', 'opponent'
 
 
 @dataclass

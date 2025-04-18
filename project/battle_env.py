@@ -23,42 +23,42 @@ class BattleEnv(gym.Env[ObsType, ActType]):
 
     battle_effects_manager: BattleEffectsManager
 
-    player_1_team: list[Pokemon]
-    player_2_team: list[Pokemon]
+    player_team: list[Pokemon]
+    opponent_team: list[Pokemon]
 
-    battle_field: dict[Side, list[Pokemon]] = {'player_1': [], 'player_2': []}
+    battle_field: dict[Side, list[Pokemon]] = {'player': [], 'opponent': []}
 
-    def __init__(self, player_1_team: list[Pokemon], player_2_team: list[Pokemon]):
+    def __init__(self, player_team: list[Pokemon], opponent_team: list[Pokemon]):
         MAX_PLAYER_SWITCH_OPTIONS = 6
         MAX_PLAYER_MOVES = 4
         MAX_MOVE_TARGETS = 2
         # TODO: implement masking and map integer to action
         self.action_space = gym.spaces.Discrete(MAX_PLAYER_MOVES * MAX_MOVE_TARGETS + MAX_PLAYER_SWITCH_OPTIONS)
         self.observation_space = gym.spaces.Dict({
-            'player_1_active_pokemon': gym.spaces.Box(0, 1, shape=(11,), dtype=np.float32),
-            'player_1_team': gym.spaces.Box(0, 1, shape=(6, 11), dtype=np.float32),
-            'player_1_fields': gym.spaces.MultiBinary(5),
-            'player_1_hazards': gym.spaces.MultiBinary(4),
-            'player_1_barriers': gym.spaces.MultiBinary(3),
+            'player_active_pokemon': gym.spaces.Box(0, 1, shape=(11,), dtype=np.float32),
+            'player_team': gym.spaces.Box(0, 1, shape=(6, 11), dtype=np.float32),
+            'player_fields': gym.spaces.MultiBinary(5),
+            'player_hazards': gym.spaces.MultiBinary(4),
+            'player_barriers': gym.spaces.MultiBinary(3),
 
-            'player_2_active_pokemon': gym.spaces.Box(0, 1, shape=(11,), dtype=np.float32),
-            'player_2_team': gym.spaces.Box(0, 1, shape=(6, 11), dtype=np.float32),
-            'player_2_fields': gym.spaces.MultiBinary(5),
-            'player_2_hazards': gym.spaces.MultiBinary(4),
-            'player_2_barriers': gym.spaces.MultiBinary(3),
+            'opponent_active_pokemon': gym.spaces.Box(0, 1, shape=(11,), dtype=np.float32),
+            'opponent_team': gym.spaces.Box(0, 1, shape=(6, 11), dtype=np.float32),
+            'opponent_fields': gym.spaces.MultiBinary(5),
+            'opponent_hazards': gym.spaces.MultiBinary(4),
+            'opponent_barriers': gym.spaces.MultiBinary(3),
 
             'weather': gym.spaces.Discrete(5),
             'terrain': gym.spaces.Discrete(5),
         })
-        self.player_1_team = player_1_team
-        self.player_2_team = player_2_team
+        self.player_team = player_team
+        self.opponent_team = opponent_team
 
-        self.battle_field['player_1'].append(player_1_team[0])
-        self.battle_field['player_2'].append(player_2_team[0])
+        self.battle_field['player'].append(player_team[0])
+        self.battle_field['opponent'].append(opponent_team[0])
 
         self.battle_effects_manager = BattleEffectsManager()
 
-        for pkm in self.battle_field['player_1'] + self.battle_field['player_2']:
+        for pkm in self.battle_field['player'] + self.battle_field['opponent']:
             pkm.on_switch_in()
 
     def action_to_move(self) -> dict[ActType, tuple[PokemonMove, Pokemon] | Pokemon]:
@@ -66,30 +66,30 @@ class BattleEnv(gym.Env[ObsType, ActType]):
         Should return a tuple of a move and a target or a switch to another Pokémon
         """
         return {
-            0: (self.battle_field['player_1'][0].moves[0], self.battle_field['player_1'][0]),
-            1: (self.battle_field['player_1'][0].moves[0], self.battle_field['player_2'][0]),
-            2: (self.battle_field['player_1'][0].moves[1], self.battle_field['player_1'][0]),
-            3: (self.battle_field['player_1'][0].moves[1], self.battle_field['player_2'][0]),
-            4: (self.battle_field['player_1'][0].moves[2], self.battle_field['player_1'][0]),
-            5: (self.battle_field['player_1'][0].moves[2], self.battle_field['player_2'][0]),
-            6: (self.battle_field['player_1'][0].moves[3], self.battle_field['player_1'][0]),
-            7: (self.battle_field['player_1'][0].moves[3], self.battle_field['player_2'][0]),
-            8: self.player_1_team[0],
-            9: self.player_1_team[1],
-            10: self.player_1_team[2],
-            11: self.player_1_team[3],
-            12: self.player_1_team[4],
-            13: self.player_1_team[5],
+            0: (self.battle_field['player'][0].moves[0], self.battle_field['player'][0]),
+            1: (self.battle_field['player'][0].moves[0], self.battle_field['opponent'][0]),
+            2: (self.battle_field['player'][0].moves[1], self.battle_field['player'][0]),
+            3: (self.battle_field['player'][0].moves[1], self.battle_field['opponent'][0]),
+            4: (self.battle_field['player'][0].moves[2], self.battle_field['player'][0]),
+            5: (self.battle_field['player'][0].moves[2], self.battle_field['opponent'][0]),
+            6: (self.battle_field['player'][0].moves[3], self.battle_field['player'][0]),
+            7: (self.battle_field['player'][0].moves[3], self.battle_field['opponent'][0]),
+            8: self.player_team[0],
+            9: self.player_team[1],
+            10: self.player_team[2],
+            11: self.player_team[3],
+            12: self.player_team[4],
+            13: self.player_team[5],
         }
 
     def step(self, action: ActType):  # type: ignore
         _action = self.action_to_move()[action]
         if isinstance(_action, tuple):
             move, _ = _action
-            self.battle_field['player_1'][0].selected_move = move
+            self.battle_field['player'][0].selected_move = move
 
         self.turn_counter += 1
-        speed_sorted_pokemon = self.battle_field['player_1'] + self.battle_field['player_2']
+        speed_sorted_pokemon = self.battle_field['player'] + self.battle_field['opponent']
         speed_sorted_pokemon.sort(key=lambda pkm: pkm.get_boosted_stat('speed'), reverse=True)
 
         self.on_turn_start(speed_sorted_pokemon)
@@ -110,15 +110,15 @@ class BattleEnv(gym.Env[ObsType, ActType]):
 
         terminated = self.get_winner() is not None
         truncated = False
-        reward = 1 if self.get_winner() == 'player_1' else -1 if self.get_winner() == 'player_2' else 0
+        reward = 1 if self.get_winner() == 'player' else -1 if self.get_winner() == 'opponent' else 0
         observation = self._get_obs()
         # info = self._get_info()
         return observation, reward, terminated, truncated, {}  # type: ignore
 
     def get_winner(self) -> Side | None:
-        player_1_fainted = all(pokemon.is_fainted() for pokemon in self.player_1_team)
-        player_2_fainted = all(pokemon.is_fainted() for pokemon in self.player_2_team)
-        return 'player_1' if player_1_fainted else 'player_2' if player_2_fainted else None
+        player_fainted = all(pokemon.is_fainted() for pokemon in self.player_team)
+        opponent_fainted = all(pokemon.is_fainted() for pokemon in self.opponent_team)
+        return 'player' if player_fainted else 'opponent' if opponent_fainted else None
 
 
     def on_turn_start(self, sorted_active_pokemon: list[Pokemon]):
@@ -133,9 +133,9 @@ class BattleEnv(gym.Env[ObsType, ActType]):
 
     def reset(self, seed: int | None = None, options: dict[str, Any] | None = None):
         super().reset(seed=seed)
-        for pokemon in self.player_1_team:
+        for pokemon in self.player_team:
             pokemon.reset()
-        for pokemon in self.player_2_team:
+        for pokemon in self.opponent_team:
             pokemon.reset()
         self.battle_effects_manager.reset()
         observation = self._get_obs()
@@ -148,17 +148,17 @@ class BattleEnv(gym.Env[ObsType, ActType]):
         The current state as seen by an agent.
         """
         obs = {
-            'player_1_active_pokemon': self.battle_field['player_1'][0].encode(),
-            'player_1_team': self.encode_team(self.player_1_team),
-            'player_1_fields': self.battle_effects_manager.encode_fields('player_1'),
-            'player_1_barriers': self.battle_effects_manager.encode_barriers('player_1'),
-            'player_1_hazards': self.battle_effects_manager.encode_hazards('player_1'),
+            'player_active_pokemon': self.battle_field['player'][0].encode(),
+            'player_team': self.encode_team(self.player_team),
+            'player_fields': self.battle_effects_manager.encode_fields('player'),
+            'player_barriers': self.battle_effects_manager.encode_barriers('player'),
+            'player_hazards': self.battle_effects_manager.encode_hazards('player'),
 
-            'player_2_active_pokemon': self.battle_field['player_2'][0].encode(),
-            'player_2_team': self.encode_team(self.player_2_team),
-            'player_2_fields': self.battle_effects_manager.encode_fields('player_2'),
-            'player_2_barriers': self.battle_effects_manager.encode_barriers('player_2'),
-            'player_2_hazards': self.battle_effects_manager.encode_hazards('player_2'),
+            'opponent_active_pokemon': self.battle_field['opponent'][0].encode(),
+            'opponent_team': self.encode_team(self.opponent_team),
+            'opponent_fields': self.battle_effects_manager.encode_fields('opponent'),
+            'opponent_barriers': self.battle_effects_manager.encode_barriers('opponent'),
+            'opponent_hazards': self.battle_effects_manager.encode_hazards('opponent'),
 
             'weather': self.battle_effects_manager.encode_weather(),
             'terrain': self.battle_effects_manager.encode_terrain(),
@@ -183,7 +183,7 @@ class BattleEnv(gym.Env[ObsType, ActType]):
     #     }
 
     def get_turn_order(self) -> list[Pokemon]:
-        active_pokemon = self.battle_field['player_1'] + self.battle_field['player_2']
+        active_pokemon = self.battle_field['player'] + self.battle_field['opponent']
         active_pokemon.sort(key=lambda pkm: (pkm.selected_move.priority, pkm.get_boosted_stat('speed')), reverse=True)
         if active_pokemon[0].stats['speed'] == active_pokemon[1].stats['speed'] and active_pokemon[
             0].selected_move.priority == active_pokemon[1].selected_move.priority:
@@ -192,20 +192,20 @@ class BattleEnv(gym.Env[ObsType, ActType]):
 
     def switch_pokemon(self, side: Side, selected_pokemon: Pokemon):
         match side:
-            case 'player_1':
-                non_active = [pkm for pkm in self.player_1_team if
-                              pkm is not self.battle_field['player_1'][0] and not pkm.is_fainted()]
+            case 'player':
+                non_active = [pkm for pkm in self.player_team if
+                              pkm is not self.battle_field['player'][0] and not pkm.is_fainted()]
                 if non_active:
-                    self.battle_field['player_1'][0].on_switch_out()
-                    self.battle_field['player_1'][0] = selected_pokemon
-                    self.battle_field['player_1'][0].on_switch_in()
-            case 'player_2':
-                non_active = [pkm for pkm in self.player_2_team if
-                              pkm is not self.battle_field['player_2'][0] and not pkm.is_fainted()]
+                    self.battle_field['player'][0].on_switch_out()
+                    self.battle_field['player'][0] = selected_pokemon
+                    self.battle_field['player'][0].on_switch_in()
+            case 'opponent':
+                non_active = [pkm for pkm in self.opponent_team if
+                              pkm is not self.battle_field['opponent'][0] and not pkm.is_fainted()]
                 if non_active:
-                    self.battle_field['player_2'][0].on_switch_out()
-                    self.battle_field['player_2'][0] = selected_pokemon
-                    self.battle_field['player_2'][0].on_switch_in()
+                    self.battle_field['opponent'][0].on_switch_out()
+                    self.battle_field['opponent'][0] = selected_pokemon
+                    self.battle_field['opponent'][0].on_switch_in()
 
     def execute_move(self, move: PokemonMove, attacker: Pokemon, target: Pokemon):
         if attacker.is_incapacitated():
@@ -278,8 +278,8 @@ class BattleEnv(gym.Env[ObsType, ActType]):
                 if is_terrain(move.name):
                     self.battle_effects_manager.set_terrain(move.name)
                 if move.name == 'haze':
-                    self.battle_field['player_1'][0].reset_boosts()
-                    self.battle_field['player_2'][0].reset_boosts()
+                    self.battle_field['player'][0].reset_boosts()
+                    self.battle_field['opponent'][0].reset_boosts()
             case 'field-effect':
                 if is_field(move.name):
                     self.battle_effects_manager.add_field_effect(move.name, self.get_pokemon_side(target))
@@ -310,10 +310,10 @@ class BattleEnv(gym.Env[ObsType, ActType]):
 
     def get_pokemon_side(self, pokemon: Pokemon) -> Side:
         # I'll believe this works when I see it
-        if pokemon in self.player_1_team:
-            return 'player_1'
-        elif pokemon in self.player_2_team:
-            return 'player_2'
+        if pokemon in self.player_team:
+            return 'player'
+        elif pokemon in self.opponent_team:
+            return 'opponent'
         else:
             raise ValueError("The given Pokemon does not belong to either team.")
 
@@ -464,10 +464,10 @@ if __name__ == "__main__":
     team_1 = parse_team('player_1')
     team_2 = parse_team('player_2')
     env = BattleEnv(team_1, team_2)
-    print(f'Team 1 first pokemon {env.battle_field["player_1"][0].name}')
-    print(f'Team 2 first pokemon {env.battle_field["player_2"][0].name}')
+    print(f'Team 1 first pokemon {env.battle_field["player"][0].name}')
+    print(f'Team 2 first pokemon {env.battle_field["opponent"][0].name}')
     for i in range(10):
         env.execute_move(
-            env.battle_field["player_1"][0].moves[3], env.battle_field["player_1"][0], env.battle_field["player_2"][0])
+            env.battle_field["player"][0].moves[3], env.battle_field["player"][0], env.battle_field["opponent"][0])
     for event in env.turn_events[0]:
         print(event)

@@ -8,11 +8,11 @@ STACKABLE_HAZARDS = {'spikes': 3, 'toxic-spikes': 2}
 
 @dataclass
 class BiasedEffect:
-    player_1: dict[EffectType, int] = field(default_factory=dict)
-    player_2: dict[EffectType, int] = field(default_factory=dict)
+    player: dict[EffectType, int] = field(default_factory=dict)
+    opponent: dict[EffectType, int] = field(default_factory=dict)
 
     def reduce(self):
-        for effects in (self.player_1, self.player_2):
+        for effects in (self.player, self.opponent):
             to_remove: list[EffectType] = []
             for effect, turns in effects.items():
                 if turns == 0:
@@ -23,7 +23,7 @@ class BiasedEffect:
                 effects.pop(effect)
 
     def effects_for_side(self, side: Side) -> dict[EffectType, int]:
-        return self.player_1 if side == 'player_1' else self.player_2
+        return self.player if side == 'player' else self.opponent
 
     def add_effect(self, effect: EffectType, side: Side, turns: Optional[int] = None):
         if is_hazard(effect):
@@ -36,8 +36,8 @@ class BiasedEffect:
             self.effects_for_side(side)[effect] = turns if turns else 5
 
     def reset(self):
-        self.player_1.clear()
-        self.player_2.clear()
+        self.player.clear()
+        self.opponent.clear()
 
 
 if __name__ == "__main__":
