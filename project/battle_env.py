@@ -12,7 +12,6 @@ from pokemon_types import NonVolatileStatusCondition, Side, VolatileStatusCondit
     is_hazard, is_terrain, is_valid_boost_stage
 from pokemon_utils import get_stat_modifier
 
-# TODO: Finalize the ObsType and ActType
 # ObsType = dict[str, Union[np.integer, list[np.integer]]]
 ObsType = dict[str, Any]
 ActType: TypeAlias = int
@@ -30,7 +29,6 @@ class BattleEnv(gym.Env[ObsType, ActType]):
     battle_field: dict[Side, list[Pokemon]] = {'player_1': [], 'player_2': []}
 
     def __init__(self, player_1_team: list[Pokemon], player_2_team: list[Pokemon]):
-        # TODO: set action space to game mechanics (fight: dict of moves, switch: dict of team members)
         MAX_PLAYER_SWITCH_OPTIONS = 6
         MAX_PLAYER_MOVES = 4
         MAX_MOVE_TARGETS = 2
@@ -86,12 +84,14 @@ class BattleEnv(gym.Env[ObsType, ActType]):
 
     def step(self, action: ActType):  # type: ignore
         _action = self.action_to_move()[action]
-        # increment turn counter
+        if isinstance(_action, tuple):
+            move, _ = _action
+            self.battle_field['player_1'][0].selected_move = move
+
         self.turn_counter += 1
         speed_sorted_pokemon = self.battle_field['player_1'] + self.battle_field['player_2']
         speed_sorted_pokemon.sort(key=lambda pkm: pkm.get_boosted_stat('speed'), reverse=True)
-        # increment status counter (increase toxic damage) (pokemon wake from sleep at the start of their turn)
-        # decrement duration? Can use this for toxic damage calculation
+
         self.on_turn_start(speed_sorted_pokemon)
 
         if isinstance(_action, tuple):
@@ -103,24 +103,21 @@ class BattleEnv(gym.Env[ObsType, ActType]):
             for pkm in self.get_turn_order():
                 print(f'{pkm.name} acts')
                 self.switch_pokemon(side=self.get_pokemon_side(pkm))
-            # execute move
 
-        # select move before getting turn order
-
-        # handle end of turn
         self.on_turn_end(speed_sorted_pokemon)
 
-        # Get action from dict based on arg
-        # Apply action to environment (Execute move)
-        # Determine if battle is over (terminated)
-        # Truncate the environment if it is too slow?
-        # Reward agent
-        terminated = False
+        terminated = self.get_winner() is not None
         truncated = False
-        reward = 0
-        # observation = self._get_obs()
+        reward = 1 if self.get_winner() == 'player_1' else -1 if self.get_winner() == 'player_2' else 0
+        observation = self._get_obs()
         # info = self._get_info()
-        return observation, reward, terminated, truncated, info  # type: ignore
+        return observation, reward, terminated, truncated, {}  # type: ignore
+
+    def get_winner(self) -> Side | None:
+        player_1_fainted = all(pokemon.is_fainted() for pokemon in self.player_1_team)
+        player_2_fainted = all(pokemon.is_fainted() for pokemon in self.player_2_team)
+        return 'player_1' if player_1_fainted else 'player_2' if player_2_fainted else None
+
 
     def on_turn_start(self, sorted_active_pokemon: list[Pokemon]):
         for pkm in sorted_active_pokemon:
@@ -135,19 +132,19 @@ class BattleEnv(gym.Env[ObsType, ActType]):
             pkm.on_turn_end()
         self.battle_effects_manager.on_turn_end(sorted_active_pokemon)
 
-    # def reset(self, seed: int | None = None, options: dict[str, Any] | None = None):
-    #     super().reset(seed=seed)
-    #     # Reset the HP, status effects, stat boosts and restore all PP to Pokemon on each team.
-    #     # Set active Pokemon back to first in list
-    #     for pokemon in self.player_1_team:
-    #         pokemon.reset()
-    #     for pokemon in self.player_2_team:
-    #         pokemon.reset()
-    #     self.battle_effects_manager.reset()
-    #     observation = self._get_obs()
-    #     info = self._get_info()
+    def reset(self, seed: int | None = None, options: dict[str, Any] | None = None):
+        super().reset(seed=seed)
+        # Reset the HP, status effects, stat boosts and restore all PP to Pokemon on each team.
+        # Set active Pokemon back to first in list
+        for pokemon in self.player_1_team:
+            pokemon.reset()
+        for pokemon in self.player_2_team:
+            pokemon.reset()
+        self.battle_effects_manager.reset()
+        observation = self._get_obs()
+        # info = self._get_info()
 
-    #     return observation, info
+        return observation, {}
 
     def _get_obs(self) -> ObsType:
         """

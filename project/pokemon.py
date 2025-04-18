@@ -55,6 +55,11 @@ class PokemonMove:
     stat_changes: list[dict[PokemonBoostStatKey, PokemonStatBoostStage]]
     stat_chance: int
 
+    healing: int
+    flinch_chance: int
+    drain: int
+    crit_rate: int
+
     hits: dict[Literal['min', 'max'], Optional[int]] = field(default_factory=lambda: {
         'min': None,
         'max': None,
@@ -63,11 +68,6 @@ class PokemonMove:
         'min': None,
         'max': None,
     })
-
-    healing: int
-    flinch_chance: int
-    drain: int
-    crit_rate: int
 
     def __init__(self, move: Any):
         self.name = move['name']
@@ -121,7 +121,14 @@ class Pokemon:
     types: list[PokemonType]
     ability: str
     current_hp: int
+    non_volatile_status_condition: Optional[NonVolatileStatus]
+
+    held_item: Optional[str]
+
     crit_stage: int = 0
+    flinched: bool = False
+    protected: bool = False
+    active: bool = False
     stat_boosts: dict[Union[PokemonStatKey, PokemonBoostStatKey], PokemonStatBoostStage] = field(default_factory=lambda: {
         'attack': 0,
         'defense': 0,
@@ -131,16 +138,7 @@ class Pokemon:
         'accuracy': 0,
         'evasion': 0
     })
-    # non_volatile_status_condition: dict[NonVolatileStatusCondition, int] = field(default_factory=dict)
-    # volatile_status_condition: dict[VolatileStatusCondition, int] = field(default_factory=dict)
-    non_volatile_status_condition: Optional[NonVolatileStatus]
     volatile_status_conditions: list[VolatileStatus] = field(default_factory=list)
-
-    held_item: Optional[str]
-
-    flinched: bool = False
-    protected: bool = False
-    active: bool = False
 
     def __init__(self, pokemon_data: Any):
         self.name = pokemon_data['name']
