@@ -713,7 +713,7 @@ async def train_agent(n_battles_to_run):
         if battle_won: 
             wins += 1
 
-        if episode % TARGET_UPDATE_FREQ == 0: 
+        if episode % TARGET_UPDATE_FREQ == 10: 
             agent.update_target_network()
 
         if episode % LOG_FREQ == 10:
@@ -735,6 +735,7 @@ async def train_agent(n_battles_to_run):
             print(f"  Episode: {episode}/{n_battles_to_run}")
             print(f"-------------------\n")
             wins = 0
+            plot_training_results(episode_log_points, avg_rewards_log, avg_losses_log, win_rates_log)
 
     plot_training_results(episode_log_points, avg_rewards_log, avg_losses_log, win_rates_log)
     # --- Save Model ---
