@@ -33,6 +33,7 @@ BUFFER_SIZE = 20000    # Max size of the replay buffer
 TARGET_UPDATE_FREQ = 5 # How often (in episodes/battles) to update target network weights
 LOG_FREQ = 10          # How often (in episodes/battles) to print progress (Increased freq for testing)
 DEBUG_STEPS = 5        # Print step details for the first N steps of each episode
+LOAD_MODEL = True
 
 # State and Action Space Sizes (Matching runtime observations)
 NUM_TYPES = 18 # Standard number of Pokemon types
@@ -272,6 +273,7 @@ def print_args(func_name, *args, **kwargs):
     print(f"--- Finished Args for {func_name} ---")
 
 class DQN(nn.Module):
+    """Deep Q-Network model."""
     def __init__(self, n_observations, n_actions):
         print_args("DQN.__init__", n_observations=n_observations, n_actions=n_actions)
         super(DQN, self).__init__()
@@ -291,6 +293,7 @@ class DQN(nn.Module):
         return self.layer3(x)
 
 class MyAgent(Gen9EnvSinglePlayer):
+    """Custom agent environment wrapping Gen9EnvSinglePlayer."""
     def __init__(self, *args, **kwargs):
         print_args("MyAgent.__init__", *args, **kwargs) # Use actual class name
         super().__init__(*args, **kwargs)
@@ -381,17 +384,67 @@ class MyAgent(Gen9EnvSinglePlayer):
         return spaces.Box(low=low, high=high, shape=(STATE_SIZE,), dtype=np.float32)
 
     def calc_reward(self, last_battle: AbstractBattle, current_battle: AbstractBattle) -> float:
-        
-        def get_reward_for_battle(battle: AbstractBattle) -> float:
-            if battle is None: return 0.0
-            if battle.won: return 10.0
-            elif battle.lost: return -10.0
-            else: return 0.0
+        """
+        Calculates a reward signal based on changes between battle states.
+        Includes:
+        - Large reward/penalty for winning/losing the battle.
+        - Smaller rewards/penalties for fainting opponent/own Pokemon.
+        - Smaller rewards/penalties for HP changes.
+        """
+        if current_battle is None:
+            # print("Warning: current_battle is None in calc_reward.")
+            return 0.0 # Battle ended or error
 
-        current_reward = get_reward_for_battle(current_battle)
-        last_reward = get_reward_for_battle(last_battle)
-        step_reward = current_reward - last_reward
-        return step_reward
+        # This is only non-zero at the very end of the battle
+        final_reward = 0.0
+        if current_battle.finished:
+            if current_battle.won:
+                final_reward = 5.0
+            elif current_battle.lost:
+                final_reward = -10.0
+
+        # These are calculated based on the change from the last state
+        intermediate_reward = 0.0
+        if last_battle is not None: # Need previous state for comparison
+
+            
+            current_my_fainted = sum(1 for p in current_battle.team.values() if p.fainted)
+            last_my_fainted = sum(1 for p in last_battle.team.values() if p.fainted)
+            intermediate_reward -= (current_my_fainted - last_my_fainted) * 1.0 # Penalty = 1.0 per own faint
+
+            current_opp_fainted = sum(1 for p in current_battle.opponent_team.values() if p.fainted)
+            last_opp_fainted = sum(1 for p in last_battle.opponent_team.values() if p.fainted)
+            intermediate_reward += (current_opp_fainted - last_opp_fainted) * 1.0 # Reward = 1.0 per opponent faint
+
+            # TODO: Add more detailed rewards/penalties based on the hp change when you know the pokemons 
+            # --- b) HP Change Rewards/Penalties ---
+            # Compare active Pokemon HP if they exist and are likely the same
+            # my_active_now: Pokemon | None = current_battle.active_pokemon
+            # my_active_before: Pokemon | None = last_battle.active_pokemon
+            # opp_active_now: Pokemon | None = current_battle.opponent_active_pokemon
+            # opp_active_before: Pokemon | None = last_battle.opponent_active_pokemon
+
+            # Reward for damaging opponent
+            # if opp_active_now and opp_active_before and hasattr(opp_active_now, 'current_hp_fraction') and hasattr(opp_active_before, 'current_hp_fraction'):
+            #     Check if it's the same Pokemon OR just reward any HP drop on the opponent side
+            #     Simplified: Reward positive HP difference (damage dealt)
+            #     hp_diff_opp = opp_active_before.current_hp_fraction - opp_active_now.current_hp_fraction
+            #     intermediate_reward += max(0, hp_diff_opp) * 0.5 # Reward = 0.5 * (% HP damage dealt)
+
+            # Penalty for taking damage
+            # if my_active_now and my_active_before and hasattr(my_active_now, 'current_hp_fraction') and hasattr(my_active_before, 'current_hp_fraction'):
+            #      Simplified: Penalize positive HP difference (damage taken)
+            #      hp_diff_me = my_active_before.current_hp_fraction - my_active_now.current_hp_fraction
+            #      intermediate_reward -= max(0, hp_diff_me) * 0.5 # Penalty = 0.5 * (% HP damage taken)
+
+
+
+        # --- Total Reward for the Step ---
+        total_step_reward = intermediate_reward + final_reward
+
+        # total_step_reward = np.clip(total_step_reward, -15.0, 15.0)
+        return total_step_reward
+    
 
     def action_to_move(self, action_idx: int, battle: AbstractBattle):
         current_moves = battle.available_moves
@@ -408,17 +461,17 @@ class MyAgent(Gen9EnvSinglePlayer):
             return self.create_order(current_switches[switch_idx])
         else:
             # --- Add detailed debugging ---
-            print(f"--- DEBUG action_to_move ELSE block ---")
-            print(f"  action_idx: {action_idx}")
-            print(f"  n_moves: {n_moves}")
-            print(f"  n_switches: {n_switches}")
-            print(f"  total_actions: {total_actions}")
-            print(f"  Condition failed: action_idx ({action_idx}) < 0 or >= total_actions ({total_actions})")
-            print(f"--- END DEBUG ---")
+            # print(f"--- DEBUG action_to_move ELSE block ---")
+            # print(f"  action_idx: {action_idx}")
+            # print(f"  n_moves: {n_moves}")
+            # print(f"  n_switches: {n_switches}")
+            # print(f"  total_actions: {total_actions}")
+            # print(f"  Condition failed: action_idx ({action_idx}) < 0 or >= total_actions ({total_actions})")
+            # print(f"--- END DEBUG ---")
             # Original warning and fallback
-            print(f"Warning: Action index {action_idx} selected is out of bounds "
-                  f"(Moves: {n_moves}, Switches: {n_switches}, Max Valid Idx: {max_legal_idx}). "
-                  f"Choosing random valid action.")
+            # print(f"Warning: Action index {action_idx} selected is out of bounds "
+            #       f"(Moves: {n_moves}, Switches: {n_switches}, Max Valid Idx: {max_legal_idx}). "
+            #       f"Choosing random valid action.")
             return self.choose_random_move(battle) # Fallback
 
 Experience = namedtuple('Experience', ('state', 'action', 'reward', 'next_state', 'done'))
@@ -451,6 +504,7 @@ class ReplayBuffer:
         return len(self.memory)
 
 class DQNAgent:
+    """Manages the DQN model, replay buffer, and learning process."""
     def __init__(self, state_dim, action_dim):
         # print_args("DQNAgent.__init__", state_dim=state_dim, action_dim=action_dim) # Keep prints minimal
         self.state_dim = state_dim
@@ -603,10 +657,47 @@ async def train_agent(n_battles_to_run):
     agent = DQNAgent(STATE_SIZE, ACTION_SPACE_SIZE)
     print(f"--- DQNAgent Initialized ---\n")
 
+
+    save_dir = "./project/output/models"
+    plot_dir = "./project/output" 
+    periodic_plot_path = os.path.join(plot_dir, "TP-Periodically.png") # Path for periodic plot
+    final_plot_path = os.path.join(plot_dir, "TP-V1.png") 
+    policy_path = os.path.join(save_dir, "Model_Policy-v1.0.0.pth")
+    target_path = os.path.join(save_dir, "Model_target-v1.0.0.pth")
+    os.makedirs(save_dir, exist_ok=True) # Ensure directory exists
+
+    if LOAD_MODEL and os.path.exists(policy_path) and os.path.exists(target_path):
+        try:
+            print(f"Loading existing models from: {save_dir}")
+            agent.policy_net.load_state_dict(torch.load(policy_path, map_location=DEVICE))
+            agent.target_net.load_state_dict(torch.load(target_path, map_location=DEVICE))
+            agent.policy_net.eval() # Set policy net to eval mode if loaded (or train mode if continuing training)
+            agent.target_net.eval() # Target net is always in eval mode
+            print("Models loaded successfully.")
+            # Optionally, reset steps_done if you want epsilon to start high again
+            # agent.steps_done = 0
+            # print("Epsilon decay counter reset.")
+        except Exception as e:
+            print(f"Error loading models: {e}. Starting training from scratch.")
+            # Re-initialize networks if loading failed? Or just proceed with initialized ones.
+            # agent.policy_net = DQN(STATE_SIZE, ACTION_SPACE_SIZE).to(DEVICE)
+            # agent.target_net = DQN(STATE_SIZE, ACTION_SPACE_SIZE).to(DEVICE)
+            # agent.target_net.load_state_dict(agent.policy_net.state_dict())
+            # agent.target_net.eval()
+    else:
+        if LOAD_MODEL:
+            print("No existing models found or LOAD_MODEL is False. Starting training from scratch.")
+        else:
+             print("LOAD_MODEL is False. Starting training from scratch.")
+
+
     print(f"--- Starting Training Loop for {n_battles_to_run} Battles ---")
+    
     wins = 0
-    total_reward = 0
-    recent_rewards = deque(maxlen=LOG_FREQ)
+    total_reward_overall = 0
+    recent_rewards = deque(maxlen=LOG_FREQ) 
+    recent_losses = deque(maxlen=LOG_FREQ * 50)
+    recent_wins = deque(maxlen=LOG_FREQ)
 
 
     # --- Lists for plotting ---
@@ -614,9 +705,6 @@ async def train_agent(n_battles_to_run):
     avg_rewards_log = []
     avg_losses_log = []
     win_rates_log = []
-    # --- Interval accumulators ---
-    interval_total_loss = 0.0
-    interval_total_steps = 0
 
     for episode in range(1, n_battles_to_run):
         state = None
@@ -625,21 +713,24 @@ async def train_agent(n_battles_to_run):
         episode_loss = 0.0
         steps = 0
         turn = 0
+        last_battle_state = None
 
         try:
             state_dict, info = env.reset()
             if env.current_battle is None:
                 print(f"ERROR: env.current_battle is None after reset in Ep {episode}! Skipping.")
-                await asyncio.sleep(1)
+                
             state = env.embed_battle(env.current_battle)
-            
+            last_battle_state = env.current_battle
+
             if not isinstance(state, np.ndarray) or state.shape[0] != STATE_SIZE:
                 print(f"ERROR: Initial state shape {state.shape} != STATE_SIZE {STATE_SIZE}! Stopping.")
                 break
+
+
         except Exception as e:
             print(f"ERROR during env.reset()/embed_battle in Ep {episode}: {e}")
             traceback.print_exc(); 
-            await asyncio.sleep(5); 
             continue
 
         while not done:
@@ -677,9 +768,15 @@ async def train_agent(n_battles_to_run):
                 else:
                     print(f"ERROR: env.current_battle is None before action correction in Ep {episode}, Turn {turn}. Breaking.")
                     break
+                
 
+            
                 next_state_dict, reward, terminated, truncated, info = env.step(action)
                 
+                reward = env.calc_reward(last_battle_state, env.current_battle)
+                episode_reward += reward
+                last_battle_state = env.current_battle
+
                 done = terminated or truncated
                 if not done and env.current_battle is not None:
                     next_state = env.embed_battle(env.current_battle)
@@ -689,6 +786,9 @@ async def train_agent(n_battles_to_run):
                         next_state = None
                 else:
                     next_state = None
+                    if env.current_battle is None and not done:
+                        print(f"ERROR: env.current_battle is None after step in Ep {episode}, Turn {turn}. Breaking.")
+                        done = True
 
                 if state is not None:
                     agent.replay_buffer.push(state, action, reward, next_state, done)
@@ -699,6 +799,7 @@ async def train_agent(n_battles_to_run):
                 if loss is not None:
                     episode_loss += loss
                     steps += 1
+                    recent_losses.append(loss)
 
                 if done: break
 
@@ -707,21 +808,37 @@ async def train_agent(n_battles_to_run):
                 traceback.print_exc(); done = True
 
         # --- End of Episode ---
-        total_reward += episode_reward
+        total_reward_overall += episode_reward
         recent_rewards.append(episode_reward)
+
+        battle_result = "Unknown"
+        battle_won = False
+        if env.current_battle: # Check if battle object still exists
+            if env.current_battle.won:
+                battle_result = "Won"
+                battle_won = True
+                wins += 1
+            elif env.current_battle.lost:
+                battle_result = "Lost"
+            else:
+                battle_result = "Draw/Ended"
+
+        recent_wins.append(1 if battle_won else 0)
+
         battle_won = env.current_battle is not None and hasattr(env.current_battle, 'won') and env.current_battle.won
         if battle_won: 
             wins += 1
 
-        if episode % TARGET_UPDATE_FREQ == 10: 
+        if episode % TARGET_UPDATE_FREQ == 0: 
             agent.update_target_network()
 
-        if episode % LOG_FREQ == 10:
+
+        if episode % LOG_FREQ == 0:
             # Calculate interval metrics
-            avg_loss_interval = interval_total_loss / interval_total_steps if interval_total_steps > 0 else 0
             avg_reward_interval = sum(recent_rewards) / len(recent_rewards) if recent_rewards else 0 # recent_rewards already holds last LOG_FREQ
-            win_rate_interval = wins / LOG_FREQ # Wins over the last LOG_FREQ episodes
-            
+            avg_loss_interval = sum(recent_losses) / len(recent_losses) if recent_losses else 0
+            win_rate_interval = sum(recent_wins) / len(recent_wins) if recent_wins else 0
+
             # Append data for plotting
             episode_log_points.append(episode)
             avg_rewards_log.append(avg_reward_interval)
@@ -734,15 +851,9 @@ async def train_agent(n_battles_to_run):
             print(f"\n--- Episode Log ---")
             print(f"  Episode: {episode}/{n_battles_to_run}")
             print(f"-------------------\n")
-            wins = 0
-            plot_training_results(episode_log_points, avg_rewards_log, avg_losses_log, win_rates_log)
 
-    plot_training_results(episode_log_points, avg_rewards_log, avg_losses_log, win_rates_log)
-    # --- Save Model ---
-    save_dir = "./project/output/models"
-    os.makedirs(save_dir, exist_ok=True)
-    policy_path = os.path.join(save_dir, "Model_Policy-v1.0.0.pth")
-    target_path = os.path.join(save_dir, "Model_target-v1.0.0.pth")
+            # plot_training_results(episode_log_points, avg_rewards_log, avg_losses_log, win_rates_log, save_path=periodic_plot_path)
+
     try:
         if 'agent' in locals() and agent is not None:
             torch.save(agent.policy_net.state_dict(), policy_path)
@@ -751,38 +862,38 @@ async def train_agent(n_battles_to_run):
         else: print("Agent not initialized, models not saved.")
     except Exception as e: print(f"Error saving models: {e}")
 
-
+    plot_training_results(episode_log_points, avg_rewards_log, avg_losses_log, win_rates_log, save_path=final_plot_path)
 
     env.close()
     print("\n--- Training Finished ---")
 
-def plot_training_results(episodes, rewards, losses, win_rates, save_path="./project/output/training_plot.png"):
+def plot_training_results(episodes, rewards, losses, win_rates, save_path):
     """Generates and saves plots for training metrics."""
     print(f"Generating plot with {len(episodes)} data points...")
-    fig, axs = plt.subplots(3, 1, figsize=(10, 15), sharex=True)
+    fig, axs = plt.subplots(3, 1, figsize=(12, 18), sharex=True)
 
     # Plot Average Reward
-    axs[0].plot(episodes, rewards, label='Avg Reward per Interval', color='blue')
+    axs[0].plot(episodes, rewards, label=f'Avg Reward per {LOG_FREQ} Episodes', color='blue', marker='o', linestyle='-')
     axs[0].set_ylabel('Average Reward')
     axs[0].set_title('Training Progress')
-    axs[0].grid(True)
+    axs[0].grid(True, linestyle='--', alpha=0.6)
     axs[0].legend()
 
     # Plot Average Loss
-    axs[1].plot(episodes, losses, label='Avg Loss per Interval', color='red')
+    axs[1].plot(episodes, losses, label=f'Avg Loss (Rolling)', color='red', marker='x', linestyle='-')
     axs[1].set_ylabel('Average Loss')
-    axs[1].grid(True)
+    axs[1].grid(True, linestyle='--', alpha=0.6)
     axs[1].legend()
 
     # Plot Win Rate
-    axs[2].plot(episodes, win_rates, label='Win Rate per Interval', color='green')
+    axs[2].plot(episodes, win_rates, label=f'Win Rate per {LOG_FREQ} Episodes', color='green', marker='s', linestyle='-')
     axs[2].set_ylabel('Win Rate')
     axs[2].set_xlabel(f'Episodes (Intervals of {LOG_FREQ})')
-    axs[2].grid(True)
+    axs[2].grid(True, linestyle='--', alpha=0.6)
     axs[2].legend()
     axs[2].set_ylim(0, 1) # Win rate is between 0 and 1
 
-    plt.tight_layout()
+    plt.tight_layout(rect=(0, 0.03, 1, 0.95)) # Adjust layout to fit title
     try:
         plt.savefig(save_path)
         print(f"Training plot saved to {save_path}")
