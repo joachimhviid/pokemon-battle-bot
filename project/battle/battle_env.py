@@ -1,11 +1,11 @@
-from typing import Any, TypeAlias, cast
+from typing import Any, TypeAlias
 
 import gymnasium as gym
 import numpy as np
 
 from project.battle.battle_actions import BattleActions
 from project.battle.battle_state import BattleState
-from project.core.pokemon import Pokemon, PokemonMove, PokemonStatKey, PokemonType
+from project.core.pokemon import Pokemon, PokemonMove
 from project.data.parsers import parse_team
 
 # ObsType = dict[str, Union[np.integer, list[np.integer]]]
