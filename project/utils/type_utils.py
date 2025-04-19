@@ -60,6 +60,7 @@ def encode_type(type: PokemonType) -> float:
             return 17.0
         case 'fairy':
             return 18.0
+    return 0.0
 
 def get_stat_modifier(stat_stage: PokemonStatBoostStage) -> float:
     match stat_stage:

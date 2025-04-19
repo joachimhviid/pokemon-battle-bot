@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Any, Optional
+from typing import Any, Optional, List
 from project.core.pokemon import Pokemon
 from project.data.parsers import parse_team
 from project.effects.biased_effect import BiasedEffect
@@ -38,7 +38,7 @@ class BattleEffectsManager:
         self.barriers.effects_for_side(side).clear()
 
     def add_field_effect(self, field_effect_type: FieldType, side: Side):
-        turns: int
+        turns: int = 0
         match field_effect_type:
             case 'mist' | 'safeguard':
                 turns = 5
@@ -53,7 +53,7 @@ class BattleEffectsManager:
         self.fields.reduce()
         self.barriers.reduce()
 
-    def _handle_terrain(self, active_pokemon: list[Pokemon]):
+    def _handle_terrain(self, active_pokemon: List[Pokemon]):
         if not self.terrain:
             return
 
@@ -67,7 +67,7 @@ class BattleEffectsManager:
             for pkm in active_pokemon:
                 pkm.restore_health(pkm.stats['hp'] // 16)
 
-    def _handle_weather(self, active_pokemon: list[Pokemon]):
+    def _handle_weather(self, active_pokemon: List[Pokemon]):
         if not self.weather:
             return
 
@@ -92,7 +92,7 @@ class BattleEffectsManager:
                 if pkm.ability == 'solar-power':
                     pkm.take_damage(pkm.stats['hp'] // 8)
 
-    def on_turn_end(self, active_pokemon: list[Pokemon]):
+    def on_turn_end(self, active_pokemon: List[Pokemon]):
         self._reduce_effects()
         self._handle_terrain(active_pokemon)
         self._handle_weather(active_pokemon)

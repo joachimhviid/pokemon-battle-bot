@@ -18,3 +18,4 @@ class Weather:
                 return 3
             case 'snow':
                 return 4
+        return 0

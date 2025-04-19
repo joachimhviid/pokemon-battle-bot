@@ -18,3 +18,4 @@ class Terrain:
                 return 3
             case 'psychic-terrain':
                 return 4
+        return 0

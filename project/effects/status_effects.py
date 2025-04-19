@@ -28,6 +28,7 @@ class VolatileStatus:
                 return 8.0
             case 'yawn':
                 return 9.0
+        return 0.0
 
 
 @dataclass
@@ -49,3 +50,4 @@ class NonVolatileStatus:
                 return 5.0
             case 'bad-poison':
                 return 6.0
+        return 0.0
