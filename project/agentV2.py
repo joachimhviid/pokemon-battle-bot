@@ -16,37 +16,37 @@ from poke_env.player import Gen9EnvSinglePlayer, RandomPlayer, MaxBasePowerPlaye
 from poke_env.environment.pokemon_type import PokemonType
 from poke_env.player.battle_order import BattleOrder
 
-
 # --- 1. Hyperparameters ---
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {DEVICE}")
 
-N_BATTLES = 100     # Total number of battles to train for (Reduced for faster testing)
-BATCH_SIZE = 128       # Number of experiences to sample from buffer for learning
-GAMMA = 0.99           # Discount factor for future rewards
-EPSILON_START = 0.9    # Starting exploration rate (Changed name for consistency)
-EPSILON_END = 0.05     # Minimum exploration rate (Changed name for consistency)
+N_BATTLES = 100  # Total number of battles to train for (Reduced for faster testing)
+BATCH_SIZE = 128  # Number of experiences to sample from buffer for learning
+GAMMA = 0.99  # Discount factor for future rewards
+EPSILON_START = 0.9  # Starting exploration rate (Changed name for consistency)
+EPSILON_END = 0.05  # Minimum exploration rate (Changed name for consistency)
 EPSILON_DECAY = 10000  # How fast the exploration rate decays (higher = slower decay)
-TAU = 0.005            # Soft update factor for target network
-LR = 1e-4              # Learning rate for the optimizer
-BUFFER_SIZE = 20000    # Max size of the replay buffer
-TARGET_UPDATE_FREQ = 5 # How often (in episodes/battles) to update target network weights
-LOG_FREQ = 10          # How often (in episodes/battles) to print progress (Increased freq for testing)
-DEBUG_STEPS = 5        # Print step details for the first N steps of each episode
+TAU = 0.005  # Soft update factor for target network
+LR = 1e-4  # Learning rate for the optimizer
+BUFFER_SIZE = 20000  # Max size of the replay buffer
+TARGET_UPDATE_FREQ = 5  # How often (in episodes/battles) to update target network weights
+LOG_FREQ = 10  # How often (in episodes/battles) to print progress (Increased freq for testing)
+DEBUG_STEPS = 5  # Print step details for the first N steps of each episode
 
 # State and Action Space Sizes (Matching runtime observations)
-NUM_TYPES = 18 # Standard number of Pokemon types
+NUM_TYPES = 18  # Standard number of Pokemon types
 STATE_SIZE = 92  # 90 - Set based on runtime error for Gen9RandomBattle
 print(f"Using STATE_SIZE: {STATE_SIZE}")
-ACTION_SPACE_SIZE = 30 # Increased for Gen9RandomBattle
+ACTION_SPACE_SIZE = 30  # Increased for Gen9RandomBattle
 print(f"Using ACTION_SPACE_SIZE: {ACTION_SPACE_SIZE}")
 
 # --- Server/Account Config ---
-BATTLE_FORMAT = "gen9ou" # vgc2025regg
-SERVER_CONF = ServerConfiguration("ws://localhost:8000/showdown/websocket", None)# type: ignore # Assuming default local server
+BATTLE_FORMAT = "gen9ou"  # vgc2025regg
+SERVER_CONF = ServerConfiguration("ws://localhost:8000/showdown/websocket",
+                                  None)  # type: ignore # Assuming default local server
 # Ensure unique names for concurrent runs if needed
 OPP_ACC_CONF = AccountConfiguration(f"FixedTeamOpp-OU", None)
-AGENT_ACC_CONF = AccountConfiguration(f"DQNAgent-{random.randint(0,10000)}", None) # Make agent name unique too
+AGENT_ACC_CONF = AccountConfiguration(f"DQNAgent-{random.randint(0, 10000)}", None)  # Make agent name unique too
 
 Wolfey_TEAM = """
 
@@ -247,6 +247,7 @@ Jolly Nature
 - Spikes
 """
 
+
 def print_args(func_name, *args, **kwargs):
     print(f"--- Entering {func_name} ---")
     if args:
@@ -256,20 +257,21 @@ def print_args(func_name, *args, **kwargs):
             class_name = func_name.split('.')[0]
             cls = globals().get(class_name)
             if cls and hasattr(cls, '__init__'):
-                 sig = inspect.signature(cls.__init__)
-                 bound_args = sig.bind_partial(*args, **kwargs)
-                 bound_args.apply_defaults()
-                 print("  Keyword Args (Bound):")
-                 for name, value in bound_args.arguments.items():
-                     if name == 'self': continue
-                     value_repr = repr(value)
-                     if len(value_repr) > 100: value_repr = value_repr[:97] + "..."
-                     print(f"    {name}: {value_repr}")
+                sig = inspect.signature(cls.__init__)
+                bound_args = sig.bind_partial(*args, **kwargs)
+                bound_args.apply_defaults()
+                print("  Keyword Args (Bound):")
+                for name, value in bound_args.arguments.items():
+                    if name == 'self': continue
+                    value_repr = repr(value)
+                    if len(value_repr) > 100: value_repr = value_repr[:97] + "..."
+                    print(f"    {name}: {value_repr}")
             else:
-                 raise ValueError("Class or __init__ not found for signature inspection")
+                raise ValueError("Class or __init__ not found for signature inspection")
         except Exception as e:
             print(f"  Keyword Args: {kwargs}")
     print(f"--- Finished Args for {func_name} ---")
+
 
 class DQN(nn.Module):
     def __init__(self, n_observations, n_actions):
@@ -279,29 +281,33 @@ class DQN(nn.Module):
         self.layer2 = nn.Linear(256, 128)
         self.layer3 = nn.Linear(128, n_actions)
         print(f"  DQN Initialized: Input Size={n_observations}, Output Size={n_actions}")
-        print(f"  DQN Layers: Linear({n_observations}, 256) -> ReLU -> Linear(256, 128) -> ReLU -> Linear(128, {n_actions})")
+        print(
+            f"  DQN Layers: Linear({n_observations}, 256) -> ReLU -> Linear(256, 128) -> ReLU -> Linear(128, {n_actions})")
 
     def forward(self, x):
         if x.dtype != torch.float32:
-             x = x.to(torch.float32)
+            x = x.to(torch.float32)
         if x.shape[1] != self.layer1.in_features:
-             raise RuntimeError(f"Shape mismatch in DQN forward! Input shape {x.shape} does not match layer1 expected input features {self.layer1.in_features}.")
+            raise RuntimeError(
+                f"Shape mismatch in DQN forward! Input shape {x.shape} does not match layer1 expected input features {self.layer1.in_features}.")
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
         return self.layer3(x)
 
+
 class MyAgent(Gen9EnvSinglePlayer):
     def __init__(self, *args, **kwargs):
-        print_args("MyAgent.__init__", *args, **kwargs) # Use actual class name
+        print_args("MyAgent.__init__", *args, **kwargs)  # Use actual class name
         super().__init__(*args, **kwargs)
         print("  MyAgent initialized.")
 
         self.type_map = {t.name.lower(): i for i, t in enumerate(PokemonType) if i < NUM_TYPES}
         if len(self.type_map) != NUM_TYPES:
-             print(f"Warning: Expected {NUM_TYPES} types in PokemonType enum, but found {len(self.type_map)}.")
+            print(f"Warning: Expected {NUM_TYPES} types in PokemonType enum, but found {len(self.type_map)}.")
 
         # Correct status map keys to match poke-env standard status names (uppercase)
         self.status_map = {None: 0, 'PAR': 1, 'BRN': 2, 'FRZ': 3, 'PSN': 4, 'SLP': 5, 'TOX': 6}
+
     def embed_battle(self, battle: AbstractBattle) -> np.ndarray:
         my_active = battle.active_pokemon
         opp_active = battle.opponent_active_pokemon
@@ -347,16 +353,17 @@ class MyAgent(Gen9EnvSinglePlayer):
         c5 = my_status_vector.astype(np.float32)
         c6 = opp_status_vector.astype(np.float32)
         c7 = np.array([my_tera_avail, opp_tera_avail], dtype=np.float32)
-        
 
         # --- Debug Print for component shapes (Uncommented) ---
-        print(f"DEBUG embed_battle shapes: c1={c1.shape}, c2={c2.shape}, c3={c3.shape}, c4={c4.shape}, c5={c5.shape}, c6={c6.shape}, c7={c7.shape}")
+        print(
+            f"DEBUG embed_battle shapes: c1={c1.shape}, c2={c2.shape}, c3={c3.shape}, c4={c4.shape}, c5={c5.shape}, c6={c6.shape}, c7={c7.shape}")
         # Expected: (2,), (2,), (36,), (36,), (7,), (7,) -> Total 90
 
-        state = np.concatenate([c1, c2, c3, c4, c5, c6, c7]) # Expects 90 ???
+        state = np.concatenate([c1, c2, c3, c4, c5, c6, c7])  # Expects 90 ???
 
         if state.shape[0] != STATE_SIZE:
-             print(f"\n!!! CRITICAL WARNING: embed_battle produced state size {state.shape[0]}, but STATE_SIZE is set to {STATE_SIZE}. !!!")
+            print(
+                f"\n!!! CRITICAL WARNING: embed_battle produced state size {state.shape[0]}, but STATE_SIZE is set to {STATE_SIZE}. !!!")
         """
         # Pad or truncate to ensure state size is exactly STATE_SIZE (90)
         if state.shape[0] < STATE_SIZE:
@@ -373,7 +380,7 @@ class MyAgent(Gen9EnvSinglePlayer):
         low = np.zeros(STATE_SIZE, dtype=np.float32)
         high = np.ones(STATE_SIZE, dtype=np.float32)
         print(f"--- Describing Embedding Space ---")
-        print(f"  Shape: ({STATE_SIZE},)") # Should reflect 90
+        print(f"  Shape: ({STATE_SIZE},)")  # Should reflect 90
         print(f"  Data Type: np.float32")
         print(f"  Low Bound: 0.0 (for all elements)")
         print(f"  High Bound: 1.0 (for all elements)")
@@ -381,12 +388,15 @@ class MyAgent(Gen9EnvSinglePlayer):
         return spaces.Box(low=low, high=high, shape=(STATE_SIZE,), dtype=np.float32)
 
     def calc_reward(self, last_battle: AbstractBattle, current_battle: AbstractBattle) -> float:
-        
+
         def get_reward_for_battle(battle: AbstractBattle) -> float:
             if battle is None: return 0.0
-            if battle.won: return 10.0
-            elif battle.lost: return -10.0
-            else: return 0.0
+            if battle.won:
+                return 10.0
+            elif battle.lost:
+                return -10.0
+            else:
+                return 0.0
 
         current_reward = get_reward_for_battle(current_battle)
         last_reward = get_reward_for_battle(last_battle)
@@ -399,7 +409,7 @@ class MyAgent(Gen9EnvSinglePlayer):
         n_moves = len(current_moves)
         n_switches = len(current_switches)
         total_actions = n_moves + n_switches
-        max_legal_idx = total_actions - 1 if total_actions > 0 else -1 # Handle case with no actions
+        max_legal_idx = total_actions - 1 if total_actions > 0 else -1  # Handle case with no actions
 
         if 0 <= action_idx < n_moves:
             return self.create_order(current_moves[action_idx])
@@ -419,9 +429,11 @@ class MyAgent(Gen9EnvSinglePlayer):
             print(f"Warning: Action index {action_idx} selected is out of bounds "
                   f"(Moves: {n_moves}, Switches: {n_switches}, Max Valid Idx: {max_legal_idx}). "
                   f"Choosing random valid action.")
-            return self.choose_random_move(battle) # Fallback
+            return self.choose_random_move(battle)  # Fallback
+
 
 Experience = namedtuple('Experience', ('state', 'action', 'reward', 'next_state', 'done'))
+
 
 class ReplayBuffer:
     def __init__(self, capacity):
@@ -430,17 +442,17 @@ class ReplayBuffer:
 
     def push(self, *args):
         state, action, reward, next_state, done = args
-        if isinstance(state, torch.Tensor): 
+        if isinstance(state, torch.Tensor):
             state = state.cpu().numpy()
-        if next_state is not None and isinstance(next_state, torch.Tensor): 
+        if next_state is not None and isinstance(next_state, torch.Tensor):
             next_state = next_state.cpu().numpy()
 
         if state is not None and (len(state.shape) != 1 or state.shape[0] != STATE_SIZE):
-             print(f"ERROR: Pushing state with wrong size {state.shape} to buffer! Expected {STATE_SIZE}.")
-             return
+            print(f"ERROR: Pushing state with wrong size {state.shape} to buffer! Expected {STATE_SIZE}.")
+            return
         if next_state is not None and (len(next_state.shape) != 1 or next_state.shape[0] != STATE_SIZE):
-             print(f"ERROR: Pushing next_state with wrong size {next_state.shape} to buffer! Expected {STATE_SIZE}.")
-             return
+            print(f"ERROR: Pushing next_state with wrong size {next_state.shape} to buffer! Expected {STATE_SIZE}.")
+            return
 
         self.memory.append(Experience(state, action, reward, next_state, done))
 
@@ -450,6 +462,7 @@ class ReplayBuffer:
     def __len__(self):
         return len(self.memory)
 
+
 class DQNAgent:
     def __init__(self, state_dim, action_dim):
         # print_args("DQNAgent.__init__", state_dim=state_dim, action_dim=action_dim) # Keep prints minimal
@@ -458,7 +471,7 @@ class DQNAgent:
 
         self.policy_net = DQN(state_dim, action_dim).to(DEVICE)
         self.target_net = DQN(state_dim, action_dim).to(DEVICE)
-        
+
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
@@ -470,15 +483,15 @@ class DQNAgent:
     def select_action(self, state, available_action_indices):
         sample = random.random()
         epsilon_threshold = EPSILON_END + (EPSILON_START - EPSILON_END) * \
-            math.exp(-1.0 * self.steps_done / EPSILON_DECAY)
+                            math.exp(-1.0 * self.steps_done / EPSILON_DECAY)
 
         self.steps_done += 1
 
         if not available_action_indices:
-             print("Warning: No available actions in select_action. Returning default action 0.")
-             return torch.tensor([[0]], device=DEVICE, dtype=torch.long)
+            print("Warning: No available actions in select_action. Returning default action 0.")
+            return torch.tensor([[0]], device=DEVICE, dtype=torch.long)
 
-        if sample > epsilon_threshold: # Exploit
+        if sample > epsilon_threshold:  # Exploit
             with torch.no_grad():
                 state_tensor = torch.tensor(state, dtype=torch.float32, device=DEVICE).unsqueeze(0)
 
@@ -491,19 +504,21 @@ class DQNAgent:
                 valid_indices_tensor = torch.tensor(available_action_indices, device=DEVICE, dtype=torch.long)
 
                 if valid_indices_tensor.numel() > 0:
-                     valid_indices_tensor = valid_indices_tensor[valid_indices_tensor < q_values.shape[1]] # Ensure index is within network output size
-                     if valid_indices_tensor.numel() > 0:
-                         mask[0, valid_indices_tensor] = q_values[0, valid_indices_tensor]
+                    valid_indices_tensor = valid_indices_tensor[
+                        valid_indices_tensor < q_values.shape[1]]  # Ensure index is within network output size
+                    if valid_indices_tensor.numel() > 0:
+                        mask[0, valid_indices_tensor] = q_values[0, valid_indices_tensor]
 
                 if torch.isinf(mask).all():
-                    print("Warning: Masking resulted in all -inf Q-values during exploitation. Choosing random valid action.")
-                    action_idx = random.choice(available_action_indices) # Choose from valid list
+                    print(
+                        "Warning: Masking resulted in all -inf Q-values during exploitation. Choosing random valid action.")
+                    action_idx = random.choice(available_action_indices)  # Choose from valid list
                     return torch.tensor([[action_idx]], device=DEVICE, dtype=torch.long)
                 else:
                     best_action_idx = mask.argmax(dim=1)
                     return best_action_idx.view(1, 1)
-        else: # Explore
-            action_idx = random.choice(available_action_indices) # Choose from valid list
+        else:  # Explore
+            action_idx = random.choice(available_action_indices)  # Choose from valid list
             # Correct variable name from user code: action_index -> action_idx
             return torch.tensor([[action_idx]], device=DEVICE, dtype=torch.long)
 
@@ -524,8 +539,9 @@ class DQNAgent:
             # Stack numpy arrays first, then convert to tensor
             np_states = np.array(non_final_next_states_list)
             if len(np_states.shape) != 2 or np_states.shape[1] != self.state_dim:
-                 print(f"ERROR: Non-final next states have wrong dimension {np_states.shape[1]} in learn! Expected {self.state_dim}")
-                 return None
+                print(
+                    f"ERROR: Non-final next states have wrong dimension {np_states.shape[1]} in learn! Expected {self.state_dim}")
+                return None
             non_final_next_states = torch.tensor(np_states, dtype=torch.float32, device=DEVICE)
         else:
             non_final_next_states = torch.empty((0, self.state_dim), dtype=torch.float32, device=DEVICE)
@@ -533,10 +549,10 @@ class DQNAgent:
         # Stack numpy arrays first, then convert to tensor
         state_batch_np = np.array(batch.state)
         if len(state_batch_np.shape) != 2 or state_batch_np.shape[1] != self.state_dim:
-             print(f"ERROR: State batch has wrong shape {state_batch_np.shape} in learn! Expected ({BATCH_SIZE}, {self.state_dim})")
-             return None
+            print(
+                f"ERROR: State batch has wrong shape {state_batch_np.shape} in learn! Expected ({BATCH_SIZE}, {self.state_dim})")
+            return None
         state_batch = torch.tensor(state_batch_np, dtype=torch.float32, device=DEVICE)
-
 
         action_batch = torch.tensor(batch.action, dtype=torch.long, device=DEVICE).unsqueeze(1)
         reward_batch = torch.tensor(batch.reward, dtype=torch.float32, device=DEVICE).unsqueeze(1)
@@ -565,8 +581,9 @@ class DQNAgent:
         # Correct typo: policcy -> policy
         policy_net_state_dict = self.policy_net.state_dict()
         for key in policy_net_state_dict:
-            target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key] * (1-TAU)
+            target_net_state_dict[key] = policy_net_state_dict[key] * TAU + target_net_state_dict[key] * (1 - TAU)
         self.target_net.load_state_dict(target_net_state_dict)
+
 
 async def train_agent(n_battles_to_run):
     print(f"\n--- Starting Training Function: train_agent ---")
@@ -586,7 +603,7 @@ async def train_agent(n_battles_to_run):
         opponent=opponent,
         account_configuration=AGENT_ACC_CONF,
         battle_format=BATTLE_FORMAT,
-        log_level=5,     
+        log_level=5,
         server_configuration=SERVER_CONF,
         team=AGENT_TEAM,
         start_challenging=True,
@@ -607,7 +624,6 @@ async def train_agent(n_battles_to_run):
     wins = 0
     total_reward = 0
     recent_rewards = deque(maxlen=LOG_FREQ)
-
 
     # --- Lists for plotting ---
     episode_log_points = []
@@ -632,35 +648,35 @@ async def train_agent(n_battles_to_run):
                 print(f"ERROR: env.current_battle is None after reset in Ep {episode}! Skipping.")
                 await asyncio.sleep(1)
             state = env.embed_battle(env.current_battle)
-            
+
             if not isinstance(state, np.ndarray) or state.shape[0] != STATE_SIZE:
                 print(f"ERROR: Initial state shape {state.shape} != STATE_SIZE {STATE_SIZE}! Stopping.")
                 break
         except Exception as e:
             print(f"ERROR during env.reset()/embed_battle in Ep {episode}: {e}")
-            traceback.print_exc(); 
-            await asyncio.sleep(5); 
+            traceback.print_exc();
+            await asyncio.sleep(5);
             continue
 
         while not done:
             turn += 1
             try:
-                
+
                 if state is None:
-                     print(f"ERROR: State is None at start of turn {turn} Ep {episode}. Breaking.")
-                     break
-                if isinstance(state, torch.Tensor): 
+                    print(f"ERROR: State is None at start of turn {turn} Ep {episode}. Breaking.")
+                    break
+                if isinstance(state, torch.Tensor):
                     state = state.cpu().numpy()
                 if not isinstance(state, np.ndarray) or state.shape[0] != STATE_SIZE:
-                     print(f"ERROR: State shape {state.shape} != STATE_SIZE {STATE_SIZE}. Breaking.")
-                     break
+                    print(f"ERROR: State shape {state.shape} != STATE_SIZE {STATE_SIZE}. Breaking.")
+                    break
 
-                assert isinstance(env.action_space, spaces.Discrete), f"Expected Discrete action space, got {type(env.action_space)}"
+                assert isinstance(env.action_space,
+                                  spaces.Discrete), f"Expected Discrete action space, got {type(env.action_space)}"
                 current_max_possible_actions = env.action_space.n
                 available_action_indices = list(range(current_max_possible_actions))
                 action_tensor = agent.select_action(state, available_action_indices)
-                action = action_tensor.item() 
-
+                action = action_tensor.item()
 
                 if env.current_battle:
                     current_moves = env.current_battle.available_moves
@@ -668,18 +684,21 @@ async def train_agent(n_battles_to_run):
                     actual_total_actions = len(current_moves) + len(current_switches)
 
                     if actual_total_actions == 0 and not env.current_battle.finished:
-                        action = 0 # Default to action 0 if nothing else possible
+                        action = 0  # Default to action 0 if nothing else possible
                     elif action >= actual_total_actions:
                         if actual_total_actions > 0:
-                            action = random.choice(list(range(actual_total_actions))) # Choose from 0 to actual_total_actions-1
-                        else: action = 0
+                            action = random.choice(
+                                list(range(actual_total_actions)))  # Choose from 0 to actual_total_actions-1
+                        else:
+                            action = 0
 
                 else:
-                    print(f"ERROR: env.current_battle is None before action correction in Ep {episode}, Turn {turn}. Breaking.")
+                    print(
+                        f"ERROR: env.current_battle is None before action correction in Ep {episode}, Turn {turn}. Breaking.")
                     break
 
                 next_state_dict, reward, terminated, truncated, info = env.step(action)
-                
+
                 done = terminated or truncated
                 if not done and env.current_battle is not None:
                     next_state = env.embed_battle(env.current_battle)
@@ -692,9 +711,9 @@ async def train_agent(n_battles_to_run):
 
                 if state is not None:
                     agent.replay_buffer.push(state, action, reward, next_state, done)
-                
+
                 state = next_state
-                
+
                 loss = agent.learn()
                 if loss is not None:
                     episode_loss += loss
@@ -704,24 +723,26 @@ async def train_agent(n_battles_to_run):
 
             except Exception as e:
                 print(f"ERROR during battle loop (Ep {episode}, Turn {turn}): {e}")
-                traceback.print_exc(); done = True
+                traceback.print_exc();
+                done = True
 
         # --- End of Episode ---
         total_reward += episode_reward
         recent_rewards.append(episode_reward)
         battle_won = env.current_battle is not None and hasattr(env.current_battle, 'won') and env.current_battle.won
-        if battle_won: 
+        if battle_won:
             wins += 1
 
-        if episode % TARGET_UPDATE_FREQ == 0: 
+        if episode % TARGET_UPDATE_FREQ == 0:
             agent.update_target_network()
 
         if episode % LOG_FREQ == 10:
             # Calculate interval metrics
             avg_loss_interval = interval_total_loss / interval_total_steps if interval_total_steps > 0 else 0
-            avg_reward_interval = sum(recent_rewards) / len(recent_rewards) if recent_rewards else 0 # recent_rewards already holds last LOG_FREQ
-            win_rate_interval = wins / LOG_FREQ # Wins over the last LOG_FREQ episodes
-            
+            avg_reward_interval = sum(recent_rewards) / len(
+                recent_rewards) if recent_rewards else 0  # recent_rewards already holds last LOG_FREQ
+            win_rate_interval = wins / LOG_FREQ  # Wins over the last LOG_FREQ episodes
+
             # Append data for plotting
             episode_log_points.append(episode)
             avg_rewards_log.append(avg_reward_interval)
@@ -730,7 +751,7 @@ async def train_agent(n_battles_to_run):
 
             elapsed_time = time.time() - start_time
             current_epsilon_val = EPSILON_END + (EPSILON_START - EPSILON_END) * \
-                math.exp(-1.0 * agent.steps_done / EPSILON_DECAY)
+                                  math.exp(-1.0 * agent.steps_done / EPSILON_DECAY)
             print(f"\n--- Episode Log ---")
             print(f"  Episode: {episode}/{n_battles_to_run}")
             print(f"-------------------\n")
@@ -747,13 +768,14 @@ async def train_agent(n_battles_to_run):
             torch.save(agent.policy_net.state_dict(), policy_path)
             torch.save(agent.target_net.state_dict(), target_path)
             print(f"Models saved to {policy_path} and {target_path}")
-        else: print("Agent not initialized, models not saved.")
-    except Exception as e: print(f"Error saving models: {e}")
-
-
+        else:
+            print("Agent not initialized, models not saved.")
+    except Exception as e:
+        print(f"Error saving models: {e}")
 
     env.close()
     print("\n--- Training Finished ---")
+
 
 def plot_training_results(episodes, rewards, losses, win_rates, save_path="./project/output/training_plot.png"):
     """Generates and saves plots for training metrics."""
@@ -779,7 +801,7 @@ def plot_training_results(episodes, rewards, losses, win_rates, save_path="./pro
     axs[2].set_xlabel(f'Episodes (Intervals of {LOG_FREQ})')
     axs[2].grid(True)
     axs[2].legend()
-    axs[2].set_ylim(0, 1) # Win rate is between 0 and 1
+    axs[2].set_ylim(0, 1)  # Win rate is between 0 and 1
 
     plt.tight_layout()
     try:
@@ -787,7 +809,7 @@ def plot_training_results(episodes, rewards, losses, win_rates, save_path="./pro
         print(f"Training plot saved to {save_path}")
     except Exception as e:
         print(f"Error saving plot: {e}")
-    plt.close(fig) # Close the figure to free memory
+    plt.close(fig)  # Close the figure to free memory
 
 
 if __name__ == "__main__":
@@ -805,7 +827,7 @@ if __name__ == "__main__":
         print(f"Error Type: {type(e).__name__}")
         print(f"Error Details: {e}")
         import traceback
+
         traceback.print_exc()
     finally:
         print("\n--- Script Execution Finished ---")
-
