@@ -1,9 +1,9 @@
-from pokemon import Pokemon
+from project.core.pokemon import Pokemon
 import json
 
 
 def parse_team(file_name: str) -> list[Pokemon]:
-    with open(f'project/input/{file_name}.json', 'r') as file_stream:
+    with open(f'../project/input/{file_name}.json', 'r') as file_stream:
         data = json.loads(file_stream.read())
         team = []
         for pokemon in data:
