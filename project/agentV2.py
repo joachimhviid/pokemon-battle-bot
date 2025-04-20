@@ -1,20 +1,24 @@
 import numpy as np
 import math, time, random, inspect, os, asyncio, traceback
-from collections import deque, namedtuple
 
+from collections import deque, namedtuple
 from gymnasium import spaces
+from typing import List, Optional, Union, Dict
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend for plotting
 import matplotlib.pyplot as plt
-from poke_env.environment import observation
+
+
 from poke_env import Player, AccountConfiguration, ServerConfiguration
-from poke_env.environment import AbstractBattle, Move
+from poke_env.environment import AbstractBattle, Status, Move, Pokemon
 from poke_env.player import Gen9EnvSinglePlayer, RandomPlayer, MaxBasePowerPlayer
 from poke_env.environment.pokemon_type import PokemonType
-from poke_env.player.battle_order import BattleOrder
+from poke_env.player.battle_order import BattleOrder, DefaultBattleOrder
 
 
 # --- 1. Hyperparameters ---
@@ -37,17 +41,18 @@ LOAD_MODEL = True
 
 # State and Action Space Sizes (Matching runtime observations)
 NUM_TYPES = 18 # Standard number of Pokemon types
-STATE_SIZE = 92  # 90 - Set based on runtime error for Gen9RandomBattle
+# (2*HP + 2*TeamSize + 4*Types + 2*Status + Tera) * 2 sides = (2+2+4*18+2*7+2)*2 = (4+72+14+2)*2 = 92*2 = 184?
+STATE_SIZE = 184  # 92 if doing single battles, 184 if doing double battles
 print(f"Using STATE_SIZE: {STATE_SIZE}")
-ACTION_SPACE_SIZE = 30 # Increased for Gen9RandomBattle
+ACTION_SPACE_SIZE = 30 
 print(f"Using ACTION_SPACE_SIZE: {ACTION_SPACE_SIZE}")
 
 # --- Server/Account Config ---
-BATTLE_FORMAT = "gen9ou" # vgc2025regg
+BATTLE_FORMAT = "vgc2025regg" # vgc2025regg
 SERVER_CONF = ServerConfiguration("ws://localhost:8000/showdown/websocket", None)# type: ignore # Assuming default local server
 # Ensure unique names for concurrent runs if needed
-OPP_ACC_CONF = AccountConfiguration(f"FixedTeamOpp-OU", None)
-AGENT_ACC_CONF = AccountConfiguration(f"DQNAgent-{random.randint(0,10000)}", None) # Make agent name unique too
+OPP_ACC_CONF = AccountConfiguration(f"FixedTeamOpp-VGC", None)
+AGENT_ACC_CONF = AccountConfiguration(f"VGC-DQNAgent-{random.randint(0,10000)}", None) # Make agent name unique too
 
 Wolfey_TEAM = """
 
@@ -249,37 +254,38 @@ Jolly Nature
 """
 
 def print_args(func_name, *args, **kwargs):
-    print(f"--- Entering {func_name} ---")
-    if args:
-        print(f"  Args: {args}")
-    if kwargs:
-        try:
-            class_name = func_name.split('.')[0]
-            cls = globals().get(class_name)
-            if cls and hasattr(cls, '__init__'):
-                 sig = inspect.signature(cls.__init__)
-                 bound_args = sig.bind_partial(*args, **kwargs)
-                 bound_args.apply_defaults()
-                 print("  Keyword Args (Bound):")
-                 for name, value in bound_args.arguments.items():
-                     if name == 'self': continue
-                     value_repr = repr(value)
-                     if len(value_repr) > 100: value_repr = value_repr[:97] + "..."
-                     print(f"    {name}: {value_repr}")
-            else:
-                 raise ValueError("Class or __init__ not found for signature inspection")
-        except Exception as e:
-            print(f"  Keyword Args: {kwargs}")
-    print(f"--- Finished Args for {func_name} ---")
+    pass
+    # print(f"--- Entering {func_name} ---")
+    # if args:
+    #     print(f"  Args: {args}")
+    # if kwargs:
+    #     try:
+    #         class_name = func_name.split('.')[0]
+    #         cls = globals().get(class_name)
+    #         if cls and hasattr(cls, '__init__'):
+    #              sig = inspect.signature(cls.__init__)
+    #              bound_args = sig.bind_partial(*args, **kwargs)
+    #              bound_args.apply_defaults()
+    #              print("  Keyword Args (Bound):")
+    #              for name, value in bound_args.arguments.items():
+    #                  if name == 'self': continue
+    #                  value_repr = repr(value)
+    #                  if len(value_repr) > 100: value_repr = value_repr[:97] + "..."
+    #                  print(f"    {name}: {value_repr}")
+    #         else:
+    #              raise ValueError("Class or __init__ not found for signature inspection")
+    #     except Exception as e:
+    #         print(f"  Keyword Args: {kwargs}")
+    # print(f"--- Finished Args for {func_name} ---")
 
 class DQN(nn.Module):
     """Deep Q-Network model."""
     def __init__(self, n_observations, n_actions):
         print_args("DQN.__init__", n_observations=n_observations, n_actions=n_actions)
         super(DQN, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 256)
-        self.layer2 = nn.Linear(256, 128)
-        self.layer3 = nn.Linear(128, n_actions)
+        self.layer1 = nn.Linear(n_observations, 512)
+        self.layer2 = nn.Linear(512, 256)
+        self.layer3 = nn.Linear(256, n_actions)
         print(f"  DQN Initialized: Input Size={n_observations}, Output Size={n_actions}")
         print(f"  DQN Layers: Linear({n_observations}, 256) -> ReLU -> Linear(256, 128) -> ReLU -> Linear(128, {n_actions})")
 
@@ -292,187 +298,6 @@ class DQN(nn.Module):
         x = F.relu(self.layer2(x))
         return self.layer3(x)
 
-class MyAgent(Gen9EnvSinglePlayer):
-    """Custom agent environment wrapping Gen9EnvSinglePlayer."""
-    def __init__(self, *args, **kwargs):
-        print_args("MyAgent.__init__", *args, **kwargs) # Use actual class name
-        super().__init__(*args, **kwargs)
-        print("  MyAgent initialized.")
-
-        self.type_map = {t.name.lower(): i for i, t in enumerate(PokemonType) if i < NUM_TYPES}
-        if len(self.type_map) != NUM_TYPES:
-             print(f"Warning: Expected {NUM_TYPES} types in PokemonType enum, but found {len(self.type_map)}.")
-
-        # Correct status map keys to match poke-env standard status names (uppercase)
-        self.status_map = {None: 0, 'PAR': 1, 'BRN': 2, 'FRZ': 3, 'PSN': 4, 'SLP': 5, 'TOX': 6}
-    def embed_battle(self, battle: AbstractBattle) -> np.ndarray:
-        my_active = battle.active_pokemon
-        opp_active = battle.opponent_active_pokemon
-        my_hp = my_active.current_hp_fraction if my_active else 0.0
-        opp_hp = opp_active.current_hp_fraction if opp_active else 0.0
-        my_team_size = len([p for p in battle.team.values() if p.fainted is False]) / 6.0
-        opp_team_size = len([p for p in battle.opponent_team.values() if p.fainted is False]) / 6.0
-
-        my_types_vector = np.zeros(NUM_TYPES * 2)
-        if my_active:
-            if my_active.type_1:
-                type_1_name = my_active.type_1.name.lower()
-                if type_1_name in self.type_map: my_types_vector[self.type_map[type_1_name]] = 1
-            if my_active.type_2:
-                type_2_name = my_active.type_2.name.lower()
-                if type_2_name in self.type_map: my_types_vector[self.type_map[type_2_name] + NUM_TYPES] = 1
-
-        opp_types_vector = np.zeros(NUM_TYPES * 2)
-        if opp_active:
-            if opp_active.type_1:
-                type_1_name = opp_active.type_1.name.lower()
-                if type_1_name in self.type_map: opp_types_vector[self.type_map[type_1_name]] = 1
-            if opp_active.type_2:
-                type_2_name = opp_active.type_2.name.lower()
-                if type_2_name in self.type_map: opp_types_vector[self.type_map[type_2_name] + NUM_TYPES] = 1
-
-        # Use corrected status_map
-        my_status_vector = np.zeros(len(self.status_map))
-        opp_status_vector = np.zeros(len(self.status_map))
-        # Get status name (which is uppercase in poke-env Status enum)
-        my_status_name = my_active.status.name if my_active and my_active.status else None
-        opp_status_name = opp_active.status.name if opp_active and opp_active.status else None
-        my_status_vector[self.status_map.get(my_status_name, 0)] = 1
-        opp_status_vector[self.status_map.get(opp_status_name, 0)] = 1
-        my_tera_avail = 1.0 if battle.can_tera else 0.0
-        opp_tera_avail = 1.0 if battle._opponent_can_terrastallize else 0.0
-
-        # Prepare components for concatenation
-        c1 = np.array([my_hp, opp_hp], dtype=np.float32)
-        c2 = np.array([my_team_size, opp_team_size], dtype=np.float32)
-        c3 = my_types_vector.astype(np.float32)
-        c4 = opp_types_vector.astype(np.float32)
-        c5 = my_status_vector.astype(np.float32)
-        c6 = opp_status_vector.astype(np.float32)
-        c7 = np.array([my_tera_avail, opp_tera_avail], dtype=np.float32)
-        
-
-        # --- Debug Print for component shapes (Uncommented) ---
-        print(f"DEBUG embed_battle shapes: c1={c1.shape}, c2={c2.shape}, c3={c3.shape}, c4={c4.shape}, c5={c5.shape}, c6={c6.shape}, c7={c7.shape}")
-        # Expected: (2,), (2,), (36,), (36,), (7,), (7,) -> Total 90
-
-        state = np.concatenate([c1, c2, c3, c4, c5, c6, c7]) # Expects 90 ???
-
-        if state.shape[0] != STATE_SIZE:
-             print(f"\n!!! CRITICAL WARNING: embed_battle produced state size {state.shape[0]}, but STATE_SIZE is set to {STATE_SIZE}. !!!")
-        """
-        # Pad or truncate to ensure state size is exactly STATE_SIZE (90)
-        if state.shape[0] < STATE_SIZE:
-            # print(f"Warning: Padding state from {state.shape[0]} to {STATE_SIZE}") # Optional print
-            padding = np.zeros(STATE_SIZE - state.shape[0], dtype=np.float32)
-            state = np.concatenate([state, padding])
-        elif state.shape[0] > STATE_SIZE:
-            # print(f"Warning: Truncating state from {state.shape[0]} to {STATE_SIZE}") # Optional print
-            state = state[:STATE_SIZE]
-        """
-        return state.astype(np.float32)
-
-    def describe_embedding(self) -> spaces.Space:
-        low = np.zeros(STATE_SIZE, dtype=np.float32)
-        high = np.ones(STATE_SIZE, dtype=np.float32)
-        print(f"--- Describing Embedding Space ---")
-        print(f"  Shape: ({STATE_SIZE},)") # Should reflect 90
-        print(f"  Data Type: np.float32")
-        print(f"  Low Bound: 0.0 (for all elements)")
-        print(f"  High Bound: 1.0 (for all elements)")
-        print(f"---------------------------------")
-        return spaces.Box(low=low, high=high, shape=(STATE_SIZE,), dtype=np.float32)
-
-    def calc_reward(self, last_battle: AbstractBattle, current_battle: AbstractBattle) -> float:
-        """
-        Calculates a reward signal based on changes between battle states.
-        Includes:
-        - Large reward/penalty for winning/losing the battle.
-        - Smaller rewards/penalties for fainting opponent/own Pokemon.
-        - Smaller rewards/penalties for HP changes.
-        """
-        if current_battle is None:
-            # print("Warning: current_battle is None in calc_reward.")
-            return 0.0 # Battle ended or error
-
-        # This is only non-zero at the very end of the battle
-        final_reward = 0.0
-        if current_battle.finished:
-            if current_battle.won:
-                final_reward = 5.0
-            elif current_battle.lost:
-                final_reward = -10.0
-
-        # These are calculated based on the change from the last state
-        intermediate_reward = 0.0
-        if last_battle is not None: # Need previous state for comparison
-
-            
-            current_my_fainted = sum(1 for p in current_battle.team.values() if p.fainted)
-            last_my_fainted = sum(1 for p in last_battle.team.values() if p.fainted)
-            intermediate_reward -= (current_my_fainted - last_my_fainted) * 1.0 # Penalty = 1.0 per own faint
-
-            current_opp_fainted = sum(1 for p in current_battle.opponent_team.values() if p.fainted)
-            last_opp_fainted = sum(1 for p in last_battle.opponent_team.values() if p.fainted)
-            intermediate_reward += (current_opp_fainted - last_opp_fainted) * 1.0 # Reward = 1.0 per opponent faint
-
-            # TODO: Add more detailed rewards/penalties based on the hp change when you know the pokemons 
-            # --- b) HP Change Rewards/Penalties ---
-            # Compare active Pokemon HP if they exist and are likely the same
-            # my_active_now: Pokemon | None = current_battle.active_pokemon
-            # my_active_before: Pokemon | None = last_battle.active_pokemon
-            # opp_active_now: Pokemon | None = current_battle.opponent_active_pokemon
-            # opp_active_before: Pokemon | None = last_battle.opponent_active_pokemon
-
-            # Reward for damaging opponent
-            # if opp_active_now and opp_active_before and hasattr(opp_active_now, 'current_hp_fraction') and hasattr(opp_active_before, 'current_hp_fraction'):
-            #     Check if it's the same Pokemon OR just reward any HP drop on the opponent side
-            #     Simplified: Reward positive HP difference (damage dealt)
-            #     hp_diff_opp = opp_active_before.current_hp_fraction - opp_active_now.current_hp_fraction
-            #     intermediate_reward += max(0, hp_diff_opp) * 0.5 # Reward = 0.5 * (% HP damage dealt)
-
-            # Penalty for taking damage
-            # if my_active_now and my_active_before and hasattr(my_active_now, 'current_hp_fraction') and hasattr(my_active_before, 'current_hp_fraction'):
-            #      Simplified: Penalize positive HP difference (damage taken)
-            #      hp_diff_me = my_active_before.current_hp_fraction - my_active_now.current_hp_fraction
-            #      intermediate_reward -= max(0, hp_diff_me) * 0.5 # Penalty = 0.5 * (% HP damage taken)
-
-
-
-        # --- Total Reward for the Step ---
-        total_step_reward = intermediate_reward + final_reward
-
-        # total_step_reward = np.clip(total_step_reward, -15.0, 15.0)
-        return total_step_reward
-    
-
-    def action_to_move(self, action_idx: int, battle: AbstractBattle):
-        current_moves = battle.available_moves
-        current_switches = battle.available_switches
-        n_moves = len(current_moves)
-        n_switches = len(current_switches)
-        total_actions = n_moves + n_switches
-        max_legal_idx = total_actions - 1 if total_actions > 0 else -1 # Handle case with no actions
-
-        if 0 <= action_idx < n_moves:
-            return self.create_order(current_moves[action_idx])
-        elif n_moves <= action_idx < total_actions:
-            switch_idx = action_idx - n_moves
-            return self.create_order(current_switches[switch_idx])
-        else:
-            # --- Add detailed debugging ---
-            # print(f"--- DEBUG action_to_move ELSE block ---")
-            # print(f"  action_idx: {action_idx}")
-            # print(f"  n_moves: {n_moves}")
-            # print(f"  n_switches: {n_switches}")
-            # print(f"  total_actions: {total_actions}")
-            # print(f"  Condition failed: action_idx ({action_idx}) < 0 or >= total_actions ({total_actions})")
-            # print(f"--- END DEBUG ---")
-            # Original warning and fallback
-            # print(f"Warning: Action index {action_idx} selected is out of bounds "
-            #       f"(Moves: {n_moves}, Switches: {n_switches}, Max Valid Idx: {max_legal_idx}). "
-            #       f"Choosing random valid action.")
-            return self.choose_random_move(battle) # Fallback
 
 Experience = namedtuple('Experience', ('state', 'action', 'reward', 'next_state', 'done'))
 
@@ -521,46 +346,22 @@ class DQNAgent:
         self.replay_buffer = ReplayBuffer(BUFFER_SIZE)
         self.steps_done = 0
 
-    def select_action(self, state, available_action_indices):
+    def select_action_index(self, state):
         sample = random.random()
-        epsilon_threshold = EPSILON_END + (EPSILON_START - EPSILON_END) * \
-            math.exp(-1.0 * self.steps_done / EPSILON_DECAY)
-
+        epsilon_treshold = EPSILON_END + (EPSILON_START - EPSILON_END) * \
+            math.exp(-1. * self.steps_done / EPSILON_DECAY)
+        
         self.steps_done += 1
 
-        if not available_action_indices:
-             print("Warning: No available actions in select_action. Returning default action 0.")
-             return torch.tensor([[0]], device=DEVICE, dtype=torch.long)
-
-        if sample > epsilon_threshold: # Exploit
+        if sample > epsilon_treshold: # Exploit
             with torch.no_grad():
                 state_tensor = torch.tensor(state, dtype=torch.float32, device=DEVICE).unsqueeze(0)
-
-                # print(f"DEBUG: state_tensor shape before policy_net call: {state_tensor.shape}")
-                # expected_features = self.policy_net.layer1.in_features
-                # print(f"DEBUG: policy_net expects input features: {expected_features}")
-
                 q_values = self.policy_net(state_tensor)
-                mask = torch.full_like(q_values, -float("inf"))
-                valid_indices_tensor = torch.tensor(available_action_indices, device=DEVICE, dtype=torch.long)
-
-                if valid_indices_tensor.numel() > 0:
-                     valid_indices_tensor = valid_indices_tensor[valid_indices_tensor < q_values.shape[1]] # Ensure index is within network output size
-                     if valid_indices_tensor.numel() > 0:
-                         mask[0, valid_indices_tensor] = q_values[0, valid_indices_tensor]
-
-                if torch.isinf(mask).all():
-                    print("Warning: Masking resulted in all -inf Q-values during exploitation. Choosing random valid action.")
-                    action_idx = random.choice(available_action_indices) # Choose from valid list
-                    return torch.tensor([[action_idx]], device=DEVICE, dtype=torch.long)
-                else:
-                    best_action_idx = mask.argmax(dim=1)
-                    return best_action_idx.view(1, 1)
+                action_index = q_values.max(1)[1].view(1, 1)
+                return action_index.item()
         else: # Explore
-            action_idx = random.choice(available_action_indices) # Choose from valid list
-            # Correct variable name from user code: action_index -> action_idx
-            return torch.tensor([[action_idx]], device=DEVICE, dtype=torch.long)
-
+            return random.randrange(self.action_dim)
+        
     def learn(self):
         if len(self.replay_buffer) < BATCH_SIZE:
             return None
@@ -570,28 +371,27 @@ class DQNAgent:
 
         non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)),
                                       device=DEVICE, dtype=torch.bool)
-
-        # Corrected handling from user code: Convert list of numpy arrays directly
         non_final_next_states_list = [s for s in batch.next_state if s is not None]
 
         if non_final_next_states_list:
             # Stack numpy arrays first, then convert to tensor
             np_states = np.array(non_final_next_states_list)
-            if len(np_states.shape) != 2 or np_states.shape[1] != self.state_dim:
-                 print(f"ERROR: Non-final next states have wrong dimension {np_states.shape[1]} in learn! Expected {self.state_dim}")
-                 return None
+            if len(np_states.shape) != 2 or np_states.shape[1] != STATE_SIZE:
+                print(f"ERROR: Non-final next states have wrong dimension {np_states.shape[1]} in learn! Expected {self.state_dim}")
+                return None
             non_final_next_states = torch.tensor(np_states, dtype=torch.float32, device=DEVICE)
         else:
             non_final_next_states = torch.empty((0, self.state_dim), dtype=torch.float32, device=DEVICE)
 
         # Stack numpy arrays first, then convert to tensor
         state_batch_np = np.array(batch.state)
-        if len(state_batch_np.shape) != 2 or state_batch_np.shape[1] != self.state_dim:
+
+        if len(state_batch_np.shape) != 2 or state_batch_np.shape[1] != STATE_SIZE:
              print(f"ERROR: State batch has wrong shape {state_batch_np.shape} in learn! Expected ({BATCH_SIZE}, {self.state_dim})")
              return None
+        
         state_batch = torch.tensor(state_batch_np, dtype=torch.float32, device=DEVICE)
-
-
+        
         action_batch = torch.tensor(batch.action, dtype=torch.long, device=DEVICE).unsqueeze(1)
         reward_batch = torch.tensor(batch.reward, dtype=torch.float32, device=DEVICE).unsqueeze(1)
 
@@ -616,90 +416,398 @@ class DQNAgent:
 
     def update_target_network(self):
         target_net_state_dict = self.target_net.state_dict()
-        # Correct typo: policcy -> policy
         policy_net_state_dict = self.policy_net.state_dict()
         for key in policy_net_state_dict:
             target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key] * (1-TAU)
         self.target_net.load_state_dict(target_net_state_dict)
+class MyAgent(Player):
+    """Custom agent environment wrapping Gen9EnvSinglePlayer."""
+    def __init__(self, dqn_agent_logic: DQNAgent, 
+                log_lists: Dict[str, list],
+                *args, **kwargs):
+        
+        super().__init__(*args, **kwargs)
+        print("  MyAgent initialized.")
+
+        self.type_map = {t.name.lower(): i for i, t in enumerate(PokemonType) if i < NUM_TYPES}
+        if len(self.type_map) != NUM_TYPES:
+             print(f"Warning: Expected {NUM_TYPES} types in PokemonType enum, but found {len(self.type_map)}.")
+
+        # Correct status map keys to match poke-env standard status names (uppercase)
+        self.status_map = {status.name: i for i, status in enumerate(Status)}
+
+        # RL Components
+        self.dqn_agent = dqn_agent_logic
+        self.log_lists = log_lists
+        
+        # State Tracking
+        self._current_battle: Optional[AbstractBattle] = None
+        self._last_battle_state: Optional[AbstractBattle] = None
+        self._current_episode_reward: float = 0.0
+        self._last_action_index: Optional[int] = None
+        self._battles_completed: int = 0
+
+    def embed_battle_doubles(self, battle: AbstractBattle) -> np.ndarray:
+
+        features = []
+
+        my_team_size = len([p for p in battle.team.values() if p.fainted is False]) / 6.0
+        opp_team_size = len([p for p in battle.opponent_team.values() if p.fainted is False]) / 6.0
+        features.extend([my_team_size, opp_team_size]) # 2 Features
+
+        default_pkmn_features = np.zeros(1 + (NUM_TYPES * 2) + len(self.status_map)) # Hp + Types + Status
+        for i in range(2): # Loop through the two active slots 
+            for player_pkmn, opp_pkmn in [(battle.active_pokemon, battle.opponent_active_pokemon)]:
+                pkmn = player_pkmn[i] if i < len(player_pkmn) else None
+                if pkmn:
+                    hp = pkmn.current_hp_fraction
+                    types = np.zeros(NUM_TYPES * 2)
+                    if pkmn.type_1:
+                        idx = self.type_map.get(pkmn.type_1.name.lower())
+                        if idx is not None:
+                            types[idx] = 1.0
+                    if pkmn.type_2:
+                        idx = self.type_map.get(pkmn.type_2.name.lower())
+                        if idx is not None:
+                            types[idx + NUM_TYPES] = 1.0
+                    my_status = np.zeros(len(self.status_map))
+                    if pkmn.status:
+                        status_idx = self.status_map.get(pkmn.status.name, 0)
+                        if status_idx is not None:
+                            my_status[status_idx] = 1.0
+                    features.extend([hp])
+                    features.extend(types)
+                    features.extend(my_status)
+                else:
+                    features.extend(default_pkmn_features)
+            
+        my_tera_avail = 1.0 if battle.can_tera else 0.0
+        opp_tera_avail = 1.0 if battle._opponent_can_terrastallize else 0.0
+        features.extend([my_tera_avail, opp_tera_avail]) # 2 Features
+
+        state = np.array(features, dtype=np.float32)
+
+
+        global STATE_SIZE
+
+        if state.shape[0] != STATE_SIZE:
+            print(f"\n!!! CRITICAL WARNING: embed_battle_doubles produced state size {state.shape[0]}, but STATE_SIZE_DOUBLES is {STATE_SIZE}. !!!\n")
+        if state.shape[0] < STATE_SIZE:
+            print(f"  Padding state to match STATE_SIZE_DOUBLES.")
+            state = np.pad(state, (0, STATE_SIZE - state.shape[0]), 'constant')
+        elif state.shape[0] > STATE_SIZE:
+            print(f"  Truncating state to match STATE_SIZE_DOUBLES.")
+            state = state[:STATE_SIZE]
+
+        return state
+    
+    def calc_reward(self, last_battle: AbstractBattle | None, current_battle: AbstractBattle) -> float:
+        """
+        Calculates a reward signal based on changes between battle states.
+        Includes:
+        - Large reward/penalty for winning/losing the battle.
+        - Smaller rewards/penalties for fainting opponent/own Pokemon.
+        - Smaller rewards/penalties for HP changes.
+        """
+        if current_battle is None:
+            return 0.0 # Battle ended or error
+        
+        final_reward = 0.0
+        if current_battle.finished:
+            if current_battle.won:
+                final_reward = 10.0
+            elif current_battle.lost:
+                final_reward = -10.0
+
+        # These are calculated based on the change from the last state
+        intermediate_reward = 0.0
+        if last_battle is not None: # Need previous state for comparison
+
+            current_my_fainted = sum(1 for p in current_battle.team.values() if p.fainted)
+            last_my_fainted = sum(1 for p in last_battle.team.values() if p.fainted)
+            intermediate_reward -= (current_my_fainted - last_my_fainted) * 1.0 # Penalty = 1.0 per own faint
+
+            current_opp_fainted = sum(1 for p in current_battle.opponent_team.values() if p.fainted)
+            last_opp_fainted = sum(1 for p in last_battle.opponent_team.values() if p.fainted)
+            intermediate_reward += (current_opp_fainted - last_opp_fainted) * 1.0 # Reward = 1.0 per opponent faint
+
+            for i in range(2):
+                my_active_now = current_battle.active_pokemon[i] if i < len(current_battle.active_pokemon) else None
+                my_active_before = last_battle.active_pokemon[i] if i < len(last_battle.active_pokemon) else None
+                opp_active_now = current_battle.opponent_active_pokemon[i] if i < len(current_battle.opponent_active_pokemon) else None
+                opp_active_before = last_battle.opponent_active_pokemon[i] if i < len(last_battle.opponent_active_pokemon) else None
+
+                if (opp_active_now and opp_active_before and 
+                    hasattr(opp_active_now, "species") and hasattr(opp_active_before, "species") and
+                    opp_active_now.species == opp_active_before.species and
+                    hasattr(opp_active_now, "current_hp_fraction") and 
+                    hasattr(opp_active_before, "current_hp_fraction")):
+                    hp_drop_opp = opp_active_before.current_hp_fraction - opp_active_now.current_hp_fraction
+                    intermediate_reward += max(0, hp_drop_opp) * 0.5 # Reward = 0.5 * (% HP damage dealt)
+
+                if (my_active_now and my_active_before and
+                    hasattr(my_active_now, "species") and hasattr(my_active_before, "species") and
+                    my_active_now.species == my_active_before.species and
+                    hasattr(my_active_now, "current_hp_fraction") and
+                    hasattr(my_active_before, "current_hp_fraction")):
+                    hp_drop_me = my_active_before.current_hp_fraction - my_active_now.current_hp_fraction
+                    intermediate_reward -= max(0, hp_drop_me) * 0.5   
+
+
+        # --- Total Reward for the Step ---
+        total_step_reward = intermediate_reward + final_reward
+        # total_step_reward = np.clip(total_step_reward, -15.0, 15.0)
+        return total_step_reward
+    
+    def choose_move(self, battle: AbstractBattle) -> BattleOrder:
+        """Choose a move based on the current battle state."""
+        self._current_battle = battle
+        step_reward = 0.0
+        state = None
+        state_embedding_for_buffer = None
+        if self._last_battle_state is not None:
+            step_reward = self.calc_reward(self._last_battle_state, battle)
+            self._current_episode_reward += step_reward
+
+            state = self.embed_battle_doubles(self._last_battle_state)
+            next_state = self.embed_battle_doubles(battle)
+            action_idx = self._last_action_index if self._last_action_index is not None else -1
+
+            if state is not None and action_idx != -1:
+                self.dqn_agent.replay_buffer.push(state, action_idx, step_reward, next_state, battle.finished)
+
+            loss = self.dqn_agent.learn()
+            if loss is not None and "recent_losses_log" in self.log_lists: 
+                self.log_lists["recent_losses_log"].append(loss)
+
+        if battle.turn == 0:
+            print(f"DEBUG: Turn 0 - Handling Team Preview (Default Order)")
+            self._last_battle_state = battle
+            self._current_episode_reward = 0.0
+            return DefaultBattleOrder()
+
+        if not battle.available_moves and not battle.available_switches and not battle.trapped:
+            print(f"Warning: No moves or switches available, and not trapped?.")
+            self._last_battle_state = battle
+            return DefaultBattleOrder()
+
+        current_state_embedding = self.embed_battle_doubles(battle)
+
+        chosen_action_idx = self.dqn_agent.select_action_index(current_state_embedding)
+        self._last_action_index = chosen_action_idx
+
+        """
+        orders = []
+        active_indices = list(range(len(battle.active_pokemon)))
+        random.shuffle(active_indices) # Process in random order to avoid bias
+
+        chosen_switches = []
+
+        for i in active_indices:
+            pkmn = battle.active_pokemon[i]
+            if not pkmn or pkmn.fainted:
+                continue
+            
+            legal_moves = [m for m in pkmn.available_moves if m.pokemon_index == i]
+            legal_switches = [s for s in battle.available_switches if s.pokemon_index == i]
+            current_pkmn_orders = []
+            if legal_moves:
+                current_pkmn_orders.extend([self.create_order(m, False) for m in legal_moves])
+            if legal_switches:
+                current_pkmn_orders.extend([self.create_order(s) for s in legal_switches if s not in chosen_switches])
+            
+            if current_pkmn_orders:
+                chosen_order = random.choice(current_pkmn_orders)
+                orders.append(chosen_order)
+                if chosen_order.is_switch():
+                    chosen_switches.append(chosen_order.order)
+            else:
+                orders.append(DefaultBattleOrder())
+        """
+        final_order = self.choose_random_move(battle)
+        self._last_battle_state = battle
+
+        return final_order
+    
+    def _battle_finished_callback(self, battle: AbstractBattle) -> None:
+        """Called when a battle ends."""
+        print(f"--- Battle Finished: {battle.battle_tag} ---")
+        self._battles_completed += 1
+
+        # --- 1. Final Reward Calculation & Experience ---
+        final_reward = 0.0
+        if self._last_battle_state: # If there was a previous state
+            final_reward = self.calc_reward(self._last_battle_state, battle)
+            self._current_episode_reward += final_reward
+
+            # Store final experience
+            last_state_embedding = self.embed_battle_doubles(self._last_battle_state)
+            last_action = self._last_action_index if self._last_action_index is not None else -1
+            if last_action != -1:
+                 self.dqn_agent.replay_buffer.push(last_state_embedding, last_action, final_reward, None, True) # next_state is None, done is True
+        else:
+             print("Warning: Battle finished but _last_battle_state was None.")
+
+
+        # --- 2. Logging ---
+        battle_won = battle.won
+        result = "Won" if battle_won else "Lost" if battle.lost else "Draw/Other"
+        print(f"  Result: {result}, Total Reward: {self._current_episode_reward:.4f}")
+
+        # Access logging lists passed during __init__
+        self.log_lists['recent_rewards'].append(self._current_episode_reward)
+        self.log_lists['recent_wins'].append(1 if battle_won else 0)
+        # Note: Loss is logged per step in learn(), average is calculated during plotting log
+        # if battle_won:
+        #     self.log_lists["total_wins"] = self.log_lists.get("total_wins", 0 ) + 1
+        
+        # --- 3. Periodic Updates & Plotting ---
+        if self._battles_completed % TARGET_UPDATE_FREQ == 0:
+            print(f"Updating target network (Battle {self._battles_completed})...")
+            self.dqn_agent.update_target_network()
+
+        if self._battles_completed % LOG_FREQ == 0:
+            print(f"Logging progress (Battle {self._battles_completed})...")
+            avg_reward = sum(self.log_lists['recent_rewards']) / len(self.log_lists['recent_rewards']) if self.log_lists['recent_rewards'] else 0
+            # Loss avg needs access to recent_losses deque, maybe store it in dqn_agent?
+            # For now, let's skip avg loss in this specific log message
+            avg_win_rate = sum(self.log_lists['recent_wins']) / len(self.log_lists['recent_wins']) if self.log_lists['recent_wins'] else 0
+
+            self.log_lists['episode_log_points'].append(self._battles_completed)
+            self.log_lists['avg_rewards_log'].append(avg_reward)
+            # Need loss here
+            recent_losses = self.log_lists.get("recent_losses", deque(maxlen=LOG_FREQ))
+            avg_loss = sum(recent_losses) / len(recent_losses) if recent_losses else 0
+            self.log_lists['avg_losses_log'].append(avg_loss) # Add placeholder/rolling avg
+            self.log_lists['win_rates_log'].append(avg_win_rate)
+
+            # Generate periodic plot (needs plot function and lists)
+            plot_training_results(
+                self.log_lists['episode_log_points'],
+                self.log_lists['avg_rewards_log'],
+                self.log_lists['avg_losses_log'],
+                self.log_lists['win_rates_log'],
+                save_path=self.log_lists['periodic_plot_path'] # Get path from log_lists dict
+            )
+
+        # --- 4. Reset State ---
+        self._last_battle_state = None
+        self._current_battle = None
+        self._current_episode_reward = 0.0
+        self._last_action_index = None
 
 async def train_agent(n_battles_to_run):
     print(f"\n--- Starting Training Function: train_agent ---")
     print(f"  n_battles_to_run: {n_battles_to_run}")
     start_time = time.time()
 
-    opponent = RandomPlayer(
-        account_configuration=OPP_ACC_CONF,
-        battle_format=BATTLE_FORMAT,
-        server_configuration=SERVER_CONF,
-        team=OPPONENT_TEAM
-    )
-    print(f"  Opponent Player ({type(opponent).__name__}) Config:")
-    print(f"    Battle Format: {BATTLE_FORMAT}")
-
-    env_player = MyAgent(
-        opponent=opponent,
-        account_configuration=AGENT_ACC_CONF,
-        battle_format=BATTLE_FORMAT,
-        log_level=5,     
-        server_configuration=SERVER_CONF,
-        team=AGENT_TEAM,
-        start_challenging=True,
-    )
-    print(f"  RL Player ({type(env_player).__name__}) set up.")
-
-    print("  Allowing time for players to connect and challenge...")
-    await asyncio.sleep(3)
-
-    _ = env_player.describe_embedding()
-    env = env_player
-
-    print(f"\n--- Initializing DQNAgent ---")
-    agent = DQNAgent(STATE_SIZE, ACTION_SPACE_SIZE)
-    print(f"--- DQNAgent Initialized ---\n")
-
+    dqn_logic = DQNAgent(STATE_SIZE, ACTION_SPACE_SIZE)
+    print(f"--- DQNAgent Initialized ---")    
 
     save_dir = "./project/output/models"
     plot_dir = "./project/output" 
-    periodic_plot_path = os.path.join(plot_dir, "TP-Periodically.png") # Path for periodic plot
     final_plot_path = os.path.join(plot_dir, "TP-V1.png") 
     policy_path = os.path.join(save_dir, "Model_Policy-v1.0.0.pth")
     target_path = os.path.join(save_dir, "Model_target-v1.0.0.pth")
     os.makedirs(save_dir, exist_ok=True) # Ensure directory exists
+    os.makedirs(plot_dir, exist_ok=True) # Ensure directory exists
 
     if LOAD_MODEL and os.path.exists(policy_path) and os.path.exists(target_path):
         try:
             print(f"Loading existing models from: {save_dir}")
-            agent.policy_net.load_state_dict(torch.load(policy_path, map_location=DEVICE))
-            agent.target_net.load_state_dict(torch.load(target_path, map_location=DEVICE))
-            agent.policy_net.eval() # Set policy net to eval mode if loaded (or train mode if continuing training)
-            agent.target_net.eval() # Target net is always in eval mode
-            print("Models loaded successfully.")
-            # Optionally, reset steps_done if you want epsilon to start high again
-            # agent.steps_done = 0
-            # print("Epsilon decay counter reset.")
+            dqn_logic.policy_net.load_state_dict(torch.load(policy_path, map_location=DEVICE))
+            dqn_logic.target_net.load_state_dict(torch.load(target_path, map_location=DEVICE))
+            dqn_logic.policy_net.eval() # Set policy net to eval mode if loaded (or train mode if continuing training)
+            dqn_logic.target_net.eval() # Target net is always in eval mode
+            print("VGC Models loaded successfully.")
         except Exception as e:
             print(f"Error loading models: {e}. Starting training from scratch.")
-            # Re-initialize networks if loading failed? Or just proceed with initialized ones.
-            # agent.policy_net = DQN(STATE_SIZE, ACTION_SPACE_SIZE).to(DEVICE)
-            # agent.target_net = DQN(STATE_SIZE, ACTION_SPACE_SIZE).to(DEVICE)
-            # agent.target_net.load_state_dict(agent.policy_net.state_dict())
-            # agent.target_net.eval()
     else:
         if LOAD_MODEL:
             print("No existing models found or LOAD_MODEL is False. Starting training from scratch.")
         else:
              print("LOAD_MODEL is False. Starting training from scratch.")
+    opponent = RandomPlayer(
+        account_configuration=OPP_ACC_CONF,
+        battle_format=BATTLE_FORMAT,
+        server_configuration=SERVER_CONF,
+        team=OPPONENT_TEAM,
+        log_level=15
+    )
 
+    log_lists = {
+        'episode_log_points': [],
+        'avg_rewards_log': [],
+        'avg_losses_log': [], # Loss avg needs refinement
+        'win_rates_log': [],
+        'recent_rewards': deque(maxlen=LOG_FREQ),
+        'recent_wins': deque(maxlen=LOG_FREQ),
+        'recent_losses': deque(maxlen=LOG_FREQ * 100), # Store loss deque here? Or in dqn_logic?
+        'final_plot_path': final_plot_path
+    }
 
-    print(f"--- Starting Training Loop for {n_battles_to_run} Battles ---")
+    agent = MyAgent(
+        dqn_agent_logic=dqn_logic,
+        log_lists=log_lists,
+        account_configuration=AGENT_ACC_CONF,
+        battle_format=BATTLE_FORMAT,
+        log_level=15,
+        server_configuration=SERVER_CONF,
+        team=Wolfey_TEAM
+    )
+
+    print(f"--- Starting {n_battles_to_run} Battles ---")
     
-    wins = 0
-    total_reward_overall = 0
-    recent_rewards = deque(maxlen=LOG_FREQ) 
-    recent_losses = deque(maxlen=LOG_FREQ * 50)
-    recent_wins = deque(maxlen=LOG_FREQ)
+    try:
+        
+        opponent_task = asyncio.create_task(
+             opponent.accept_challenges(agent.username, n_challenges=n_battles_to_run)
+        )
+        # Give the opponent a moment to connect and start listening
+        await asyncio.sleep(2)
 
+        # Start the agent battling task
+        agent_task = asyncio.create_task(
+             agent.send_challenges(opponent.username, n_challenges=n_battles_to_run)
+        )
 
+        # Wait for both tasks to complete
+        await asyncio.gather(opponent_task, agent_task)
+
+    except asyncio.CancelledError:
+        print("Training loop cancelled.")
+    except Exception as e:
+        print(f"Error during battle loop: {e}")
+        traceback.print_exc()
+    finally:
+        print("\n--- Finalizing Training ---")
+    
+    print(f"--- Finished {n_battles_to_run} Battles ---")
+    
+    total_wins = sum(log_lists['recent_wins'])
+    total_battles_completed = agent._battles_completed
+    final_win_rate = sum(1 for w in log_lists['win_rates_log'] if w > 0.5) / len(log_lists["win_rates_log"]) if log_lists["win_rates_log"] else 0.0
+    print(f"Total Battles Completed: {total_battles_completed}")
+    print(f"Total Wins: {total_wins}")
+    print(f"Overall Win Rate: {final_win_rate:.2%}")
+    
+    try:
+        torch.save(dqn_logic.policy_net.state_dict(), policy_path)
+        torch.save(dqn_logic.target_net.state_dict(), target_path)
+        print(f"Models saved successfully to {save_dir}.")
+    except Exception as e:
+        print(f"Error saving models: {e}.")
+    
+    plot_training_results(
+        log_lists['episode_log_points'],
+        log_lists['avg_rewards_log'],
+        log_lists['avg_losses_log'],
+        log_lists['win_rates_log'],
+        save_path=final_plot_path
+    )
+
+    print(f"--- Training Complete ---")
+    """
     # --- Lists for plotting ---
     episode_log_points = []
     avg_rewards_log = []
@@ -747,7 +855,7 @@ async def train_agent(n_battles_to_run):
                      break
 
                 assert isinstance(env.action_space, spaces.Discrete), f"Expected Discrete action space, got {type(env.action_space)}"
-                current_max_possible_actions = env.action_space.n
+                current_max_possible_actions += env.action_space.n
                 available_action_indices = list(range(current_max_possible_actions))
                 action_tensor = agent.select_action(state, available_action_indices)
                 action = action_tensor.item() 
@@ -861,11 +969,8 @@ async def train_agent(n_battles_to_run):
             print(f"Models saved to {policy_path} and {target_path}")
         else: print("Agent not initialized, models not saved.")
     except Exception as e: print(f"Error saving models: {e}")
+    """
 
-    plot_training_results(episode_log_points, avg_rewards_log, avg_losses_log, win_rates_log, save_path=final_plot_path)
-
-    env.close()
-    print("\n--- Training Finished ---")
 
 def plot_training_results(episodes, rewards, losses, win_rates, save_path):
     """Generates and saves plots for training metrics."""
@@ -901,23 +1006,17 @@ def plot_training_results(episodes, rewards, losses, win_rates, save_path):
         print(f"Error saving plot: {e}")
     plt.close(fig) # Close the figure to free memory
 
-
 if __name__ == "__main__":
     print("--- Script Execution Started ---")
-    print("Reminder: Make sure a Pokemon Showdown server is running locally!")
-    print(f"Script will train for N_BATTLES = {N_BATTLES}")
-    print(f"Using STATE_SIZE = {STATE_SIZE}, ACTION_SPACE_SIZE = {ACTION_SPACE_SIZE}")
+    print(f"Attempting to train for {N_BATTLES} VGC battles ({BATTLE_FORMAT})")
+    print(f"Using DOUBLES STATE_SIZE: {STATE_SIZE}") # Use correct variable name
+    print(f"Load existing model: {LOAD_MODEL}")
 
     try:
+        # Run the doubles training function
         asyncio.run(train_agent(N_BATTLES))
-    except KeyboardInterrupt:
-        print("\n--- Training Interrupted By User ---")
-    except Exception as e:
-        print(f"\n--- An Error Occurred During Training ---")
-        print(f"Error Type: {type(e).__name__}")
-        print(f"Error Details: {e}")
-        import traceback
-        traceback.print_exc()
-    finally:
-        print("\n--- Script Execution Finished ---")
+    except KeyboardInterrupt: print("\n--- Training Interrupted By User ---")
+    except ConnectionRefusedError: print("\n--- CONNECTION ERROR ---\nCould not connect to the Pokemon Showdown server.\nPlease ensure the server is running at the configured address.")
+    except Exception as e: print(f"\n--- An Unhandled Error Occurred During Execution ---\nError Type: {type(e).__name__}\nError Details: {e}"); traceback.print_exc()
+    finally: print("\n--- Script Execution Finished ---")
 
