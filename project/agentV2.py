@@ -25,7 +25,7 @@ from poke_env.player.battle_order import BattleOrder, DefaultBattleOrder
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {DEVICE}")
 
-N_BATTLES = 100     # Total number of battles to train for (Reduced for faster testing)
+N_BATTLES = 100    # Total number of battles to train for (Reduced for faster testing)
 BATCH_SIZE = 128       # Number of experiences to sample from buffer for learning
 GAMMA = 0.99           # Discount factor for future rewards
 EPSILON_START = 0.9    # Starting exploration rate (Changed name for consistency)
@@ -37,6 +37,7 @@ BUFFER_SIZE = 20000    # Max size of the replay buffer
 TARGET_UPDATE_FREQ = 5 # How often (in episodes/battles) to update target network weights
 LOG_FREQ = 10          # How often (in episodes/battles) to print progress (Increased freq for testing)
 DEBUG_STEPS = 5        # Print step details for the first N steps of each episode
+BATTLE_TIMEOUT = 300.0
 LOAD_MODEL = True
 
 # State and Action Space Sizes (Matching runtime observations)
@@ -48,13 +49,13 @@ ACTION_SPACE_SIZE = 30
 print(f"Using ACTION_SPACE_SIZE: {ACTION_SPACE_SIZE}")
 
 # --- Server/Account Config ---
-BATTLE_FORMAT = "vgc2025regg" # vgc2025regg
+BATTLE_FORMAT = "gen9vgc2025regg" # vgc2025regg
 SERVER_CONF = ServerConfiguration("ws://localhost:8000/showdown/websocket", None)# type: ignore # Assuming default local server
 # Ensure unique names for concurrent runs if needed
 OPP_ACC_CONF = AccountConfiguration(f"FixedTeamOpp-VGC", None)
 AGENT_ACC_CONF = AccountConfiguration(f"VGC-DQNAgent-{random.randint(0,10000)}", None) # Make agent name unique too
 
-Wolfey_TEAM = """
+WOLFEY_TEAM = """
 
     Urshifu-Rapid-Strike @ Focus Sash
     Level: 50
@@ -129,130 +130,6 @@ Wolfey_TEAM = """
     - Dragon Pulse
 """
 
-AGENT_TEAM = """
-Glimmora @ Focus Sash
-Ability: Toxic Debris
-Tera Type: Ghost
-EVs: 252 SpA / 4 SpD / 252 Spe
-Timid Nature
-- Mortal Spin
-- Stealth Rock
-- Energy Ball
-- Earth Power
-
-Great Tusk @ Booster Energy
-Ability: Protosynthesis
-Tera Type: Ground
-EVs: 252 Atk / 4 SpD / 252 Spe
-Jolly Nature
-- Headlong Rush
-- Close Combat
-- Ice Spinner
-- Rapid Spin
-
-Iron Valiant @ Booster Energy
-Ability: Quark Drive
-Tera Type: Fairy
-EVs: 252 SpA / 4 SpD / 252 Spe
-Timid Nature
-- Moonblast
-- Psyshock
-- Shadow Ball
-- Thunderbolt
-
-Kingambit @ Black Glasses
-Ability: Supreme Overlord
-Tera Type: Dark
-EVs: 252 Atk / 4 SpD / 252 Spe
-Adamant Nature
-- Kowtow Cleave
-- Sucker Punch
-- Iron Head
-- Swords Dance
-
-Dragapult @ Choice Specs
-Ability: Infiltrator
-Tera Type: Ghost
-EVs: 252 SpA / 4 SpD / 252 Spe
-Timid Nature
-- Shadow Ball
-- Draco Meteor
-- U-turn
-- Thunderbolt
-
-Cinderace @ Heavy-Duty Boots
-Ability: Libero
-Tera Type: Fire
-EVs: 252 Atk / 4 SpD / 252 Spe
-Jolly Nature
-- Pyro Ball
-- U-turn
-- Court Change
-- Will-O-Wisp
-"""
-
-OPPONENT_TEAM = """
-Gholdengo @ Choice Scarf
-Ability: Good as Gold
-Tera Type: Steel
-EVs: 252 SpA / 4 SpD / 252 Spe
-Timid Nature
-- Make It Rain
-- Shadow Ball
-- Focus Blast
-- Trick
-
-Dragonite @ Heavy-Duty Boots
-Ability: Multiscale
-Tera Type: Normal
-EVs: 252 Atk / 4 SpD / 252 Spe
-Adamant Nature
-- Extreme Speed
-- Earthquake
-- Dragon Dance
-- Ice Spinner
-
-Garganacl @ Leftovers
-Ability: Purifying Salt
-Tera Type: Fairy
-EVs: 252 HP / 4 Def / 252 SpD
-Careful Nature
-- Salt Cure
-- Recover
-- Protect
-- Earthquake
-
-Iron Moth @ Booster Energy
-Ability: Quark Drive
-Tera Type: Grass
-EVs: 104 Def / 148 SpA / 4 SpD / 252 Spe
-Timid Nature
-- Fiery Dance
-- Sludge Wave
-- Energy Ball
-- Dazzling Gleam
-
-Ting-Lu @ Leftovers
-Ability: Vessel of Ruin
-Tera Type: Water
-EVs: 252 HP / 4 Def / 252 SpD
-Careful Nature
-- Stealth Rock
-- Spikes
-- Ruination
-- Earthquake
-
-Meowscarada @ Heavy-Duty Boots
-Ability: Protean
-Tera Type: Grass
-EVs: 252 Atk / 4 SpD / 252 Spe
-Jolly Nature
-- Flower Trick
-- Knock Off
-- U-turn
-- Spikes
-"""
-
 def print_args(func_name, *args, **kwargs):
     pass
     # print(f"--- Entering {func_name} ---")
@@ -287,7 +164,7 @@ class DQN(nn.Module):
         self.layer2 = nn.Linear(512, 256)
         self.layer3 = nn.Linear(256, n_actions)
         print(f"  DQN Initialized: Input Size={n_observations}, Output Size={n_actions}")
-        print(f"  DQN Layers: Linear({n_observations}, 256) -> ReLU -> Linear(256, 128) -> ReLU -> Linear(128, {n_actions})")
+
 
     def forward(self, x):
         if x.dtype != torch.float32:
@@ -420,6 +297,7 @@ class DQNAgent:
         for key in policy_net_state_dict:
             target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key] * (1-TAU)
         self.target_net.load_state_dict(target_net_state_dict)
+
 class MyAgent(Player):
     """Custom agent environment wrapping Gen9EnvSinglePlayer."""
     def __init__(self, dqn_agent_logic: DQNAgent, 
@@ -446,6 +324,7 @@ class MyAgent(Player):
         self._current_episode_reward: float = 0.0
         self._last_action_index: Optional[int] = None
         self._battles_completed: int = 0
+        self._battle_finished_event = asyncio.Event()
 
     def embed_battle_doubles(self, battle: AbstractBattle) -> np.ndarray:
 
@@ -596,34 +475,6 @@ class MyAgent(Player):
         chosen_action_idx = self.dqn_agent.select_action_index(current_state_embedding)
         self._last_action_index = chosen_action_idx
 
-        """
-        orders = []
-        active_indices = list(range(len(battle.active_pokemon)))
-        random.shuffle(active_indices) # Process in random order to avoid bias
-
-        chosen_switches = []
-
-        for i in active_indices:
-            pkmn = battle.active_pokemon[i]
-            if not pkmn or pkmn.fainted:
-                continue
-            
-            legal_moves = [m for m in pkmn.available_moves if m.pokemon_index == i]
-            legal_switches = [s for s in battle.available_switches if s.pokemon_index == i]
-            current_pkmn_orders = []
-            if legal_moves:
-                current_pkmn_orders.extend([self.create_order(m, False) for m in legal_moves])
-            if legal_switches:
-                current_pkmn_orders.extend([self.create_order(s) for s in legal_switches if s not in chosen_switches])
-            
-            if current_pkmn_orders:
-                chosen_order = random.choice(current_pkmn_orders)
-                orders.append(chosen_order)
-                if chosen_order.is_switch():
-                    chosen_switches.append(chosen_order.order)
-            else:
-                orders.append(DefaultBattleOrder())
-        """
         final_order = self.choose_random_move(battle)
         self._last_battle_state = battle
 
@@ -648,8 +499,6 @@ class MyAgent(Player):
         else:
              print("Warning: Battle finished but _last_battle_state was None.")
 
-
-        # --- 2. Logging ---
         battle_won = battle.won
         result = "Won" if battle_won else "Lost" if battle.lost else "Draw/Other"
         print(f"  Result: {result}, Total Reward: {self._current_episode_reward:.4f}")
@@ -657,7 +506,7 @@ class MyAgent(Player):
         # Access logging lists passed during __init__
         self.log_lists['recent_rewards'].append(self._current_episode_reward)
         self.log_lists['recent_wins'].append(1 if battle_won else 0)
-        # Note: Loss is logged per step in learn(), average is calculated during plotting log
+
         # if battle_won:
         #     self.log_lists["total_wins"] = self.log_lists.get("total_wins", 0 ) + 1
         
@@ -669,13 +518,11 @@ class MyAgent(Player):
         if self._battles_completed % LOG_FREQ == 0:
             print(f"Logging progress (Battle {self._battles_completed})...")
             avg_reward = sum(self.log_lists['recent_rewards']) / len(self.log_lists['recent_rewards']) if self.log_lists['recent_rewards'] else 0
-            # Loss avg needs access to recent_losses deque, maybe store it in dqn_agent?
-            # For now, let's skip avg loss in this specific log message
             avg_win_rate = sum(self.log_lists['recent_wins']) / len(self.log_lists['recent_wins']) if self.log_lists['recent_wins'] else 0
 
             self.log_lists['episode_log_points'].append(self._battles_completed)
             self.log_lists['avg_rewards_log'].append(avg_reward)
-            # Need loss here
+            
             recent_losses = self.log_lists.get("recent_losses", deque(maxlen=LOG_FREQ))
             avg_loss = sum(recent_losses) / len(recent_losses) if recent_losses else 0
             self.log_lists['avg_losses_log'].append(avg_loss) # Add placeholder/rolling avg
@@ -689,12 +536,18 @@ class MyAgent(Player):
                 self.log_lists['win_rates_log'],
                 save_path=self.log_lists['periodic_plot_path'] # Get path from log_lists dict
             )
+        
+        #Signal that the battle is finished
+        self._battle_finished_event.set()
 
-        # --- 4. Reset State ---
+        # --- Reset State ---
         self._last_battle_state = None
         self._current_battle = None
         self._current_episode_reward = 0.0
         self._last_action_index = None
+
+    def reset_battle_event(self):
+        self._battle_finished_event.clear()
 
 async def train_agent(n_battles_to_run):
     print(f"\n--- Starting Training Function: train_agent ---")
@@ -706,9 +559,9 @@ async def train_agent(n_battles_to_run):
 
     save_dir = "./project/output/models"
     plot_dir = "./project/output" 
-    final_plot_path = os.path.join(plot_dir, "TP-V1.png") 
-    policy_path = os.path.join(save_dir, "Model_Policy-v1.0.0.pth")
-    target_path = os.path.join(save_dir, "Model_target-v1.0.0.pth")
+    final_plot_path = os.path.join(plot_dir, "FP_Doubles.png") 
+    policy_path = os.path.join(save_dir, "Model_Policy_Doubles-v1.0.0.pth")
+    target_path = os.path.join(save_dir, "Model_target_Doubles-v1.0.0.pth")
     os.makedirs(save_dir, exist_ok=True) # Ensure directory exists
     os.makedirs(plot_dir, exist_ok=True) # Ensure directory exists
 
@@ -727,11 +580,12 @@ async def train_agent(n_battles_to_run):
             print("No existing models found or LOAD_MODEL is False. Starting training from scratch.")
         else:
              print("LOAD_MODEL is False. Starting training from scratch.")
+
     opponent = RandomPlayer(
         account_configuration=OPP_ACC_CONF,
         battle_format=BATTLE_FORMAT,
         server_configuration=SERVER_CONF,
-        team=OPPONENT_TEAM,
+        team=WOLFEY_TEAM,
         log_level=15
     )
 
@@ -753,26 +607,43 @@ async def train_agent(n_battles_to_run):
         battle_format=BATTLE_FORMAT,
         log_level=15,
         server_configuration=SERVER_CONF,
-        team=Wolfey_TEAM
+        team=WOLFEY_TEAM
     )
 
     print(f"--- Starting {n_battles_to_run} Battles ---")
-    
+    opponent_task = None
     try:
-        
+        print("Starting opponent task to accept challenges...")
+        async def opponent_accept_loop(player, agent_username):
+            while True:
+                try:
+                    await player.accept_challenges(agent_username, n_battles_to_run)
+                except asyncio.CancelledError:
+                    print("Opponent accept loop cancelled.")
+                    break # Exit loop if cancelled
+                except Exception as e:
+                    print(f"Error in opponent accept loop: {e}")
+                    await asyncio.sleep(5) # Wait before retrying
+
         opponent_task = asyncio.create_task(
-             opponent.accept_challenges(agent.username, n_challenges=n_battles_to_run)
+             opponent_accept_loop(opponent, agent.username)
         )
-        # Give the opponent a moment to connect and start listening
-        await asyncio.sleep(2)
+        await asyncio.sleep(3)
+        print("\n--- Starting Manual Battle Loop ---")
+        
+        agent.reset_battle_event()
 
-        # Start the agent battling task
-        agent_task = asyncio.create_task(
-             agent.send_challenges(opponent.username, n_challenges=n_battles_to_run)
-        )
+        await agent.send_challenges(opponent.username, n_battles_to_run)
 
-        # Wait for both tasks to complete
-        await asyncio.gather(opponent_task, agent_task)
+        try:
+            await asyncio.wait_for(agent._battle_finished_event.wait(), timeout=BATTLE_TIMEOUT)
+        except asyncio.TimeoutError:
+            print(f"Battle {n_battles_to_run + 1} timed out after {BATTLE_TIMEOUT} seconds.")
+        except Exception as e:
+            print(f"Error during battle: {e}")
+            traceback.print_exc()
+        
+        await asyncio.sleep(1) # Small delay to avoid overwhelming the serverter
 
     except asyncio.CancelledError:
         print("Training loop cancelled.")
@@ -780,7 +651,16 @@ async def train_agent(n_battles_to_run):
         print(f"Error during battle loop: {e}")
         traceback.print_exc()
     finally:
-        print("\n--- Finalizing Training ---")
+        print("\n--- Cleaning up tasks ---")
+        if opponent_task and not opponent_task.done():
+            opponent_task.cancel()
+            try:
+                await opponent_task # Allow cancellation to propagate
+            except asyncio.CancelledError:
+                print("Opponent task successfully cancelled.")
+            except Exception as e:
+                print(f"Error during opponent task cancellation: {e}")
+        print("\n--- Finished Battle Tasks ---")
     
     print(f"--- Finished {n_battles_to_run} Battles ---")
     
