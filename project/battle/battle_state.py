@@ -1,5 +1,5 @@
 import random
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Tuple
 
 import numpy as np
 
@@ -16,12 +16,9 @@ class BattleState:
 
         self.player_team: List[Pokemon] = player_team
         self.opponent_team: List[Pokemon] = opponent_team
-        self.battle_field: Dict[Side, List[Pokemon]] = {
-            'player': [player_team[0]],
-            'opponent': [opponent_team[0]]
-        }
+        self.battle_field: List[Pokemon] = [player_team[0], opponent_team[0]]
 
-        for pkm in self.battle_field['player'] + self.battle_field['opponent']:
+        for pkm in self.battle_field:
             pkm.on_switch_in()
 
     def encode_team(self, team: List[Pokemon]) -> np.ndarray[Any, np.dtype[np.float32]]:
@@ -33,13 +30,13 @@ class BattleState:
 
     def get_observation(self) -> Dict[str, Any]:
         return {
-            'player_active_pokemon': self.battle_field['player'][0].encode(),
+            'player_active_pokemon': self.battle_field[0].encode(),
             'player_team': self.encode_team(self.player_team),
             'player_fields': self.battle_effects_manager.encode_fields('player'),
             'player_barriers': self.battle_effects_manager.encode_barriers('player'),
             'player_hazards': self.battle_effects_manager.encode_hazards('player'),
 
-            'opponent_active_pokemon': self.battle_field['opponent'][0].encode(),
+            'opponent_active_pokemon': self.battle_field[1].encode(),
             'opponent_team': self.encode_team(self.opponent_team),
             'opponent_fields': self.battle_effects_manager.encode_fields('opponent'),
             'opponent_barriers': self.battle_effects_manager.encode_barriers('opponent'),
@@ -58,7 +55,7 @@ class BattleState:
             raise ValueError("The given Pokemon does not belong to either team.")
 
     def get_turn_order(self) -> List[Pokemon]:
-        active_pokemon = self.battle_field['player'] + self.battle_field['opponent']
+        active_pokemon: List[Pokemon] = list(self.battle_field)
         active_pokemon.sort(
             key=lambda pkm: (pkm.selected_move.priority, pkm.get_boosted_stat('speed')),
             reverse=True
@@ -77,6 +74,12 @@ class BattleState:
         if self.turn_counter not in self.turn_events:
             self.turn_events[self.turn_counter] = []
         self.turn_events[self.turn_counter].append(battle_event)
+
+    def print_turn_events(self):
+        for turn, events in self.turn_events.items():
+            print(f"Turn {turn}:")
+            for event in events:
+                print(f"- {event}")
 
     def reset(self):
         self.turn_counter = 0

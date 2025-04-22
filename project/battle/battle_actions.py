@@ -19,13 +19,13 @@ class BattleActions:
 
     def switch_pokemon(self, side: Side, selected_pokemon: Pokemon):
         if side == 'player':
-            self.state.battle_field['player'][0].on_switch_out()
-            self.state.battle_field['player'][0] = selected_pokemon
-            self.state.battle_field['player'][0].on_switch_in()
+            self.state.battle_field[0].on_switch_out()
+            self.state.battle_field[0] = selected_pokemon
+            self.state.battle_field[0].on_switch_in()
         else:
-            self.state.battle_field['opponent'][0].on_switch_out()
-            self.state.battle_field['opponent'][0] = selected_pokemon
-            self.state.battle_field['opponent'][0].on_switch_in()
+            self.state.battle_field[1].on_switch_out()
+            self.state.battle_field[1] = selected_pokemon
+            self.state.battle_field[1].on_switch_in()
 
     def boost_stat(self, move: PokemonMove, target: Pokemon):
         for stat_change in move.stat_changes:
@@ -151,8 +151,9 @@ class BattleActions:
         elif is_terrain(move.name):
             self.state.battle_effects_manager.set_terrain(move.name)
         elif move.name == 'haze':
-            self.state.battle_field['player'][0].reset_boosts()
-            self.state.battle_field['opponent'][0].reset_boosts()
+            for pkm in self.state.battle_field:
+                pkm.reset_boosts()
+
 
     def _handle_field_effect(self, move: PokemonMove, target: Pokemon):
         target_side = self.state.get_pokemon_side(target)

@@ -106,26 +106,26 @@ class BattleEffectsManager:
 
     def encode_hazards(self, side: Side) -> np.ndarray[Any, np.dtype[np.int8]]:
         return np.array([
-            1 if self.hazards.effects_for_side(side)['spikes'] else 0,
-            1 if self.hazards.effects_for_side(side)['toxic-spikes'] else 0,
-            1 if self.hazards.effects_for_side(side)['stealth-rocks'] else 0,
-            1 if self.hazards.effects_for_side(side)['sticky-web'] else 0,
+            1 if 'spikes' in self.hazards.effects_for_side(side) else 0,
+            1 if 'toxic-spikes' in self.hazards.effects_for_side(side) else 0,
+            1 if 'stealth-rocks' in self.hazards.effects_for_side(side) else 0,
+            1 if 'sticky-web' in self.hazards.effects_for_side(side) else 0,
         ], dtype=np.int8)
 
     def encode_barriers(self, side: Side) -> np.ndarray[Any, np.dtype[np.int8]]:
         return np.array([
-            1 if self.barriers.effects_for_side(side)['reflect'] else 0,
-            1 if self.barriers.effects_for_side(side)['light-screen'] else 0,
-            1 if self.barriers.effects_for_side(side)['aurora-veil'] else 0,
+            1 if 'reflect' in self.barriers.effects_for_side(side) else 0,
+            1 if 'light-screen' in self.barriers.effects_for_side(side) else 0,
+            1 if 'aurora-veil' in self.barriers.effects_for_side(side) else 0,
         ], dtype=np.int8)
 
     def encode_fields(self, side: Side) -> np.ndarray[Any, np.dtype[np.int8]]:
         return np.array([
-            1 if self.fields.effects_for_side(side)['mist'] else 0,
-            1 if self.fields.effects_for_side(side)['safeguard'] else 0,
-            1 if self.fields.effects_for_side(side)['tailwind'] else 0,
-            1 if self.fields.effects_for_side(side)['wide-guard'] else 0,
-            1 if self.fields.effects_for_side(side)['quick-guard'] else 0,
+            1 if 'mist' in self.fields.effects_for_side(side) else 0,
+            1 if 'safeguard' in self.fields.effects_for_side(side) else 0,
+            1 if 'tailwind' in self.fields.effects_for_side(side) else 0,
+            1 if 'wide-guard' in self.fields.effects_for_side(side) else 0,
+            1 if 'quick-guard' in self.fields.effects_for_side(side) else 0,
         ], dtype=np.int8)
 
     def encode_weather(self) -> int:
