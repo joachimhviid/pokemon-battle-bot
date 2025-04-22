@@ -20,12 +20,16 @@ class BattleActions:
     def switch_pokemon(self, side: Side, selected_pokemon: Pokemon):
         if side == 'player':
             self.state.battle_field[0].on_switch_out()
+            self.state.log_event(f'Player switched out {self.state.battle_field[0].name}')
             self.state.battle_field[0] = selected_pokemon
             self.state.battle_field[0].on_switch_in()
+            self.state.log_event(f'Player sent in {selected_pokemon.name}')
         else:
             self.state.battle_field[1].on_switch_out()
+            self.state.log_event(f'Opponent switched out {self.state.battle_field[1].name}')
             self.state.battle_field[1] = selected_pokemon
             self.state.battle_field[1].on_switch_in()
+            self.state.log_event(f'Opponent sent in {selected_pokemon.name}')
 
     def boost_stat(self, move: PokemonMove, target: Pokemon):
         for stat_change in move.stat_changes:

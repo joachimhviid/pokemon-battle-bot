@@ -60,11 +60,13 @@ class BattleAgent:
         return np.array(flat_obs, dtype=np.float32)
 
     def choose_action(self, observation, action_mask: np.ndarray) -> int:
-        # action_mask = self.env.get_action_mask()
+        # Add batch dimension to action_mask if it's not present
+        if len(action_mask.shape) == 1:
+            action_mask = action_mask[np.newaxis, :]  # Shape becomes [1, 14]
 
         if random.random() < self.epsilon:
             # Random choice from valid actions only
-            valid_actions = np.where(action_mask)[0]
+            valid_actions = np.where(action_mask[0])[0]
             return np.random.choice(valid_actions)
 
         with torch.no_grad():

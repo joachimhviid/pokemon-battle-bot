@@ -106,7 +106,7 @@ class Pokemon:
         return math.floor((((2 * stat_value + iv_value + ev_value // 4) * self.level // 100) + 5) * nature_modifier)
 
     def take_damage(self, damage: int):
-        self.current_hp -= damage
+        self.current_hp = max(0, self.current_hp - damage)
 
     def restore_health(self, healing: int):
         self.current_hp = min(self.current_hp + healing, self.stats['hp'])
@@ -171,6 +171,7 @@ class Pokemon:
                 self.non_volatile_status_condition = None
 
     def on_turn_end(self):
+        self.flinched = False
         self.protected = False
         if self.non_volatile_status_condition:
             match self.non_volatile_status_condition.name:
@@ -263,8 +264,8 @@ class Pokemon:
         spd = self.stats['speed'] / 255.0
         level = self.level / 100.0
 
-        return np.concatenate([[hp, non_vol_status], vol_status,
-                               [type_1, type_2, atk, def_, sp_atk, sp_def, spd, level]]).astype(np.float32)
+        return np.clip(np.concatenate([[hp, non_vol_status], vol_status,
+                               [type_1, type_2, atk, def_, sp_atk, sp_def, spd, level]]).astype(np.float32), 0.0, 1.0)
 
         # return np.array([
         #     hp, non_vol_status, vol_status, type_1, type_2, atk, def_, sp_atk, sp_def, spd, level

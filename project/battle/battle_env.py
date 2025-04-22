@@ -70,12 +70,15 @@ class BattleEnv(gym.Env[ObsType, ActType]):
         }
 
     def get_action_mask(self, side: Side) -> np.ndarray:
+        # has_valid_action = False
+
         active_pokemon = self.state.battle_field[0] if side == 'player' else self.state.battle_field[1]
+        team = self.state.player_team if side == 'player' else self.state.opponent_team
 
         mask = np.zeros(self.action_space_size, dtype=np.bool)
 
         if active_pokemon.is_fainted():
-            for i, pkm in enumerate(self.state.player_team):
+            for i, pkm in enumerate(team):
                 switch_index = 8 + i  # 8 is the beginning of team switch options
                 if not pkm.is_fainted() and not pkm.active:
                     mask[switch_index] = True
@@ -87,7 +90,7 @@ class BattleEnv(gym.Env[ObsType, ActType]):
                 mask[i * 2] = True  # Target 0
                 mask[i * 2 + 1] = True  # Target 1
 
-        for i, pkm in enumerate(self.state.player_team):
+        for i, pkm in enumerate(team):
             switch_index = 8 + i  # 8 is the beginning of team switch options
             if not pkm.is_fainted() and not pkm.active:
                 mask[switch_index] = True
@@ -110,7 +113,7 @@ class BattleEnv(gym.Env[ObsType, ActType]):
             opponent_action_index = self.opponent_agent.choose_action(opponent_observation, opponent_action_mask)
             opponent_action = self.action_to_move('opponent')[opponent_action_index]
 
-        print(player_action, opponent_action)
+        # print(player_action, opponent_action)
 
         # Set players selected move
         if isinstance(player_action, tuple):
@@ -157,17 +160,19 @@ class BattleEnv(gym.Env[ObsType, ActType]):
                 observation = self.state.get_observation()
                 action_mask = self.get_action_mask(_side)
 
-                # Force the appropriate agent to choose a switch
-                if side == 'player':
-                    switch_action = self.player_agent.choose_action(observation, action_mask)
-                    pokemon_index = self.action_to_move(_side)[switch_action]
-                    selected_pokemon = self.state.player_team[pokemon_index]
-                else:
-                    switch_action = self.opponent_agent.choose_action(observation, action_mask)
-                    pokemon_index = self.action_to_move(_side)[switch_action]
-                    selected_pokemon = self.state.opponent_team[pokemon_index]
+                # Check if there are any valid switches available
+                if any(action_mask[8:14]):  # Indices 8-13 represent switches
+                    # Force the appropriate agent to choose a switch
+                    if side == 'player':
+                        switch_action = self.player_agent.choose_action(observation, action_mask)
+                        pokemon_index = self.action_to_move(_side)[switch_action]
+                        selected_pokemon = self.state.player_team[pokemon_index]
+                    else:
+                        switch_action = self.opponent_agent.choose_action(observation, action_mask)
+                        pokemon_index = self.action_to_move(_side)[switch_action]
+                        selected_pokemon = self.state.opponent_team[pokemon_index]
 
-                self.actions.switch_pokemon(side=_side, selected_pokemon=selected_pokemon)
+                    self.actions.switch_pokemon(side=_side, selected_pokemon=selected_pokemon)
 
         self.on_turn_end(speed_sorted_pokemon)
 
@@ -177,6 +182,8 @@ class BattleEnv(gym.Env[ObsType, ActType]):
         observation = self.state.get_observation()
         self.validate_observation(observation)
         # info = self._get_info()
+        if terminated:
+            self.state.log_event(f'{str(self.state.get_winner())} wins!')
         return observation, reward, terminated, truncated, {}  # type: ignore
 
     def on_turn_start(self, sorted_active_pokemon: list[Pokemon]):

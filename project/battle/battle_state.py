@@ -26,7 +26,7 @@ class BattleState:
         # Pad with zeros if fewer than 6 Pokémon
         while len(team_vecs) < 6:
             team_vecs.append(np.zeros(11, dtype=np.float32))
-        return np.stack(team_vecs[:6])
+        return np.clip(np.stack(team_vecs[:6]), 0.0, 1.0)
 
     def get_observation(self) -> Dict[str, Any]:
         return {
@@ -75,11 +75,18 @@ class BattleState:
             self.turn_events[self.turn_counter] = []
         self.turn_events[self.turn_counter].append(battle_event)
 
-    def print_turn_events(self):
+    def print_turn_events(self, file_path: str | None = None):
         for turn, events in self.turn_events.items():
-            print(f"Turn {turn}:")
-            for event in events:
-                print(f"- {event}")
+            if file_path:
+                with open(file_path, 'a', encoding='utf-8') as f:
+                    f.write(f"Turn {turn}:\n")
+                    for event in events:
+                        f.write(f"- {event}\n")
+                    f.write("\n")
+            else:
+                print(f"Turn {turn}:")
+                for event in events:
+                    print(f"- {event}")
 
     def reset(self):
         self.turn_counter = 0
