@@ -67,6 +67,7 @@ class BattleAgent:
         if random.random() < self.epsilon:
             # Random choice from valid actions only
             valid_actions = np.where(action_mask[0])[0]
+            # print(valid_actions)
             return np.random.choice(valid_actions)
 
         with torch.no_grad():
