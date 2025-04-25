@@ -1,0 +1,45 @@
+# docker-compose.yml
+version: '3.8' # Use a recent version
+
+services:
+  showdown:
+    build:
+      context: ./showdown # Directory containing the Showdown Dockerfile
+    container_name: pokemon-showdown-server
+    ports:
+      - "8000:8000" # Map host port 8000 to container port 8000 (optional, for browser access)
+    restart: unless-stopped
+    # Optional: Mount volumes to persist logs, replays, or custom configs
+    # volumes:
+    #   - ./showdown/logs:/usr/src/showdown/logs
+    #   - ./showdown/replays:/usr/src/showdown/replays
+    #   - ./showdown/config:/usr/src/showdown/config # If you have custom configs
+
+  agent:
+    build:
+      context: . # Build context is the current directory (where this compose file is)
+      dockerfile: Dockerfile # Specify the agent's Dockerfile name
+    container_name: pokemon-rl-agent
+    depends_on:
+      - showdown # Start Showdown container before the agent container
+    volumes:
+      # Mount the output directory to persist models/plots on the host
+      - ./project/output:/app/project/output
+      # Optional: Mount the entire agent code for live development (not recommended for production deployment)
+      # - ./:/app
+    stdin_open: true # Keep STDIN open, sometimes needed for interactive processes/debuggers
+    tty: true        # Allocate a pseudo-TTY, often useful with Python scripts/CUDA
+    restart: on-failure # Or 'no' if you want it to stop after script finishes/fails
+    # --- GPU Configuration ---
+    # Requires NVIDIA Container Toolkit on the host:
+    # https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1 # Request 1 GPU, or 'all'
+              capabilities: [gpu]
+    # Optional: Specify environment variables if needed
+    # environment:
+    #   - NVIDIA_VISIBLE_DEVICES=all
