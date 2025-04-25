@@ -1,0 +1,46 @@
+# Dockerfile (for the agent)
+
+# Base image with CUDA 11.8 runtime and Python 3.10
+# Choose a base image matching your host's driver capabilities and desired Python version
+# Check nvidia/cuda on Docker Hub for available tags: https://hub.docker.com/r/nvidia/cuda/tags
+# Example using Ubuntu 22.04
+FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
+
+LABEL maintainer="Your Name <andth22@student.sdu.dk>"
+
+# Prevent interactive prompts during installation
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
+# Install Python, pip, git, and essential build tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.10 \
+    python3-pip \
+    python3-venv \
+    git \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a link for 'python' command
+RUN ln -s /usr/bin/python3.10 /usr/bin/python
+
+# Set the working directory
+WORKDIR /app
+
+# Copy requirements file first to leverage Docker cache
+COPY requirements.txt ./
+
+# Install Python dependencies
+# Consider using a virtual environment inside the container (optional but good practice)
+# RUN python -m venv /app/venv
+# RUN . /app/venv/bin/activate && pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application code
+COPY . .
+
+# Ensure the output directories exist (optional, script might create them)
+RUN mkdir -p /app/project/output/models
+
+# Command to run the training script
+CMD ["python", "train_agent.py"]
