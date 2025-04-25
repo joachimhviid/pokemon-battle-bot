@@ -8,3 +8,5 @@ __pycache__
 .idea
 *.egg-info/
 *.egg
+project/output/*
+!project/output/.gitkeep

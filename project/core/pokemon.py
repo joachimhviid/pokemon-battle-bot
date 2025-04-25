@@ -38,15 +38,16 @@ class Pokemon:
     flinched: bool = False
     protected: bool = False
     active: bool = False
-    stat_boosts: dict[Union[PokemonStatKey, PokemonBoostStatKey], PokemonStatBoostStage] = field(default_factory=lambda: {
-        'attack': 0,
-        'defense': 0,
-        'special-attack': 0,
-        'special-defense': 0,
-        'speed': 0,
-        'accuracy': 0,
-        'evasion': 0
-    })
+    stat_boosts: dict[Union[PokemonStatKey, PokemonBoostStatKey], PokemonStatBoostStage] = field(
+        default_factory=lambda: {
+            'attack': 0,
+            'defense': 0,
+            'special-attack': 0,
+            'special-defense': 0,
+            'speed': 0,
+            'accuracy': 0,
+            'evasion': 0
+        })
     volatile_status_conditions: list[VolatileStatus] = field(default_factory=list)
 
     def __init__(self, pokemon_data: Any):
@@ -105,7 +106,7 @@ class Pokemon:
         return math.floor((((2 * stat_value + iv_value + ev_value // 4) * self.level // 100) + 5) * nature_modifier)
 
     def take_damage(self, damage: int):
-        self.current_hp -= damage
+        self.current_hp = max(0, self.current_hp - damage)
 
     def restore_health(self, healing: int):
         self.current_hp = min(self.current_hp + healing, self.stats['hp'])
@@ -170,6 +171,7 @@ class Pokemon:
                 self.non_volatile_status_condition = None
 
     def on_turn_end(self):
+        self.flinched = False
         self.protected = False
         if self.non_volatile_status_condition:
             match self.non_volatile_status_condition.name:
@@ -220,14 +222,15 @@ class Pokemon:
     def is_incapacitated(self) -> bool:
         if self.flinched:
             return True
-        for status in [vol_status.name for vol_status in self.volatile_status_conditions] + ([self.non_volatile_status_condition.name] if self.non_volatile_status_condition else []):
+        for status in [vol_status.name for vol_status in self.volatile_status_conditions] + (
+                [self.non_volatile_status_condition.name] if self.non_volatile_status_condition else []):
             match status:
                 case 'confusion':
                     if random.randint(1, 3) == 1:
                         random_modifier = random.randint(85, 101) / 100
                         # 40 base power typeless physical move
                         inflicted_damage = int(math.floor((((((2 * self.level) / 5) + 2) * 40 * (
-                            self.stats['attack'] / self.stats['defense'])) / 50) + 2) * random_modifier)
+                                self.stats['attack'] / self.stats['defense'])) / 50) + 2) * random_modifier)
                         self.take_damage(inflicted_damage)
                         return True
                     return False
@@ -252,7 +255,7 @@ class Pokemon:
         vol_status = [status.encode() for status in self.volatile_status_conditions] if len(
             self.volatile_status_conditions) > 0 else [0.0]
         type_1 = encode_type(self.types[0]) / 18
-        type_2 = encode_type(self.types[1]) / 18 if self.types[1] else 0.0
+        type_2 = encode_type(self.types[1]) / 18 if len(self.types) == 2 else 0.0
 
         atk = self.stats['attack'] / 255.0
         def_ = self.stats['defense'] / 255.0
@@ -260,15 +263,19 @@ class Pokemon:
         sp_def = self.stats['special-defense'] / 255.0
         spd = self.stats['speed'] / 255.0
         level = self.level / 100.0
-        
-        return np.array([
-            hp, non_vol_status, vol_status, type_1, type_2, atk, def_, sp_atk, sp_def, spd, level
-        ], dtype=np.float32)
+
+        return np.clip(np.concatenate([[hp, non_vol_status], vol_status,
+                               [type_1, type_2, atk, def_, sp_atk, sp_def, spd, level]]).astype(np.float32), 0.0, 1.0)
+
+        # return np.array([
+        #     hp, non_vol_status, vol_status, type_1, type_2, atk, def_, sp_atk, sp_def, spd, level
+        # ], dtype=np.float32)
 
 
 # TODO: indicate if move hits all available targets or just one
 # TODO: target slot index?
-def get_available_targets(user: Pokemon, user_side: Side, move: PokemonMove, active_pokemon: dict[Side, list[Pokemon]]) -> list[list[Pokemon]]:
+def get_available_targets(user: Pokemon, user_side: Side, move: PokemonMove,
+                          active_pokemon: dict[Side, list[Pokemon]]) -> list[list[Pokemon]]:
     opponent_side = cast(Side, [side for side in SIDES if side != user_side][0])
     match move.target:
         # Since we are only modelling single battles there should be no elligible targets here

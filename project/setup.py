@@ -7,5 +7,7 @@ setup(
     install_requires=[
         'gymnasium',
         'numpy',
+        'torch',
+        'torchvision',
     ],
 )
