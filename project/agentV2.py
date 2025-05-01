@@ -25,7 +25,7 @@ from poke_env.player.battle_order import BattleOrder, DefaultBattleOrder
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {DEVICE}")
 
-N_BATTLES = 10    # Total number of battles to train for (Reduced for faster testing)
+N_BATTLES = 1000000   # Total number of battles to train for (Reduced for faster testing)
 BATCH_SIZE = 128       # Number of experiences to sample from buffer for learning
 GAMMA = 0.99           # Discount factor for future rewards
 EPSILON_START = 0.9    # Starting exploration rate (Changed name for consistency)
@@ -36,7 +36,7 @@ LR = 1e-4              # Learning rate for the optimizer
 BUFFER_SIZE = 20000    # Max size of the replay buffer
 TARGET_UPDATE_FREQ = 5 # How often (in episodes/battles) to update target network weights
 LOG_FREQ = 10          # How often (in episodes/battles) to print progress (Increased freq for testing)
-DEBUG_STEPS = 5        # Print step details for the first N steps of each episode
+DEBUG_STEPS = 0        # Print step details for the first N steps of each episode
 BATTLE_TIMEOUT = 300.0
 LOAD_MODEL = True
 
@@ -44,9 +44,9 @@ LOAD_MODEL = True
 NUM_TYPES = 18 # Standard number of Pokemon types
 # (2*HP + 2*TeamSize + 4*Types + 2*Status + Tera) * 2 sides = (2+2+4*18+2*7+2)*2 = (4+72+14+2)*2 = 92*2 = 184?
 STATE_SIZE = 184  # 92 if doing single battles, 184 if doing double battles
-print(f"Using STATE_SIZE: {STATE_SIZE}")
+# print(f"Using STATE_SIZE: {STATE_SIZE}")
 ACTION_SPACE_SIZE = 30 
-print(f"Using ACTION_SPACE_SIZE: {ACTION_SPACE_SIZE}")
+# print(f"Using ACTION_SPACE_SIZE: {ACTION_SPACE_SIZE}")
 
 # --- Server/Account Config ---
 BATTLE_FORMAT = "gen9vgc2025regg" # vgc2025regg
@@ -158,12 +158,12 @@ def print_args(func_name, *args, **kwargs):
 class DQN(nn.Module):
     """Deep Q-Network model."""
     def __init__(self, n_observations, n_actions):
-        print_args("DQN.__init__", n_observations=n_observations, n_actions=n_actions)
+        #print_args("DQN.__init__", n_observations=n_observations, n_actions=n_actions)
         super(DQN, self).__init__()
         self.layer1 = nn.Linear(n_observations, 512)
         self.layer2 = nn.Linear(512, 256)
         self.layer3 = nn.Linear(256, n_actions)
-        print(f"  DQN Initialized: Input Size={n_observations}, Output Size={n_actions}")
+        #print(f"  DQN Initialized: Input Size={n_observations}, Output Size={n_actions}")
 
 
     def forward(self, x):
@@ -191,11 +191,11 @@ class ReplayBuffer:
             next_state = next_state.cpu().numpy()
 
         if state is not None and (len(state.shape) != 1 or state.shape[0] != STATE_SIZE):
-             print(f"ERROR: Pushing state with wrong size {state.shape} to buffer! Expected {STATE_SIZE}.")
-             return
+            #print(f"ERROR: Pushing state with wrong size {state.shape} to buffer! Expected {STATE_SIZE}.")
+            return
         if next_state is not None and (len(next_state.shape) != 1 or next_state.shape[0] != STATE_SIZE):
-             print(f"ERROR: Pushing next_state with wrong size {next_state.shape} to buffer! Expected {STATE_SIZE}.")
-             return
+            #print(f"ERROR: Pushing next_state with wrong size {next_state.shape} to buffer! Expected {STATE_SIZE}.")
+            return
 
         self.memory.append(Experience(state, action, reward, next_state, done))
 
@@ -254,7 +254,7 @@ class DQNAgent:
             # Stack numpy arrays first, then convert to tensor
             np_states = np.array(non_final_next_states_list)
             if len(np_states.shape) != 2 or np_states.shape[1] != STATE_SIZE:
-                print(f"ERROR: Non-final next states have wrong dimension {np_states.shape[1]} in learn! Expected {self.state_dim}")
+                #print(f"ERROR: Non-final next states have wrong dimension {np_states.shape[1]} in learn! Expected {self.state_dim}")
                 return None
             non_final_next_states = torch.tensor(np_states, dtype=torch.float32, device=DEVICE)
         else:
@@ -264,8 +264,8 @@ class DQNAgent:
         state_batch_np = np.array(batch.state)
 
         if len(state_batch_np.shape) != 2 or state_batch_np.shape[1] != STATE_SIZE:
-             print(f"ERROR: State batch has wrong shape {state_batch_np.shape} in learn! Expected ({BATCH_SIZE}, {self.state_dim})")
-             return None
+            #print(f"ERROR: State batch has wrong shape {state_batch_np.shape} in learn! Expected ({BATCH_SIZE}, {self.state_dim})")
+            return None
         
         state_batch = torch.tensor(state_batch_np, dtype=torch.float32, device=DEVICE)
         
@@ -309,7 +309,7 @@ class MyAgent(Player):
 
         self.type_map = {t.name.lower(): i for i, t in enumerate(PokemonType) if i < NUM_TYPES}
         if len(self.type_map) != NUM_TYPES:
-             print(f"Warning: Expected {NUM_TYPES} types in PokemonType enum, but found {len(self.type_map)}.")
+            print(f"Warning: Expected {NUM_TYPES} types in PokemonType enum, but found {len(self.type_map)}.")
 
         # Correct status map keys to match poke-env standard status names (uppercase)
         self.status_map = {status.name: i for i, status in enumerate(Status)}
@@ -371,11 +371,12 @@ class MyAgent(Player):
 
         if state.shape[0] != STATE_SIZE:
             print(f"\n!!! CRITICAL WARNING: embed_battle_doubles produced state size {state.shape[0]}, but STATE_SIZE_DOUBLES is {STATE_SIZE}. !!!\n")
+            
         if state.shape[0] < STATE_SIZE:
-            print(f"  Padding state to match STATE_SIZE_DOUBLES.")
+            #print(f"  Padding state to match STATE_SIZE_DOUBLES.")
             state = np.pad(state, (0, STATE_SIZE - state.shape[0]), 'constant')
         elif state.shape[0] > STATE_SIZE:
-            print(f"  Truncating state to match STATE_SIZE_DOUBLES.")
+            #print(f"  Truncating state to match STATE_SIZE_DOUBLES.")
             state = state[:STATE_SIZE]
 
         return state
@@ -482,7 +483,7 @@ class MyAgent(Player):
     
     def _battle_finished_callback(self, battle: AbstractBattle) -> None:
         """Called when a battle ends."""
-        print(f"--- Battle Finished: {battle.battle_tag} ---")
+        #print(f"--- Battle Finished: {battle.battle_tag} ---")
         self._battles_completed += 1
 
         # --- 1. Final Reward Calculation & Experience ---
@@ -497,11 +498,11 @@ class MyAgent(Player):
             if last_action != -1:
                  self.dqn_agent.replay_buffer.push(last_state_embedding, last_action, final_reward, None, True) # next_state is None, done is True
         else:
-             print("Warning: Battle finished but _last_battle_state was None.")
+            print("Warning: Battle finished but _last_battle_state was None.")
 
         battle_won = battle.won
         result = "Won" if battle_won else "Lost" if battle.lost else "Draw/Other"
-        print(f"  Result: {result}, Total Reward: {self._current_episode_reward:.4f}")
+        #print(f"  Result: {result}, Total Reward: {self._current_episode_reward:.4f}")
 
         # Access logging lists passed during __init__
         self.log_lists['recent_rewards'].append(self._current_episode_reward)
@@ -512,11 +513,11 @@ class MyAgent(Player):
         
         # --- 3. Periodic Updates & Plotting ---
         if self._battles_completed % TARGET_UPDATE_FREQ == 0:
-            print(f"Updating target network (Battle {self._battles_completed})...")
+            #print(f"Updating target network (Battle {self._battles_completed})...")
             self.dqn_agent.update_target_network()
 
         if self._battles_completed % LOG_FREQ == 0:
-            print(f"Logging progress (Battle {self._battles_completed})...")
+            #print(f"Logging progress (Battle {self._battles_completed})...")
             avg_reward = sum(self.log_lists['recent_rewards']) / len(self.log_lists['recent_rewards']) if self.log_lists['recent_rewards'] else 0
             avg_win_rate = sum(self.log_lists['recent_wins']) / len(self.log_lists['recent_wins']) if self.log_lists['recent_wins'] else 0
 
@@ -550,12 +551,12 @@ class MyAgent(Player):
         self._battle_finished_event.clear()
 
 async def train_agent(n_battles_to_run):
-    print(f"\n--- Starting Training Function: train_agent ---")
-    print(f"  n_battles_to_run: {n_battles_to_run}")
+    #print(f"\n--- Starting Training Function: train_agent ---")
+    #print(f"  n_battles_to_run: {n_battles_to_run}")
     start_time = time.time()
 
     dqn_logic = DQNAgent(STATE_SIZE, ACTION_SPACE_SIZE)
-    print(f"--- DQNAgent Initialized ---")    
+    #print(f"--- DQNAgent Initialized ---")    
 
     save_dir = "./project/output/models"
     plot_dir = "./project/output" 
@@ -567,26 +568,28 @@ async def train_agent(n_battles_to_run):
 
     if LOAD_MODEL and os.path.exists(policy_path) and os.path.exists(target_path):
         try:
-            print(f"Loading existing models from: {save_dir}")
+            #print(f"Loading existing models from: {save_dir}")
             dqn_logic.policy_net.load_state_dict(torch.load(policy_path, map_location=DEVICE))
             dqn_logic.target_net.load_state_dict(torch.load(target_path, map_location=DEVICE))
             dqn_logic.policy_net.eval() # Set policy net to eval mode if loaded (or train mode if continuing training)
             dqn_logic.target_net.eval() # Target net is always in eval mode
-            print("VGC Models loaded successfully.")
+            #print("VGC Models loaded successfully.")
         except Exception as e:
-            print(f"Error loading models: {e}. Starting training from scratch.")
+            pass
+            #print(f"Error loading models: {e}. Starting training from scratch.")
     else:
         if LOAD_MODEL:
-            print("No existing models found or LOAD_MODEL is False. Starting training from scratch.")
+            #print("No existing models found or LOAD_MODEL is False. Starting training from scratch.")
+            pass
         else:
-             print("LOAD_MODEL is False. Starting training from scratch.")
+            #print("LOAD_MODEL is False. Starting training from scratch.")
+            pass
 
     opponent = RandomPlayer(
         account_configuration=OPP_ACC_CONF,
         battle_format=BATTLE_FORMAT,
         server_configuration=SERVER_CONF,
-        team=WOLFEY_TEAM,
-        log_level=15
+        team=WOLFEY_TEAM
     )
 
     log_lists = {
@@ -610,7 +613,7 @@ async def train_agent(n_battles_to_run):
         team=WOLFEY_TEAM
     )
 
-    print(f"--- Starting {n_battles_to_run} Battles ---")
+    #print(f"--- Starting {n_battles_to_run} Battles ---")
     opponent_task = None
     try:
         print("Starting opponent task to accept challenges...")
@@ -619,17 +622,17 @@ async def train_agent(n_battles_to_run):
                 try:
                     await player.accept_challenges(agent_username, n_battles_to_run)
                 except asyncio.CancelledError:
-                    print("Opponent accept loop cancelled.")
+                    #print("Opponent accept loop cancelled.")
                     break # Exit loop if cancelled
                 except Exception as e:
-                    print(f"Error in opponent accept loop: {e}")
+                    #print(f"Error in opponent accept loop: {e}")
                     await asyncio.sleep(5) # Wait before retrying
 
         opponent_task = asyncio.create_task(
              opponent_accept_loop(opponent, agent.username)
         )
         await asyncio.sleep(3)
-        print("\n--- Starting Manual Battle Loop ---")
+        #print("\n--- Starting Manual Battle Loop ---")
         
         agent.reset_battle_event()
 
@@ -638,45 +641,50 @@ async def train_agent(n_battles_to_run):
         try:
             await asyncio.wait_for(agent._battle_finished_event.wait(), timeout=BATTLE_TIMEOUT)
         except asyncio.TimeoutError:
-            print(f"Battle {n_battles_to_run + 1} timed out after {BATTLE_TIMEOUT} seconds.")
+            #print(f"Battle {n_battles_to_run + 1} timed out after {BATTLE_TIMEOUT} seconds.")
+            pass
         except Exception as e:
-            print(f"Error during battle: {e}")
+            #print(f"Error during battle: {e}")
             traceback.print_exc()
         
         await asyncio.sleep(1) # Small delay to avoid overwhelming the serverter
 
     except asyncio.CancelledError:
-        print("Training loop cancelled.")
+        #print("Training loop cancelled.")
+        traceback.print_exc()
     except Exception as e:
-        print(f"Error during battle loop: {e}")
+        #print(f"Error during battle loop: {e}")
         traceback.print_exc()
     finally:
-        print("\n--- Cleaning up tasks ---")
+        #print("\n--- Cleaning up tasks ---")
         if opponent_task and not opponent_task.done():
             opponent_task.cancel()
             try:
                 await opponent_task # Allow cancellation to propagate
             except asyncio.CancelledError:
-                print("Opponent task successfully cancelled.")
+                #print("Opponent task successfully cancelled.")
+                traceback.print_exc()
             except Exception as e:
-                print(f"Error during opponent task cancellation: {e}")
-        print("\n--- Finished Battle Tasks ---")
+                #print(f"Error during opponent task cancellation: {e}")
+                traceback.print_exc()
+        #print("\n--- Finished Battle Tasks ---")
     
-    print(f"--- Finished {n_battles_to_run} Battles ---")
+    #print(f"--- Finished {n_battles_to_run} Battles ---")
     
     total_wins = sum(log_lists['recent_wins'])
     total_battles_completed = agent._battles_completed
     final_win_rate = sum(1 for w in log_lists['win_rates_log'] if w > 0.5) / len(log_lists["win_rates_log"]) if log_lists["win_rates_log"] else 0.0
-    print(f"Total Battles Completed: {total_battles_completed}")
-    print(f"Total Wins: {total_wins}")
-    print(f"Overall Win Rate: {final_win_rate:.2%}")
+    #print(f"Total Battles Completed: {total_battles_completed}")
+    #print(f"Total Wins: {total_wins}")
+    #print(f"Overall Win Rate: {final_win_rate:.2%}")
     
     try:
         torch.save(dqn_logic.policy_net.state_dict(), policy_path)
         torch.save(dqn_logic.target_net.state_dict(), target_path)
-        print(f"Models saved successfully to {save_dir}.")
+        #print(f"Models saved successfully to {save_dir}.")
     except Exception as e:
-        print(f"Error saving models: {e}.")
+        #print(f"Error saving models: {e}.")
+        traceback.print_exc()
     
     plot_training_results(
         log_lists['episode_log_points'],
@@ -690,7 +698,7 @@ async def train_agent(n_battles_to_run):
 
 def plot_training_results(episodes, rewards, losses, win_rates, save_path):
     """Generates and saves plots for training metrics."""
-    print(f"Generating plot with {len(episodes)} data points...")
+    #print(f"Generating plot with {len(episodes)} data points...")
     fig, axs = plt.subplots(3, 1, figsize=(12, 18), sharex=True)
 
     # Plot Average Reward
@@ -717,22 +725,30 @@ def plot_training_results(episodes, rewards, losses, win_rates, save_path):
     plt.tight_layout(rect=(0, 0.03, 1, 0.95)) # Adjust layout to fit title
     try:
         plt.savefig(save_path)
-        print(f"Training plot saved to {save_path}")
+        #print(f"Training plot saved to {save_path}")
     except Exception as e:
-        print(f"Error saving plot: {e}")
+        #print(f"Error saving plot: {e}")
+        traceback.print_exc()
     plt.close(fig) # Close the figure to free memory
 
 if __name__ == "__main__":
-    print("--- Script Execution Started ---")
-    print(f"Attempting to train for {N_BATTLES} VGC battles ({BATTLE_FORMAT})")
-    print(f"Using DOUBLES STATE_SIZE: {STATE_SIZE}") # Use correct variable name
-    print(f"Load existing model: {LOAD_MODEL}")
+    #print("--- Script Execution Started ---")
+    #print(f"Attempting to train for {N_BATTLES} VGC battles ({BATTLE_FORMAT})")
+    #print(f"Using DOUBLES STATE_SIZE: {STATE_SIZE}") # Use correct variable name
+    #print(f"Load existing model: {LOAD_MODEL}")
 
     try:
         # Run the doubles training function
         asyncio.run(train_agent(N_BATTLES))
-    except KeyboardInterrupt: print("\n--- Training Interrupted By User ---")
-    except ConnectionRefusedError: print("\n--- CONNECTION ERROR ---\nCould not connect to the Pokemon Showdown server.\nPlease ensure the server is running at the configured address.")
-    except Exception as e: print(f"\n--- An Unhandled Error Occurred During Execution ---\nError Type: {type(e).__name__}\nError Details: {e}"); traceback.print_exc()
-    finally: print("\n--- Script Execution Finished ---")
+    except KeyboardInterrupt: 
+        #print("\n--- Training Interrupted By User ---")
+        traceback.print_exc()
+    except ConnectionRefusedError: 
+        #print("\n--- CONNECTION ERROR ---\nCould not connect to the Pokemon Showdown server.\nPlease ensure the server is running at the configured address.")
+        traceback.print_exc()
+    except Exception as e: 
+        #print(f"\n--- An Unhandled Error Occurred During Execution ---\nError Type: {type(e).__name__}\nError Details: {e}"); traceback.print_exc()
+        traceback.print_exc()
+    finally: 
+        print("\n--- Script Execution Finished ---")
 
