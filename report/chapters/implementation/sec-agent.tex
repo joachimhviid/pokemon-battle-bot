@@ -1,0 +1,28 @@
+\section{Iteration 1}
+\label{sec:Iteration-1-Agent-Environment}
+
+The first iteration of the implementation focuses on having a minimum viable product \(MVP\). The MVP
+consists of all MUST \(M\) requirements, which can be used to as a baseline for next iterations.
+The MVP is a Trainable agent focused on working with a premade environment and the single battle format.
+
+\subsection{Poke-env Environment}
+Poke-env is a python library that provides an environment for training agents in Pokemon Showdown battles.
+Its mainly focused on reinforcement learning and provides a set of tools to create agents, 
+as well as some premade agents, to train and evaluate against. The library is designed to be easy to 
+use and flexible, allowing users to create custom agents and environments.
+
+To use the Poke-env, to its fullest you need a local installation of Pokemon Showdown, 
+which is a web-based battle simulator for Pokemon. The library provides a set of tools to 
+interact with the local server, allowing us to send unending amounts of battle requests and visualize
+each battle.
+
+The library also provides a few classes to create custom agents. There is the standard Player class,
+which is the base class for all pre-made agents and the custom agents. 
+The player class gives access to all methods needed to ineract with opponents and environment and is
+the class that is used to create the custom agent. 
+
+\subsection{Agent}
+The agent is a custom implementation of the Poke-env player class and is designed to learn through 
+a Deep Q-Network (DQN) algorithm with PyTorch. 
+
+
