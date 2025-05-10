@@ -16,6 +16,54 @@ Observation spaces
 Stepping
 
 \subsection{Pokemon domain}
-Battle field
-Effects
-Turn processing
+The custom environment is modelled from a real Pokemon battle environment from the 9th generation of Pokemon as described in the project requirements.
+This environment was broken down into 4 parts:
+\begin{itemize}
+    \item Pokemon
+    \item Move handling
+    \item Battlefield
+    \item Turn processing
+\end{itemize}
+
+\subsubsection{Pokemon}
+First a Pokemon had to be modelled in order to be used in the environment.
+To get the Pokemon's data a separate module was created. A pokemon-team-builder-cli \cite{TeambuilderCli} tool that
+fetched data from Pokeapi \cite{PokeAPI} and marshalled the responses into a shape that was useable by our domain.
+In order to save the created teams and share them between users of the project, they were saved as JSON objects.
+The teams are then able to be loaded via the project's data module that parses the JSON back into valid Pokemon.
+The Pokemon are modelled as Python dataclasses that maintain all the information related to a specific Pokemon, such as
+its stats, moves and current boosts and status conditions. When the Pokemon is first initialized, its actual stats
+are calculated from the species base stats and the its IVs and EVs \ref{lst:stat-calc}. This allows the teambuilder to be
+completely unaware of the actual implementation of the data it provides and allows us to adjust how stats are handled
+without having to remake the initial data. 
+
+\begin{lstlisting}[language=Python,caption={Function for calculating a Pokemon's stats},float=tb,label=lst:stat-calc,breaklines]
+def _calculate_stat_value(self, stat: PokemonStatKey) -> int:
+    nature_modifier: float = self.get_nature_modifier(stat)
+    stat_value = self._base_stats.get(stat)
+    iv_value = self._ivs.get(stat)
+    ev_value = self._evs.get(stat)
+
+    if stat_value is None:
+        raise RuntimeError(f'Missing base stats for Pokemon {self.name}')
+    if iv_value is None:
+        raise RuntimeError(f'Missing ivs for Pokemon {self.name}')
+    if ev_value is None:
+        raise RuntimeError(f'Missing evs for Pokemon {self.name}')
+
+    if stat == 'hp':
+        return math.floor(((2 * stat_value + iv_value + ev_value // 4) * self.level // 100) + self.level + 10)
+
+    return math.floor((((2 * stat_value + iv_value + ev_value // 4) * self.level // 100) + 5) * nature_modifier)
+\end{lstlisting}
+
+\subsubsection{Battlefield}
+The next step in setting up the environment is creating the battlefield that the Pokemon are using. In order to keep track
+of all the actions that are taken a BattleState class is created. The BattleState keeps track of each turn that has happened 
+in a battle and logs every action taken to be easily reviewed later in case something goes wrong, or the user wants to see
+an example of the AIs behavior. 
+
+\subsubsection{Turn processing}
+
+
+\subsubsection{Move handling}
