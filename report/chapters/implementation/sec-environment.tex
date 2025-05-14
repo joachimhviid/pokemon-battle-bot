@@ -20,9 +20,9 @@ The custom environment is modelled from a real Pokemon battle environment from t
 This environment was broken down into 4 parts:
 \begin{itemize}
     \item Pokemon
-    \item Move handling
     \item Battlefield
     \item Turn processing
+    \item Move handling
 \end{itemize}
 
 \subsubsection{Pokemon}
@@ -37,44 +37,45 @@ are calculated from the species base stats and the its IVs and EVs (see listing 
 completely unaware of the actual implementation of the data it provides and allows us to adjust how stats are handled
 without having to remake the initial data.
 
-\begin{lstlisting}[language=Python,caption={Function for calculating a Pokemon's stats},float=h,label=lst:stat-calc,breaklines]
-def _calculate_stat_value(self, stat: PokemonStatKey) -> int:
-    nature_modifier: float = self.get_nature_modifier(stat)
-    stat_value = self._base_stats.get(stat)
-    iv_value = self._ivs.get(stat)
-    ev_value = self._evs.get(stat)
-
-    if stat_value is None:
-        raise RuntimeError(f'Missing base stats for Pokemon {self.name}')
-    if iv_value is None:
-        raise RuntimeError(f'Missing ivs for Pokemon {self.name}')
-    if ev_value is None:
-        raise RuntimeError(f'Missing evs for Pokemon {self.name}')
-
-    if stat == 'hp':
-        return math.floor(((2 * stat_value + iv_value + ev_value // 4) * self.level // 100) + self.level + 10)
-
-    return math.floor((((2 * stat_value + iv_value + ev_value // 4) * self.level // 100) + 5) * nature_modifier)
-\end{lstlisting}
+\begin{figure}[h]
+    \centering
+    \begin{lstlisting}[basicstyle=\fontsize{10}{10}\selectfont\ttfamily,language=Python,caption={Function for calculating a Pokemon's stats.},label=lst:stat-calc,breaklines]
+    def _calculate_stat_value(self, stat: PokemonStatKey) -> int:
+        nature_modifier: float = self.get_nature_modifier(stat)
+        stat_value = self._base_stats.get(stat)
+        iv_value = self._ivs.get(stat)
+        ev_value = self._evs.get(stat)
+    
+        [...]
+    
+        if stat == 'hp':
+            return math.floor(((2 * stat_value + iv_value + ev_value // 4) * self.level // 100) + self.level + 10)
+            
+        return math.floor((((2 * stat_value + iv_value + ev_value // 4) * self.level // 100) + 5) * nature_modifier)
+    \end{lstlisting}
+\end{figure}
 
 \subsubsection{Battlefield}
 The next step in setting up the environment is creating the battlefield that the Pokemon are using. In order to keep track
 of all the actions that are taken a \lstinline|BattleState| class is created. The \lstinline|BattleState| keeps track of
 each turn that has happened in a battle and logs every action taken to be easily reviewed later in case something goes wrong,
 or the user wants to see an example of the AIs behavior (see listing \ref{lst:sample-log}).
-\begin{lstlisting}[caption={Sample log from an episode},float=h,label=lst:sample-log,breaklines]
-    Turn 1:
-    - toxapex used protect on toxapex
-    - shiftry used grassy-glide on toxapex
-    - toxapex protected itself
-    Turn 2:
-    - shiftry used sucker-punch on toxapex
-    - it's not very effective
-    - toxapex took 39 damage
-    - toxapex used poison-jab on shiftry
-    - it's super effective
-    - shiftry took 126 damage
-\end{lstlisting}
+\begin{figure}[H]
+    \centering
+    \begin{lstlisting}[caption={Sample log from an episode.},label=lst:sample-log,breaklines]
+        Turn 1:
+        - toxapex used protect on toxapex
+        - shiftry used grassy-glide on toxapex
+        - toxapex protected itself
+        Turn 2:
+        - shiftry used sucker-punch on toxapex
+        - it's not very effective
+        - toxapex took 39 damage
+        - toxapex used poison-jab on shiftry
+        - it's super effective
+        - shiftry took 126 damage
+    \end{lstlisting}
+\end{figure}
 
 The \lstinline|BattleState| keeps track of each players team as well as their active Pokemon. Only the active Pokemon are able to
 perform actions on a given turn. The active Pokemon are stored in a \lstinline|List| which is then used to help determine
@@ -88,14 +89,16 @@ their effects and ensures that they fade away when they are meant to.
 A Pokemon battle is composed of actions taken every turn. There are many effects that take place at various stages of a turn.
 For instance, most status conditions have their turn counter decremented at the beginning of a turn and have their effects trigger at
 the end of a turn. The \lstinline|step()| function defines the turn order of operations as start of turn, actions and end
-of turn (See figure \ref{fig:turn-order-of-operations}). 
-\begin{figure}[h]
+of turn (See figure \ref{fig:turn-order-of-operations}).
+
+\begin{figure}[H]
     \centering
-    \includegraphics[width=.9\textwidth]{assets/turn-order-of-operations.png}
-    \caption{Turn order of operations}
+    \includegraphics[width=.75\textwidth]{assets/turn-order-of-operations.png}
+    \caption{Turn order of operations.}
     \label{fig:turn-order-of-operations}
 \end{figure}
-Entities with start of turn or end of turn effects expose a \lstinline|on_turn_start|/\lstinline|on_turn_end| function 
+
+Entities with start of turn or end of turn effects expose a \lstinline|on_turn_start| or \lstinline|on_turn_end| function
 that can be called inside the step function (see listing \ref{lst:turn-end-func}). This is based on
 the Facade design pattern and makes sure the environment doesn't need to know the full details of how each entity needs
 to be handled. This approach is also partially inspired by an observer pattern as the relevant entities are "subscribed"
@@ -107,15 +110,15 @@ def on_turn_end(self, sorted_active_pokemon: list[Pokemon]):
     self.state.battle_effects_manager.on_turn_end(sorted_active_pokemon)
 \end{lstlisting}
 
-
-
 \subsubsection{Move handling}
-There are many categories of moves in Pokemon that have to be handled in different ways. In the teambuilder \cite{TeambuilderCli}, 
-move data is gathered together with the Pokemon. We use the data to determine which category a move belongs to and thus how 
-to handle it. Move handling is defined in the \lstinline|BattleActions| class. If the agent chooses a move as its action 
-the \lstinline|BattleActions.executeMove| method is called (see listing \ref{lst:exec-move-func}).
+There are many categories of moves in Pokemon that have to be handled in different ways. In the teambuilder \cite{TeambuilderCli},
+move data is gathered together with the Pokemon. We use the data to determine which category a move belongs to and thus how
+to handle it. Move handling is defined in the \lstinline|BattleActions| class. If the agent chooses a move as its action
+the \lstinline|BattleActions.executeMove| method is called (see listing \ref{lst:exec-move-func}). This method checks the 
+move's category and matches it to the appropriate handler to calculate how much damage is dealt, how much health is restored 
+and whether or not a secondary effect occurs.
 
-\begin{lstlisting}[language=Python,caption={Excerpt of the execute move function.},float=h,label=lst:exec-move-func,breaklines]
+\begin{lstlisting}[basicstyle=\fontsize{10}{10}\selectfont\ttfamily,language=Python,caption={Excerpt of the execute move function.},float=h,label=lst:exec-move-func,breaklines]
 def execute_move(self, move: PokemonMove, attacker: Pokemon, target: Pokemon):
     if not self._can_execute_move(attacker, move, target):
         return
@@ -144,3 +147,10 @@ def execute_move(self, move: PokemonMove, attacker: Pokemon, target: Pokemon):
 
     self._apply_move_effects(move, attacker, target, inflicted_damage, restored_health)
 \end{lstlisting}
+
+Damage is calculated using a close approximation of the official Pokemon damage formula, however due to not implementing 
+the full set of Pokemon mechanics it is not entirely faithful and will deviate from reality by a small amount. When comparing
+to a fully featured damage calculator the implementation is usually off by 1 or 2 damage points. This may also be caused 
+by the alternative rounding rules utilized by the Pokemon games, as the official games round down at 0.5 and it is not well-documented
+where exactly rounding occurs in the formula. However, as this deviation is the same for both agents it was deemed to be 
+good enough in terms of creating a faithful simulator.
