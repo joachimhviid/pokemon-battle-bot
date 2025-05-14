@@ -33,11 +33,11 @@ In order to save the created teams and share them between users of the project, 
 The teams are then able to be loaded via the project's data module that parses the JSON back into valid Pokemon.
 The Pokemon are modelled as Python dataclasses that maintain all the information related to a specific Pokemon, such as
 its stats, moves and current boosts and status conditions. When the Pokemon is first initialized, its actual stats
-are calculated from the species base stats and the its IVs and EVs \ref{lst:stat-calc}. This allows the teambuilder to be
+are calculated from the species base stats and the its IVs and EVs (see listing \ref{lst:stat-calc}). This allows the teambuilder to be
 completely unaware of the actual implementation of the data it provides and allows us to adjust how stats are handled
-without having to remake the initial data. 
+without having to remake the initial data.
 
-\begin{lstlisting}[language=Python,caption={Function for calculating a Pokemon's stats},float=tb,label=lst:stat-calc,breaklines]
+\begin{lstlisting}[language=Python,caption={Function for calculating a Pokemon's stats},float=h,label=lst:stat-calc,breaklines]
 def _calculate_stat_value(self, stat: PokemonStatKey) -> int:
     nature_modifier: float = self.get_nature_modifier(stat)
     stat_value = self._base_stats.get(stat)
@@ -59,11 +59,88 @@ def _calculate_stat_value(self, stat: PokemonStatKey) -> int:
 
 \subsubsection{Battlefield}
 The next step in setting up the environment is creating the battlefield that the Pokemon are using. In order to keep track
-of all the actions that are taken a BattleState class is created. The BattleState keeps track of each turn that has happened 
-in a battle and logs every action taken to be easily reviewed later in case something goes wrong, or the user wants to see
-an example of the AIs behavior. 
+of all the actions that are taken a \lstinline|BattleState| class is created. The \lstinline|BattleState| keeps track of
+each turn that has happened in a battle and logs every action taken to be easily reviewed later in case something goes wrong,
+or the user wants to see an example of the AIs behavior (see listing \ref{lst:sample-log}).
+\begin{lstlisting}[caption={Sample log from an episode},float=h,label=lst:sample-log,breaklines]
+    Turn 1:
+    - toxapex used protect on toxapex
+    - shiftry used grassy-glide on toxapex
+    - toxapex protected itself
+    Turn 2:
+    - shiftry used sucker-punch on toxapex
+    - it's not very effective
+    - toxapex took 39 damage
+    - toxapex used poison-jab on shiftry
+    - it's super effective
+    - shiftry took 126 damage
+\end{lstlisting}
+
+The \lstinline|BattleState| keeps track of each players team as well as their active Pokemon. Only the active Pokemon are able to
+perform actions on a given turn. The active Pokemon are stored in a \lstinline|List| which is then used to help determine
+the correct turn order.
+
+Finally, the \lstinline|BattleState| holds the \lstinline|BattleEffectsManager|. This class maintains all the field wide
+effects in a battle such as weather, terrain and barriers. It handles adding the various effects to the battle, processes
+their effects and ensures that they fade away when they are meant to.
 
 \subsubsection{Turn processing}
+A Pokemon battle is composed of actions taken every turn. There are many effects that take place at various stages of a turn.
+For instance, most status conditions have their turn counter decremented at the beginning of a turn and have their effects trigger at
+the end of a turn. The \lstinline|step()| function defines the turn order of operations as start of turn, actions and end
+of turn (See figure \ref{fig:turn-order-of-operations}). 
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=.9\textwidth]{assets/turn-order-of-operations.png}
+    \caption{Turn order of operations}
+    \label{fig:turn-order-of-operations}
+\end{figure}
+Entities with start of turn or end of turn effects expose a \lstinline|on_turn_start|/\lstinline|on_turn_end| function 
+that can be called inside the step function (see listing \ref{lst:turn-end-func}). This is based on
+the Facade design pattern and makes sure the environment doesn't need to know the full details of how each entity needs
+to be handled. This approach is also partially inspired by an observer pattern as the relevant entities are "subscribed"
+to the start/end of turn events in the environment.
+\begin{lstlisting}[language=Python,caption={Example of the environment handling the end of a turn without knowing each entity's full implementation.},float=h,label=lst:turn-end-func,breaklines]
+def on_turn_end(self, sorted_active_pokemon: list[Pokemon]):
+    for pkm in sorted_active_pokemon:
+        pkm.on_turn_end()
+    self.state.battle_effects_manager.on_turn_end(sorted_active_pokemon)
+\end{lstlisting}
+
 
 
 \subsubsection{Move handling}
+There are many categories of moves in Pokemon that have to be handled in different ways. In the teambuilder \cite{TeambuilderCli}, 
+move data is gathered together with the Pokemon. We use the data to determine which category a move belongs to and thus how 
+to handle it. Move handling is defined in the \lstinline|BattleActions| class. If the agent chooses a move as its action 
+the \lstinline|BattleActions.executeMove| method is called (see listing \ref{lst:exec-move-func}).
+
+\begin{lstlisting}[language=Python,caption={Excerpt of the execute move function.},float=h,label=lst:exec-move-func,breaklines]
+def execute_move(self, move: PokemonMove, attacker: Pokemon, target: Pokemon):
+    if not self._can_execute_move(attacker, move, target):
+        return
+
+    inflicted_damage = 0
+    restored_health = 0
+
+    match move.category:
+        case 'ailment':
+            self._handle_ailment_move(move, target)
+        case 'damage':
+            inflicted_damage = self._handle_damage_move(move, attacker, target)
+        case 'damage+ailment':
+            inflicted_damage = self._handle_damage_with_ailment_move(move, attacker, target)
+        [...]
+        case 'damage+lower' | 'damage+raise':
+            inflicted_damage = self._handle_damage_with_stat_change(move, attacker, target)
+        case 'damage+heal':
+            inflicted_damage = self._handle_damage_with_healing(move, attacker, target)
+            restored_health = math.floor(inflicted_damage * (move.drain / 100))
+        [...]
+        case 'field-effect':
+            self._handle_field_effect(move, target)
+        case 'unique':
+            self._handle_unique_move(move, target)
+
+    self._apply_move_effects(move, attacker, target, inflicted_damage, restored_health)
+\end{lstlisting}
