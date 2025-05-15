@@ -11,7 +11,7 @@ Separation of concerns
 \subsection{Team parser}
 
 \subsection{Gymnasium environment}
-The custom environment was implemented using a custom Gymnasium \cite{Gymnasium} environment \cite{GymnasiumCustomEnv}. 
+The custom environment was implemented using a custom Gymnasium \cite{Gymnasium} environment \cite{GymnasiumCustomEnv}.
 The \lstinline|BattleEnv| class extends the Gymnasium \lstinline|Env| class and implements the abstract methods within.
 There are 4 requirements for using the \lstinline|Env| class. The custom environment needs to define its own:
 
@@ -23,11 +23,11 @@ There are 4 requirements for using the \lstinline|Env| class. The custom environ
 \end{itemize}
 
 \subsubsection{Action space}
-The action space is a normalized representation of the actions an agent can perform. In the domain of Pokemon this presented 
+The action space is a normalized representation of the actions an agent can perform. In the domain of Pokemon this presented
 an interesting challenge as the amount of actions change depending on the configuration of a Pokemon and team. When using
 reinforcement learning it is important for the action space to be static in order to be compatible with PyTorch's DQN model.
 For this reason the action space is then defined as a discrete space at the maximum size possible within the bounds of the domain.
-This accounts for maximum 6 different switches per team, maximum 4 moves per Pokemon and maximum 2 targets per move, thus 
+This accounts for maximum 6 different switches per team, maximum 4 moves per Pokemon and maximum 2 targets per move, thus
 resulting in an action space of size 14 (see listing \ref{lst:action-space-def}).
 
 \begin{lstlisting}[basicstyle=\fontsize{10}{10}\selectfont\ttfamily,language=Python,caption={The defined action space.},label=lst:action-space-def,breaklines]
@@ -37,10 +37,10 @@ MAX_MOVE_TARGETS = 2
 self.action_space = gym.spaces.Discrete(MAX_PLAYER_MOVES * MAX_MOVE_TARGETS + MAX_PLAYER_SWITCH_OPTIONS)
 \end{lstlisting}
 
-At this stage the action space would allow potentially illegal actions to be taken by the agent. To counteract this it was 
+At this stage the action space would allow potentially illegal actions to be taken by the agent. To counteract this it was
 necessary to implement an action mask (see listing \ref{lst:action-mask}). The mask is an array of equal size to the action space
 consisting of booleans. The state is then iterated through to determine what actions are currently legal. If an action is legal
-the corresponding mask index will be set to \lstinline|True|. When the agent goes to select an action it will first request 
+the corresponding mask index will be set to \lstinline|True|. When the agent goes to select an action it will first request
 a mask and then limit its options accordingly.
 
 \begin{lstlisting}[basicstyle=\fontsize{10}{10}\selectfont\ttfamily,language=Python,caption={The action mask that makes sure only valid actions are being evaluated.},label=lst:action-mask,breaklines]
@@ -70,11 +70,56 @@ def get_action_mask(self, side: Side) -> np.ndarray:
     return mask
 \end{lstlisting}
 
-To actually execute an action selected by the agent a map was created. The map is defined as a \lstinline|Dict| with the keys
+To execute an action selected by the agent a map was created to match an action index to a function. The map is defined as a \lstinline|Dict| with the keys
 0-13 matching the indices of the action space. Each key then corresponds to a function from the \lstinline|BattleActions|
-class defined in the Pokemon domain (see section \ref{subsec:pokemon-domain}). 
+class defined in the Pokemon domain (see section \ref{subsec:pokemon-domain}).
 
 \subsubsection{Observation space}
+The observation space is a representation of what the agent can "see". These are the parameters that an agent is able to make
+decisions from. In order to be used in a neural network the observation space needs to be normalized. This means encoding the
+abstract domain space presented by Pokemon into easily processed structures like numbers, lists and binary arrays (see listing \ref{lst:observation-space-def}).
+
+\begin{lstlisting}[basicstyle=\fontsize{10}{10}\selectfont\ttfamily,language=Python,caption={The shape of the observation space.},label=lst:observation-space-def,breaklines]
+self.observation_space = gym.spaces.Dict({
+    'player_active_pokemon': gym.spaces.Box(0, 1, shape=(11,), dtype=np.float32),
+    'player_team': gym.spaces.Box(0, 1, shape=(6, 11), dtype=np.float32),
+    'player_fields': gym.spaces.MultiBinary(5),
+    'player_hazards': gym.spaces.MultiBinary(4),
+    'player_barriers': gym.spaces.MultiBinary(3),
+
+    'opponent_active_pokemon': gym.spaces.Box(0, 1, shape=(11,), dtype=np.float32),
+    'opponent_team': gym.spaces.Box(0, 1, shape=(6, 11), dtype=np.float32),
+    'opponent_fields': gym.spaces.MultiBinary(5),
+    'opponent_hazards': gym.spaces.MultiBinary(4),
+    'opponent_barriers': gym.spaces.MultiBinary(3),
+
+    'weather': gym.spaces.Discrete(5),
+    'terrain': gym.spaces.Discrete(5),
+})
+\end{lstlisting}
+
+A \lstinline|Box| is an n-dimensional array, e.g. the active\_pokemon box is a 1-dimensional array with 11 float32 values.
+The subsequent team box is then a 2-dimensional array consisting of 6 slots of 11 values with the 11 values being the encoded
+version of a Pokemon.
+
+A \lstinline|MultiBinary| is a binary array that can represent multiple compositions of a state. For instance, the barriers are
+represented as a binary array with 3 values (see table \ref{tab:multibinary-barrier-example}). Each index represents whether a specific barrier is active or not.
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|c|c|c|c|}
+        \hline
+        Shape/Barrier & Reflect & Light Screen & Safeguard \\\hline
+        000           &         &              &           \\\hline
+        001           &         &              & X         \\\hline
+        010           &         & X            &           \\\hline
+        100           & X       &              &           \\\hline
+        111           & X       & X            & X         \\\hline
+    \end{tabular}
+    \label{tab:multibinary-barrier-example}
+    \caption{An example of how MultiBinary represents the state of barriers on the battlefield. The X's mark whether a
+        barrier is active on the binary shape shown in the left column.}
+\end{table}
 
 \subsubsection{Step and Reset}
 
@@ -178,8 +223,8 @@ def on_turn_end(self, sorted_active_pokemon: list[Pokemon]):
 There are many categories of moves in Pokemon that have to be handled in different ways. In the teambuilder \cite{TeambuilderCli},
 move data is gathered together with the Pokemon. We use the data to determine which category a move belongs to and thus how
 to handle it. Move handling is defined in the \lstinline|BattleActions| class. If the agent chooses a move as its action
-the \lstinline|BattleActions.executeMove| method is called (see listing \ref{lst:exec-move-func}). This method checks the 
-move's category and matches it to the appropriate handler to calculate how much damage is dealt, how much health is restored 
+the \lstinline|BattleActions.executeMove| method is called (see listing \ref{lst:exec-move-func}). This method checks the
+move's category and matches it to the appropriate handler to calculate how much damage is dealt, how much health is restored
 and whether or not a secondary effect occurs.
 
 \begin{lstlisting}[basicstyle=\fontsize{10}{10}\selectfont\ttfamily,language=Python,caption={Excerpt of the execute move function.},float=h,label=lst:exec-move-func,breaklines]
@@ -212,9 +257,9 @@ def execute_move(self, move: PokemonMove, attacker: Pokemon, target: Pokemon):
     self._apply_move_effects(move, attacker, target, inflicted_damage, restored_health)
 \end{lstlisting}
 
-Damage is calculated using a close approximation of the official Pokemon damage formula, however due to not implementing 
+Damage is calculated using a close approximation of the official Pokemon damage formula, however due to not implementing
 the full set of Pokemon mechanics it is not entirely faithful and will deviate from reality by a small amount. When comparing
-to a fully featured damage calculator the implementation is usually off by 1 or 2 damage points. This may also be caused 
+to a fully featured damage calculator the implementation is usually off by 1 or 2 damage points. This may also be caused
 by the alternative rounding rules utilized by the Pokemon games, as the official games round down at 0.5 and it is not well-documented
-where exactly rounding occurs in the formula. However, as this deviation is the same for both agents it was deemed to be 
+where exactly rounding occurs in the formula. However, as this deviation is the same for both agents it was deemed to be
 good enough in terms of creating a faithful simulator.
