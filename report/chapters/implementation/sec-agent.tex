@@ -2,24 +2,17 @@
 \label{sec:Iteration-1-Agent-Environment}
 
 The first iteration of the implementation focuses on having a minimum viable product \(MVP\). The MVP
-consists of all MUST \(M\) requirements, which can be used to as a baseline for next iterations.
-The MVP is a Trainable agent focused on working with a premade environment and the single battle format.
+consists of all MUST (M) requirements, which can be used as a baseline for next iterations.
+Look chapter \ref{sec:functional-requirements} for a complete list of the MUST have requiremetns.
+The MVP consists of a custom agent, with a custom training loop, that plays against a poke-env random agent,
+in a generation 9, single battle pokemon showdown environment, where held items are available. 
 
-\subsection{Poke-env Environment}
-Poke-env is a python library that provides an environment for training agents in Pokemon Showdown battles.
-Its mainly focused on reinforcement learning and provides a set of tools to create agents, 
-as well as some premade agents, to train and evaluate against. The library is designed to be easy to 
-use and flexible, allowing users to create custom agents and environments.
+\subsection{Poke-env Library}
+The backboen of the first iteration of implementation is the Poke-env library. 
+Poke-env provides packages to define environments and custom reinforcement learning agents. 
+The library is designed to connect to a local or remote version of Pokemon showdown environment, 
+where poke-env defines the parameters of the environment, such as the generation and battle format.
 
-To use the Poke-env, to its fullest you need a local installation of Pokemon Showdown, 
-which is a web-based battle simulator for Pokemon. The library provides a set of tools to 
-interact with the local server, allowing us to send unending amounts of battle requests and visualize
-each battle.
-
-The library also provides a few classes to create custom agents. There is the standard Player class,
-which is the base class for all pre-made agents and the custom agents. 
-The player class gives access to all methods needed to ineract with opponents and environment and is
-the class that is used to create the custom agent. 
 
 \subsection{Agent}
 The agent is a custom implementation of the Poke-env player class and is designed to learn through 
