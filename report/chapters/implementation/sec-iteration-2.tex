@@ -1,0 +1,50 @@
+\section{Iteration 2}
+\label{sec:Iteration-2-Agent-Environment}
+The second iteration of implementation focused on restructuring the agent for improved 
+modularity, better representation of game states and scaleability. This version of the agent still
+uses the Poke-env library, but the agent is now training in a double battle environment. The
+agent is now capable of handling multiple Pokemon and can make decisions based on the state of 
+both opponent pokemon and allied pokemon. The agent also uses PyTorches own replay buffer for
+training, which is a significant improvement over the previous custom version.
+
+\subsection{Agent}
+Our agent is now capable of accepting pre-made teams so long a team alligns with the required battle
+format. The agents hyperparameters are now also much more modular, allowing for easy tuning and
+we have moved the training loop inside the agent class, so that the asynchronous methods only
+sends and accept challenges from the agent in the environment. The state size is now also 
+calculated based on the number of pokemon in the team, and the number of pokemon in the opponents 
+and their type. This means we have a lot more options for the agent to choose from, and learn 
+the pokemons types. This also means that the Q-function approximator is now a lot more complex,
+because the agent is now capable of learning from a much larger state space. 
+
+
+\subsection{Reward Function}
+This new reward function is an improvement over the previous one, as it now takes into accounts
+the HP of the all pokemon on the field, and the amount left after the battle. The reward function
+is an important part of the training process, as it not only gives us visual data to measure, but
+also allows the agent to learn and adapt to the environment. This will give us a better understanding
+of how well the agent is learning and its performance. In the previous iteration, the reward
+function only gave a reward based on winning and losing, and taking an average of og the number of
+times won and lost gave us a flat curve, because there was no real variation in the data.
+The new reward function could also be further improved, by adding a reward for a number of turns
+or increasing the reward for a winning streak. This would allow the agent to make a repoducable output
+quicker, and would also allow us to measure the agents performance over time.
+The reward function is as follows:
+
+
+\subsection{Replay Buffer} % Explain 
+There are two parts to the replay buffer, the first is storing observed experience tuples in a replay 
+memory, and the second is to push small batches of experience tuples randomly, to help train the agent. 
+The replay buffer is a key part of the training process, as it allows the agent to learn from its own 
+experience, and allows us to update our target Q-network dynamically during training. The experience
+tuples stored are as follows: 
+\begin{itemize}
+    \item \textbf{State}
+    \item \textbf{Action}
+    \item \textbf{Reward}
+    \item \textbf{Next State}
+    \item \textbf{Done}
+\end{itemize}
+
+
+
