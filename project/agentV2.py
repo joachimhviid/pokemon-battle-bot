@@ -25,7 +25,7 @@ from poke_env.player.battle_order import BattleOrder, DefaultBattleOrder
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {DEVICE}")
 
-N_BATTLES = 10    # Total number of battles to train for (Reduced for faster testing)
+N_BATTLES = 1000    # Total number of battles to train for (Reduced for faster testing)
 BATCH_SIZE = 128       # Number of experiences to sample from buffer for learning
 GAMMA = 0.99           # Discount factor for future rewards
 EPSILON_START = 0.9    # Starting exploration rate (Changed name for consistency)
@@ -359,6 +359,29 @@ class MyAgent(Player):
                     features.extend(my_status)
                 else:
                     features.extend(default_pkmn_features)
+                opp_pkmn = opp_pkmn[i] if i < len(opp_pkmn) else None
+                if opp_pkmn:
+                    hp = opp_pkmn.current_hp_fraction
+                    types = np.zeros(NUM_TYPES * 2)
+                    if opp_pkmn.type_1:
+                        idx = self.type_map.get(opp_pkmn.type_1.name.lower())
+                        if idx is not None:
+                            types[idx] = 1.0
+                    if opp_pkmn.type_2:
+                        idx = self.type_map.get(opp_pkmn.type_2.name.lower())
+                        if idx is not None:
+                            types[idx + NUM_TYPES] = 1.0
+                    my_status = np.zeros(len(self.status_map))
+                    if opp_pkmn.status:
+                        status_idx = self.status_map.get(opp_pkmn.status.name, 0)
+                        if status_idx is not None:
+                            my_status[status_idx] = 1.0
+                    features.extend([hp])
+                    features.extend(types)
+                    features.extend(my_status)
+                else:
+                    features.extend(default_pkmn_features)
+
             
         my_tera_avail = 1.0 if battle.can_tera else 0.0
         opp_tera_avail = 1.0 if battle._opponent_can_terrastallize else 0.0

@@ -1,25 +1,31 @@
 \chapter{Implementation}
 \label{chap:implementation}
 
-
+The development of the project was carried out in several iterations, while each 
+improving upon the last in terms of functionality and modularity.
+The first two iterations were carried out using the Poke-env library, and a 
+custom agent. The last iteration focused on the implementation of a custom 
+environment and changeing the agent to use the custom environment.
 
 
 We can refer to Chapter~\ref{chap:analysis-and-design} for something.
 
-\input{chapters/implementation/sec-agent.tex}
+\input{chapters/implementation/sec-iteration-1.tex}
+\input{chapters/implementation/sec-iteration-2.tex}
 
-We refer to Listing~\ref{lst:sum} for the Java implementation.\\ % force new line
-Code snippets like \lstinline{System.out.println} can also be given inside a sentence.
 
-\begin{lstlisting}[language=java,caption={Our sum implementation},float=tb,label=lst:sum]
-  class Sum {
-    public static void main(String[] args) {
-      int n = 5;   // the input
-      int sum = n * (n+1);
-      System.out.println("The sum is: " + sum);
-    }
-  }
-\end{lstlisting}
+% We refer to Listing~\ref{lst:sum} for the Java implementation.\\ % force new line
+% Code snippets like \lstinline{System.out.println} can also be given inside a sentence.
 
-Finally we can refer to some material in Appendix~\ref{appendix:api-doc}. 
+% \begin{lstlisting}[language=java,caption={Our sum implementation},float=tb,label=lst:sum]
+%   class Sum {
+%     public static void main(String[] args) {
+%       int n = 5;   // the input
+%       int sum = n * (n+1);
+%       System.out.println("The sum is: " + sum);
+%     }
+%   }
+% \end{lstlisting}
+
+% Finally we can refer to some material in Appendix~\ref{appendix:api-doc}. 
 
