@@ -121,6 +121,34 @@ represented as a binary array with 3 values (see table \ref{tab:multibinary-barr
         barrier is active on the binary shape shown in the left column.}
 \end{table}
 
+For each observation key in the space, an appropriate \lstinline|encode| method was created. The purpose of the encode method
+is to convert a rich element, like a class, to the correct data type expected by the observation space. For instance, the
+\lstinline|Pokemon.encode| method (see listing \ref{lst:pokemon-encode}) takes the key aspects of the Pokemon class and normalizes it to an array of 11 floats,
+as was described by the \lstinline|Box| in the observation space. In order to normalize the data further, it is limited to
+values between 0.0 and 1.0. Values like the Pokemon's stats are normalized based on the current maximum base stat available to 
+a Pokemon, which is 255. In the future this number could be higher, but for the current implementation, it works.  
+
+\begin{lstlisting}[basicstyle=\fontsize{10}{10}\selectfont\ttfamily,language=Python,caption={The Pokemon encode method.},label=lst:pokemon-encode,breaklines]
+def encode(self) -> np.ndarray[Any, np.dtype[np.float32]]:
+    hp = self.current_hp / self.stats['hp'] if self.stats['hp'] > 0 else 0.0
+    non_vol_status = self.non_volatile_status_condition.encode() if self.non_volatile_status_condition else 0.0
+    vol_status = [status.encode() for status in self.volatile_status_conditions] if len(self.volatile_status_conditions) > 0 else [0.0]
+    type_1 = encode_type(self.types[0]) / 18
+    type_2 = encode_type(self.types[1]) / 18 if len(self.types) == 2 else 0.0
+
+    atk = self.stats['attack'] / 255.0
+    def_ = self.stats['defense'] / 255.0
+    sp_atk = self.stats['special-attack'] / 255.0
+    sp_def = self.stats['special-defense'] / 255.0
+    spd = self.stats['speed'] / 255.0
+    level = self.level / 100.0
+
+    return np.clip(np.concatenate([[hp, non_vol_status], vol_status, [type_1, type_2, atk, def_, sp_atk, sp_def, spd, level]]).astype(np.float32), 0.0, 1.0)
+\end{lstlisting}
+
+Finally, a \lstinline|get_observation| method was made that could be called from the \lstinline|BattleState| to encode 
+all the necessary values and validate that they match the expected observation space.
+
 \subsubsection{Step and Reset}
 
 \subsection{Pokemon domain}
