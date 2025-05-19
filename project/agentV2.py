@@ -25,7 +25,7 @@ from poke_env.player.battle_order import BattleOrder, DefaultBattleOrder
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {DEVICE}")
 
-N_BATTLES = 1000   # Total number of battles to train for (Reduced for faster testing)
+N_BATTLES = 30000   # Total number of battles to train for (Reduced for faster testing)
 BATCH_SIZE = 128       # Number of experiences to sample from buffer for learning
 GAMMA = 0.99           # Discount factor for future rewards
 EPSILON_START = 0.9    # Starting exploration rate (Changed name for consistency)
