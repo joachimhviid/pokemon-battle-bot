@@ -1,14 +1,5 @@
-\section{Environment}
+\section{Iteration 3: Custom environment}
 \label{sec:environment}
-
-\subsection{Structure}
-OOP
-Modules
-Separation of concerns
-
-\subsection{Team builder}
-
-\subsection{Team parser}
 
 \subsection{Gymnasium environment}
 The custom environment was implemented using a custom Gymnasium \cite{Gymnasium} environment \cite{GymnasiumCustomEnv}.
@@ -18,8 +9,7 @@ There are 4 requirements for using the \lstinline|Env| class. The custom environ
 \begin{itemize}
     \item Action space
     \item Observation space
-    \item Step function
-    \item Reset function
+    \item Step and Reset function
 \end{itemize}
 
 \subsubsection{Action space}
@@ -150,6 +140,12 @@ Finally, a \lstinline|get_observation| method was made that could be called from
 all the necessary values and validate that they match the expected observation space.
 
 \subsubsection{Step and Reset}
+Step and reset constitute the most important aspects of the environment. The reset function resets the state of the environment back to its initial values.
+This function is called at the start of each episode and can optionally be called with a specific seed to play out a certain episode iteration again.
+
+The step function is the main driver of the environment. It takes an action index from the agent and applies it to the environment. In the Pokemon domain, a step corresponds
+to a turn of battle. This is also where rewards are determined, which is then used to teach the agent to play better. It also checks whether the battle is over and then
+terminates the episode if it is. 
 
 \subsection{Pokemon domain}
 \label{subsec:pokemon-domain}
