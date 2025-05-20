@@ -1,5 +1,10 @@
 \section{Iteration 3: Custom environment}
-\label{sec:environment}
+\label{sec:iteration-3-custom-environment}
+Iteration 3 of the project focused on getting the custom environment implemented in order to not rely on a 3rd party 
+environment. Poke-env is a good environment to get started with, but it comes with a lot of overhead that is not part of 
+the requirements for this project. Poke-env also struggled with longer training sessions and frequently crashed beyond a 
+certain threshold of episodes. By using a custom environment, the hope was to create a more stable environment that worked
+better in long training sessions and processed episodes faster.
 
 \subsection{Gymnasium environment}
 The custom environment was implemented using a custom Gymnasium \cite{Gymnasium} environment \cite{GymnasiumCustomEnv}.
