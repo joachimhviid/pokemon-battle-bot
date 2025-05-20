@@ -1,0 +1,27 @@
+\section{Discussion}
+\label{sec:discussion}
+
+To round out this chapter, we will discuss the outcomes of this project. We will look back at what has been done
+and reflect on how it compares with the initial problem statement. Then we will reflect on what we would do if we had more time.
+
+\subsection{Did we solve the initial problem?}
+Looking back to the problem described in section \ref{sec:problem-description}, it is stated that: 
+\begin{quote}
+  \itshape{We want to find out if it's possible to improve as a human player by analysing how a trained agent plays.}
+\end{quote}
+We created a custom environment and agent that was succesfully trained across thousands of episodes. After each training 
+loop the agent became better and better. At the agents current level, it is unlikely to consistently beat a human opponent,
+but given enough time and training, this agent will eventually become a stronger player, that we as humans can learn from.
+Therefore, that part of the problem is considered solved.
+
+An additional problem was described as:
+\begin{quote}
+  \itshape{We want to find out if it is possible to calculate the odds of winning a battle ahead of time given a predefined set of Pokemon.}
+\end{quote}
+This part was not fully implemented, but all of the necessary groundwork was created. The remaining work involved in solving
+this part of the problem would be creating a command line interface where two files with team data could be specified. 
+Then, the pretrained AI model would be used to run 1.000-10.000 episodes depending on the desired accuracy. The amount of wins
+and losses experienced during the episodes would then be returned to the user, that can then use this info to determine 
+the odds of winning a given matchup. Additionally, a sample log could then be used to recreate the winning episodes.
+
+\subsection{What would we do in the future?}
