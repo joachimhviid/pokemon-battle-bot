@@ -45,7 +45,7 @@ EVs are values gained through battles. A Pokemon can have a total number of 510 
 A Pokemons nature \cite{Natures} is determined when it is generated. A nature gives a Pokemon a ±10\% modifier to select stats.
 If a nature both raises and lowers a stat it is called a "Neutral nature" and no changes will occur to the final stat.
 Please refer to figure \ref{tab:nature-table} for the full list of natures and their effects.
-\begin{figure}[h]
+\begin{figure}[H]
   \centering
   \includegraphics[width=.8\textwidth]{assets/nature-stat-table.jpg}
   \caption{Table of Natures and how they affect stats from Bulbapedia \cite{Natures}}
@@ -54,9 +54,10 @@ Please refer to figure \ref{tab:nature-table} for the full list of natures and t
 
 \subsubsection{Stat boosts}
 Stat boosts are temporary modifiers applied to a Pokemons stat in combat. A stat is raised and lowered in stages ranging from -6 to +6 \cite{StatBoosts}.
-Certain moves or abilities can raise or lower a Pokemons stat in stages. By default all stats begin at stage 0, meaning no change.
+Certain moves or abilities can raise or lower a Pokemons stat in stages. By default all stats begin at stage 0, meaning no change. 
+See figure \ref{tab:stat-stage-modifiers} to see how each stage affects a stat.
 
-\begin{figure}[h]
+\begin{figure}[H]
   \centering
   \scalebox{.8}{
     \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
@@ -73,10 +74,10 @@ Certain moves or abilities can raise or lower a Pokemons stat in stages. By defa
 \end{figure}
 
 \subsubsection{Formula}
-With the above sections in mind, the final stat value of a Pokemon can be calculated using the following formulas \cite{PokemonStats}.
+With the above sections in mind, the final stat value of a Pokemon can be calculated using the following formulas from figure \ref{formula:stat-formula}.
 Please note that the HP stat has a different formula compared to the other stats.
 
-\begin{figure}
+\begin{figure}[H]
   $$
     HP = \left\lfloor \frac{(2 * Base + IV + \left\lfloor \frac{EV}{4} \right\rfloor) * Level}{100} \right\rfloor + Level + 10
   $$

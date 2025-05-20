@@ -3,12 +3,13 @@
 
 \resetrownumbers
 
-\begin{xltabular}{\textwidth}{
+\begin{xltabular}{\textwidth}{|
   >{\raggedright\arraybackslash}m{1cm} |
   >{\raggedright\arraybackslash}X |
   >{\raggedright\arraybackslash}X |
   >{\centering\arraybackslash}m{2cm}
-  }  % first column with fixed width, others flexible
+  |}  % first column with fixed width, others flexible
+  \hline
   \textbf{ID}                           & \textbf{Title}       & \textbf{Description}                                                                                          & \textbf{MoSCoW} \\\hline
   \stepcounter{requirement}NF\rownumber & Reproduceable Output & Given an agent and an input the outcome should always be the same no matter how many times the system is run. & M               \\\hline
   \stepcounter{requirement}NF\rownumber & Portable             & The agent should function on both Windows and MacOS.                                                          & M               \\\hline

@@ -10,12 +10,12 @@
 }
 \newcommand\resetrownumbers{\setcounter{requirement}{0}\setcounter{subrequirement}{0}}
 
-\begin{xltabular}{\textwidth}{
+\begin{xltabular}{\textwidth}{|
   >{\raggedright\arraybackslash}m{1cm} |
   >{\raggedright\arraybackslash}X |
   >{\raggedright\arraybackslash}X |
   >{\centering\arraybackslash}m{2cm}
-  }
+  |}\hline
   \textbf{ID}                                              & \textbf{Title}               & \textbf{Description}                                                                                                                                  & \textbf{MoSCoW} \\\hline
   \stepcounter{requirement}F\rownumber                     & Pre-Made battle Environment  & Implementation of a pre-made battle environment that can be used to test agents.                                                                      & M               \\\hline                                                                                                                                
   \stepcounter{requirement}F\rownumber                     & Battle Environment           & Turn-based battle simulator that can take inputs from an agent.                                                                                       & S               \\\hline
