@@ -137,14 +137,31 @@ lasts until a pokemon is healed, and volatile conditions only lasts for the dura
   \end{itemize}
 \end{itemize}
 \subsection{Moves}
-% Power
-% Damage range
-% OHKO
-% Critical hits
-% Physical/Special
-% Accuracy
-% Priority
-% Targeting
+In pokemon every move conisists of 6 key components:
+\begin{itemize}
+  \item Type: The type of the move determines the effectiveness of the move against the opponent pokemon. 
+    The type of the move is also used to determine the STAB bonus.
+  \item Category: There are three categories that every move falls into: Physical, Special and Status. 
+    Physical moves are based on the users attack and the opponents defense, while special moves are based on the users 
+    special attack and the opponents special defense. Status moves are not based on any 
+    stats and can be used to inflict status conditions or change the field. There are also moves that are exceptions but they are few.
+  \item Power: The power of the move determins how much damage it will do to the opponent. The power of the move is 
+    multiplied by the STAB bonus and the effectiveness of the move against the opponent. Some moves have a power of 0,
+    and can be considered as a status move, non-damaging move or a One Hit Knock Out (OHKO) move.
+  \item Accuracy: The accuracy determines how likely a move is to hit the opponent pokemon.
+  \item Power Points (PP): The PP of a move determines how many times a move can be used before it needs to be restored.
+    The PP of a move is between 0 and 64, with most moves having between 5 and 20 PP.
+  \item Priority: The priority of a move determines the order in which moves are executed. A move with a higher priority 
+  will be executed before a move with a lower priority. The priority of a move is between -7 and +5, 
+  with most moves having a priority of 0.
+\end{itemize}
+Even with the above components, there are still more factors that can affect the power of moves in a pokemon battle.
+Moves can have a secondary effect, that might stop the opponent from moving or inflict a status condition. 
+Moves can also haev an increased change of critical hitting which is a mechanic that deals 1.5 times the damage, instead
+of the normal amount. There also exists move that regardless of the type, can One Hit Knock Out (OHKO) the opponent.
+The OHKO moves are very few, have very low accurarcy and are not very common on any pokemon, and can only
+target one pokemon at a time. The moves are: Fissure, Horn Drill, Guillotine and Sheer Cold
+
 \subsection{Weather}
 Weather in pokemon is a mechanic that changes the rules of the battle field. There exists 8 different types of weather: \cite{Weather}
 \begin{itemize}
