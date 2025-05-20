@@ -1,14 +1,10 @@
-\section{Environment}
-\label{sec:environment}
-
-\subsection{Structure}
-OOP
-Modules
-Separation of concerns
-
-\subsection{Team builder}
-
-\subsection{Team parser}
+\section{Iteration 3: Custom environment}
+\label{sec:iteration-3-custom-environment}
+Iteration 3 of the project focused on getting the custom environment implemented in order to not rely on a 3rd party 
+environment. Poke-env is a good environment to get started with, but it comes with a lot of overhead that is not part of 
+the requirements for this project. Poke-env also struggled with longer training sessions and frequently crashed beyond a 
+certain threshold of episodes. By using a custom environment, the hope was to create a more stable environment that worked
+better in long training sessions and processed episodes faster.
 
 \subsection{Gymnasium environment}
 The custom environment was implemented using a custom Gymnasium \cite{Gymnasium} environment \cite{GymnasiumCustomEnv}.
@@ -18,8 +14,7 @@ There are 4 requirements for using the \lstinline|Env| class. The custom environ
 \begin{itemize}
     \item Action space
     \item Observation space
-    \item Step function
-    \item Reset function
+    \item Step and Reset function
 \end{itemize}
 
 \subsubsection{Action space}
@@ -150,6 +145,12 @@ Finally, a \lstinline|get_observation| method was made that could be called from
 all the necessary values and validate that they match the expected observation space.
 
 \subsubsection{Step and Reset}
+Step and reset constitute the most important aspects of the environment. The reset function resets the state of the environment back to its initial values.
+This function is called at the start of each episode and can optionally be called with a specific seed to play out a certain episode iteration again.
+
+The step function is the main driver of the environment. It takes an action index from the agent and applies it to the environment. In the Pokemon domain, a step corresponds
+to a turn of battle. This is also where rewards are determined, which is then used to teach the agent to play better. It also checks whether the battle is over and then
+terminates the episode if it is. 
 
 \subsection{Pokemon domain}
 \label{subsec:pokemon-domain}
@@ -291,3 +292,16 @@ to a fully featured damage calculator the implementation is usually off by 1 or 
 by the alternative rounding rules utilized by the Pokemon games, as the official games round down at 0.5 and it is not well-documented
 where exactly rounding occurs in the formula. However, as this deviation is the same for both agents it was deemed to be
 good enough in terms of creating a faithful simulator.
+
+
+\subsection{Agent adjustment}
+The agent needed to be adjusted to be used in the new environment. The changes mainly came down to the observations available. 
+Poke-env relied heavily on reading the text log from Showdown in order to determine its current observation and this was no
+longer necessary. The observation space in the custom environment was slightly larger due to being more specific about how field 
+effects are categorized. The observations are also stored in a Dict and needed to be flattened by the agent before it could be 
+used.
+
+Addionally, to support future debugging, the training loop now also saved the log of what happened in each battle to a text file.
+This made it easier to scrub through episodes to find potential issues compared to poke-env, where manual inspection was 
+required to find similar issues. These records were also not saved between sessions with poke-env, so if it failed due to a
+crash, there was no way to see what caused the crash.
