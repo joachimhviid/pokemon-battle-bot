@@ -292,3 +292,16 @@ to a fully featured damage calculator the implementation is usually off by 1 or 
 by the alternative rounding rules utilized by the Pokemon games, as the official games round down at 0.5 and it is not well-documented
 where exactly rounding occurs in the formula. However, as this deviation is the same for both agents it was deemed to be
 good enough in terms of creating a faithful simulator.
+
+
+\subsection{Agent adjustment}
+The agent needed to be adjusted to be used in the new environment. The changes mainly came down to the observations available. 
+Poke-env relied heavily on reading the text log from Showdown in order to determine its current observation and this was no
+longer necessary. The observation space in the custom environment was slightly larger due to being more specific about how field 
+effects are categorized. The observations are also stored in a Dict and needed to be flattened by the agent before it could be 
+used.
+
+Addionally, to support future debugging, the training loop now also saved the log of what happened in each battle to a text file.
+This made it easier to scrub through episodes to find potential issues compared to poke-env, where manual inspection was 
+required to find similar issues. These records were also not saved between sessions with poke-env, so if it failed due to a
+crash, there was no way to see what caused the crash.
