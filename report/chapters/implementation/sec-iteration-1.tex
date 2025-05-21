@@ -1,4 +1,4 @@
-\section{Iteration 1}
+\section{Iteration 1: Agent and a Pokemon environment} 
 \label{sec:Iteration-1-Agent-Environment}
 
 The first iteration of the implementation focuses on having a minimum viable product \(MVP\). The MVP
@@ -16,22 +16,51 @@ The agent was embedded into the environment, and could interacted through asynch
 to reflect the turn-based format of pokemon battles.
 
 
-\subsection{Deep Q-Learning Agent}
-The agent is implemented using a Deep Q-Network (DQN) model. It consists of a Q-function
-approximator via a naural network built using the Pytorch Library. Some key components 
-are the state representation, action space, and exploration and learning process.
-The state representation is a simple embedding consisting of normalized Hit Point (HP) values, 
-for the active pokemon and opponent. Action space is a flattend list of all available actions, such
-as moves, switching pokemon or using items. The exploration strategy is an epsilon-greedy strategy
-with a decaying epsilon value, which is used to balance exploration and exploitation.
-The learning process is stored in a replay buffer and used to train the model in batches, with 
-periodic updates to the target network.
-While this agent is functional, it had some limitations to its format and performance. The agent
-uses a custom training loop that only accounts for a single battle format environment, and was 
-battling using random pokemon teams each battle, to create a more knowledgeable agent. 
-This created a more difficult environment for the agent to learn in and resulted in some 
-edge cases, that could not be handled by the custom agent or opponent.
-The agents learning parameters were like so:
+\subsection{Deep Q-Network Agent}
+The agent is implemented using a Deep Q-Network (DQN) model. This approach leverages
+a nerual network to approximate the Q-values, enabling the agent to learn an 
+effective policy directly from the environments state representation. 
+The Q-network was constructed using Pytorch and consists of a simple feedforward
+architecture with two hidden layers. 
+\begin{lstlisting}[basicstyle=\fontsize{10}{10}\selectfont\ttfamily,language=Python,caption={The defined action space.},label=lst:action-space-def,breaklines]
+class DQN(nn.Module):
+    def __init__(self, state_size, action_size):
+        super(DQN, self).__init__()
+        self.fc1 = (nn.Linear(state_size, 64)) #Input layer -> Hidden layer
+        self.fc2 = (nn.Linear(64, 64)) #Hidden layer -> Hidden layer
+        self.fc3 = (nn.Linear(64, action_size)) #Hidden layer -> Output layer
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x 
+\end{lstlisting}
+This structure includes:
+\begin{itemize}
+    \item An input layer, that processes the state representation.
+    \item Two hidden layers, each with 64 neurons and ReLu (rectified linear unit function) activations.
+    \item An output layer, that produces Q-values for each possible action.
+\end{itemize}
+
+\subsubsection{State Representation and Action Space}
+The state representation is a simple embedding consisting of the normalized Hit Point (HP) values
+for the active pokemon and opponent. The action space is a flattend list that
+include all available actions in the current state, such as moves, switching pokemon
+or using items. These 2 features are simplified yet informative and generalized 
+enough to be used in the two core formats of the pokemon game.
+
+\subsubsection{Exploration, Learning Process and Training configuration}
+To manage the exploration-exploitation trade-off, an epsilon-greedy ploicy is employed.
+The epsilon value stats at 1.0, allowing the agent to explore in the early stages of training,
+where after it decays after each episode with a factor of 0.995 with a lower bound of 0.05.
+This ensures that the agent gradually shifts from exploration early in training
+and focuses more on exploitation later on.
+A replay buffer is used to store the agent's transitions (state, action, reward, next-state, done), 
+and are sampled in batches for training, which can help stabilize the learning process 
+by reducing correlations between sequential experiences. Furthermore, a target 
+network is periodically updated to improve learning stability.
+The agents was trained using the following hyperparameters:
 \begin{itemize}
     \item \textbf{Batch Size:} 64
     \item \textbf{Replay Buffer Size:} 100000
@@ -39,9 +68,18 @@ The agents learning parameters were like so:
     \item \textbf{Epsilon:} 1.0
     \item \textbf{Epsilon Decay:} 0.995
     \item \textbf{Epsilon Min:} 0.05
-    \item \textbf{Tau} 0.005
+    \item \textbf{Tau:} 0.005
     \item \textbf{Gamma:} 0.99
 \end{itemize}
 
-
-
+\subsubsection{Limitations and Challenges}
+while the first iteration of the implementation was successful in creating a custom agent
+and training loop, it was faced with soem limitations and challenges.
+\begin{itemize}
+    \item The training loop was constrained to only single battle formats, with
+    randomly generated teams, for both agents, for each episode. This was done to create a
+    more generalzed agent, but introduced a high variance in the training process and came with more challenges.
+    \item In some cases, the agent would be unable to finnish the training process, due to the 
+    opponent agent not able to finish the battle. It would get stuck in a loop, trying to switch when it
+    wasnt a valid action.
+\end{itemize}
