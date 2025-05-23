@@ -1,81 +1,78 @@
 \section{Frameworks}
 \label{sec:Frameworks}
 
-Frameworks is an important part of any software development project. 
-They provide a foundation for the project and can help speed up processes 
-during devleopment. This section goes in depth on what the different frameworks 
+Frameworks is an important part of any software development project.
+They provide a foundation for the project and can help speed up processes
+during devleopment. This section goes in depth on what the different frameworks
 are and can provide to this project.
 
 \subsection{Machine Learning frameworks}
 
 Machine learning frameworks is a crucial choice to make when considering development,
-training and deployment of an Artificial Intelligence (AI) model. 
+training and deployment of an Artificial Intelligence (AI) model.
 There are many frameworks available, but among the most widely used are TensorFlow
 and PyTorch. They have both appeared dominant in their repective fields and are used
 by some of the biggest tech companies in the world, like Google, Microsoft and Meta.\cite{PyTorchVsTensorFlow}
 
 \subsubsection{TensorFlow}
-TensorFlow was the first of the of the 2 frameworks to be released, 
-and was developed by Google. \cite{TensorFlow} It is widely adopted for 
-larger-scale machine learning applications and for production grade AI systems, 
+TensorFlow was the first of the of the 2 frameworks to be released,
+and was developed by Google. \cite{TensorFlow} It is widely adopted for
+larger-scale machine learning applications and for production grade AI systems,
 because of its scalability and robustness. \cite{simplilearn}
-Because of all these features TensorFlow has become a very versatile framework, 
-but has created a higher learning curve and its static computation graphs can hinder our development. 
-
+Because of all these features TensorFlow has become a very versatile framework,
+but has created a higher learning curve and its static computation graphs can hinder our development.
 
 \subsubsection{PyTorch}
-PyThorch was developed by Meta and after its release it quickly gained popularity due to its dynamic 
+PyThorch was developed by Meta and after its release it quickly gained popularity due to its dynamic
 computation graphs, better debugging capabilites and pythonic approach. \cite{PyTorch}
 
-PyTorch might be limited in production readiness and have inferior performance compared to 
-TensorFlow when working on larger scale projects, but because of its strenghts and being faster 
-than TensorFlow on smaller-scale models it has made a huge leap in favorability in 
+PyTorch might be limited in production readiness and have inferior performance compared to
+TensorFlow when working on larger scale projects, but because of its strenghts and being faster
+than TensorFlow on smaller-scale models it has made a huge leap in favorability in
 scientific-research and smaller scale projects. \cite{simplilearn}
 
 \subsection{Choice of Frameworks}
 
 In table \ref{tab:frameworks} we have listed the pros and cons of the two frameworks and chosen to go with PyTorch as our framework. Pytorch has a more
-dynamic approach to computation graphs, which is more suitable for our project, is pythonic and has integrations with Jupyter. 
+dynamic approach to computation graphs, which is more suitable for our project, is pythonic and has integrations with Jupyter.
 It also has better debugging capabilities and is faster than TensorFlow on smaller-scale models.
 
+\begin{figure}[H]
+      \centering
+      \scalebox{.8}{
 
-\begin{table}[ht]      
-      \begin{tabular}{| m{3.5cm} | m{5cm} | m{5cm} |}
-            \hline
-            \textbf{Type} & \textbf{Pros} & \textbf{Cons} \\ 
-            \hline
-            \textbf{TensorFlow} & 
-            \begin{itemize}
-                  \item Widely adopted for larger-scale machine learning applications.
-                  \item Has scalability and robustness.
-                  \item Versatile framework.
-            \end{itemize} & 
-            \begin{itemize}
-                  \item Higher learning curve.
-                  \item Static computation graphs can hinder development.
-                  \item Can create a more complex codebase.
-            \end{itemize} \\ 
-            \hline
-            \textbf{PyTorch} & 
-            \begin{itemize}
-                  \item Dynamic computation graphs.
-                  \item Better debugging capabilities.
-                  \item Pythonic approach.
-                  \item Integration with Jupyter and Gymnasion. 
-                  \item Faster than TensorFlow on smaller-scale models.
-            \end{itemize} & 
-            \begin{itemize}
-                  \item Limited in production readiness.
-                  \item Inferior performance compared to TensorFlow on larger scale projects.
-                  \item Can be harder to scale. 
-            \end{itemize} \\ 
-            \hline
-      \end{tabular}
+            \begin{tabular}{| m{3.5cm} | m{5cm} | m{5cm} |}
+                  \hline
+                  \textbf{Type}                                                        & \textbf{Pros} & \textbf{Cons} \\
+                  \hline
+                  \textbf{TensorFlow}                                                  &
+                  \begin{itemize}
+                        \item Widely adopted for larger-scale machine learning applications.
+                        \item Has scalability and robustness.
+                        \item Versatile framework.
+                  \end{itemize} &
+                  \begin{itemize}
+                        \item Higher learning curve.
+                        \item Static computation graphs can hinder development.
+                        \item Can create a more complex codebase.
+                  \end{itemize}                                               \\
+                  \hline
+                  \textbf{PyTorch}                                                     &
+                  \begin{itemize}
+                        \item Dynamic computation graphs.
+                        \item Better debugging capabilities.
+                        \item Pythonic approach.
+                        \item Integration with Jupyter and Gymnasion.
+                        \item Faster than TensorFlow on smaller-scale models.
+                  \end{itemize}                &
+                  \begin{itemize}
+                        \item Limited in production readiness.
+                        \item Inferior performance compared to TensorFlow on larger scale projects.
+                        \item Can be harder to scale.
+                  \end{itemize}                           \\
+                  \hline
+            \end{tabular}
+      }
       \caption{Table over our choices of frameworks}
-      \label{tab:frameworks}      
-\end{table}
-
-
-
-
-
+      \label{tab:frameworks}
+\end{figure}
