@@ -1,0 +1,40 @@
+\section{Discussion}
+\label{sec:discussion}
+
+To round out this chapter, we will discuss the outcomes of this project. We will look back at what has been done
+and reflect on how it compares with the initial problem statement. Then we will reflect on what we would do if we had more time.
+
+\subsection{Did we solve the initial problem?}
+Looking back to the problem described in section \ref{sec:problem-description}, it is stated that: 
+\begin{quote}
+  \itshape{We want to find out if it's possible to improve as a human player by analysing how a trained agent plays.}
+\end{quote}
+We created a custom environment and agent that was succesfully trained across thousands of episodes. After each training 
+loop the agent became better and better. At the agents current level, it is unlikely to consistently beat a human opponent,
+but given enough time and training, this agent will eventually become a stronger player, that we as humans can learn from.
+Therefore, that part of the problem is considered solved.
+
+An additional problem was described as:
+\begin{quote}
+  \itshape{We want to find out if it is possible to calculate the odds of winning a battle ahead of time given a predefined set of Pokemon.}
+\end{quote}
+This part was not fully implemented, but all of the necessary groundwork was created. The remaining work involved in solving
+this part of the problem would be creating a command line interface where two files with team data could be specified. 
+Then, the pre-trained AI model would be used to run 1.000-10.000 episodes depending on the desired accuracy. The amount of wins
+and losses experienced during the episodes would then be returned to the user, who is then able to use this info to determine 
+the odds of winning a given matchup. Additionally, a sample log could then be used to recreate the winning episodes.
+
+\subsection{What would we do in the future?}
+A lot of time was put into the creation of this project, however there is always room for improvements. If this project was to
+be expanded upon, the first improvement would simply be to implement more mechanics. Going into this project, it was clear
+that there would not be enough time to implement every single move, ability, held item and mechanics to the environment. 
+For that reason, these mechanics were either completely omitted or only partially implemented in the current iteration, but
+given more time, they must be fully implemented. During the implementation of the custom environment it dawned on us, just 
+how much work there was in adding some of these mechanics, so this endeavour would also require a major refactoring in how
+data is handled. This refactor would possibly look similar to how Pokemon Showdown \cite{PokemonShowdownSource} handles 
+metadata of moves and abilities, by having multiple flags and events to listen to and extend.
+
+Another thing that could be added with more time would be a graphical user interface (GUI). This would greatly increase 
+useability for the users that do not know how to use the command line. The GUI could also include a builtin team builder 
+instead of relying on a file input. In the far future, the GUI could be used as an overlay for the games to provide the 
+user with move suggestions directly in the client.
