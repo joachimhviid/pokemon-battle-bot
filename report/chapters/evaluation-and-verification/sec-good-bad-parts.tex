@@ -1,0 +1,18 @@
+\section{The good and the bad parts}
+\label{sec:good-bad-parts}
+
+\subsection{Good parts}
+The simulator works both with custom and external environments, providing great flexibility depending
+on what kind of training is desired. The custom environment, while not fully feature complete, is open to extension and
+can support multiple game environments, such as different generations of game rules. The external environment, Poke-env, 
+supports most features found in the Pokemon games and comes with a visual replay option for presenting discovered strategies.
+
+\subsection{Bad parts}
+The custom environment is not feature complete. The simulator will only provide good results if its environment reflects
+reality. While the missing features were declared in the initial requirements as optional for the purposes finishing the
+project within the allotted time, they are crucial to provide accurate results to be used in a real product.
+
+The training process is slower than anticipated. During training, we measured an average of 20 episodes per second. This 
+is due to both environments being heavily CPU bound with limited processing able to be sent to the GPU. The training time
+can most likely be improved in the custom environment by vectorizing the observations provided and by implementing 
+multi-threading to divy up the work performed by the CPU to multiple threads. 
