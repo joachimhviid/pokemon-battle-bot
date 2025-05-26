@@ -21,10 +21,8 @@ was colledted for:
 \end{itemize}
 The figures below illustrate the training process over time for:
 \begin{itemize}
-    \item Iteration 1 - Baseline model trained over 1000 episodes
-    \includegraphics[width=.5]{assets/iteration-1-graphs.png}
-    \item Iteration 2 - Enhanced model trained over 30000 episodes
-    \includegraphics[width=.5]{}
+    \item Iteration 1 - Baseline model trained over 1000 episodes \ref{fig:iteration-1-graphs}
+    \item Iteration 2 - Enhanced model trained over 30000 episodes \ref{fig:iteration-2-graphs} 
 \end{itemize}
 
 
@@ -33,3 +31,42 @@ The figures below illustrate the training process over time for:
 The first iteration exhibits very fluctuating performance, with relativly shallow 
 state representation. Although the agent is capable of learning some degree of a control
 policy, its reward curve is very erratic and lacks consistency.
+\begin{itemize}
+    \item The average reward fluctuates significantly, generally raning between -10 and +5
+    indicating the agent struggles to consistently achieve positive outcomes.
+    \item Our Agents win rate hovers around 0.4 to 0.6, which isnt generally bad, its almost a 50\% win rate
+    and shows that it performs marginally better with random teams, but still with no clear upward trend.
+    \item Training loss, remains flat indicating that something might be wrong with logging or infrequent updates.
+\end{itemize}
+This indicates that while the agent is learnig, its not effectivly generalizing 
+information across different battle scenarios, largely due to shallow state information.
+
+\textbf{Iteration 2 - Enhanced model}
+In the second iteration, the agent is restructed to suppoort:
+\begin{itemize}
+    \item A more complex battle environment.
+    \item More modular hyperparameters, allwing for more fine-tunning.
+    \item A bigger Q-network, to account for the increased complexity.
+\end{itemize}
+This means the improvements to the second iteration have resulted in a smoother reward
+distribution, altough still noisy, which is typical for reinforcement learning. The variance
+is now centered closer to 0, and positive spikes are more frequent. The win rate 
+has become more stable, despite some episode by episode variation 
+and is now more consistently above 0.5 with several peaks reacing about 0.8 or 1.0.
+Scalablity has also improved significantly. the agent is able to train over 30000 episodes
+compared to the just 1000 episodes in the first iteration, without crashing or instability.
+
+Notably, while the average reward trend is still noisy, the longer training horizon
+and improved reward shaping, has allowed the agent to learn more stable strategies, over time.
+\subsection{Discussion}
+The improves between iterations, can be attributed to several factors:
+\begin{itemize}
+    \item Expanded state space: Going form a state space of 92 features in the first iteration
+    to 128 features in the second iteration, allows the agent to capture more complex information
+    about the environment, leading to better decision making.
+    \item Replay buffer: Iteration 2's structured implementation of the replay buffer, improves 
+    learning consistency and sample efficiency.
+    \item Reward design: By incorporating move intermediate rewards (e.g., for fainting enemies or preserving HP),
+    the agent receives more meaningful feedback per action, leading to smoother learning curevs.
+    \item Network Depth: A deeper DQN enabled our model to better capture complex patterns in the data.
+\end{itemize}

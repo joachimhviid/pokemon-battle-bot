@@ -9,11 +9,18 @@ in a generation 9, single battle pokemon showdown environment, where held items 
 
 \subsection{Poke-env Library}
 The backbone of the first iteration of implementation is the Poke-env library. 
+Poke-env is a python library that provides a framework for creating and simulating pokemon
+battles in a variety of formats, including single and doubble battles and supports the latests
+generation of pokemon games, such as generation 9. Poke-env also provides a set of tools
+for interacting with the pokemon showdown API, allowing for easier inetgration with the formats
+and to not overlow the online version of pokemon showdown with too many requests.
+
 To simulate pokemon battles, we wrap our agent in a custom player class which inherits from the
-Poke-env player class. This allowed us to model battles in any pokemon showdown 
-provided battle format, such as Single or Double battles and retrieve relevant game information.
-The agent was embedded into the environment, and could interacted through asynchronouns function
-to reflect the turn-based format of pokemon battles.
+Poke-env player class. This allowed us to model the agent for any pokemon showdown 
+provided battle format, such as Single, Double battles or VGC regulated battles and 
+retrieve relevant game information. The agent was embedded into the environment, and could 
+interact through an asynchronouns function to reflect the turn-based format of pokemon battles.
+
 
 
 \subsection{Deep Q-Network Agent}
