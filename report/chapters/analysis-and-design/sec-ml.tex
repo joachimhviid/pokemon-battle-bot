@@ -113,6 +113,7 @@ value functions. They are usefull in continuous action spaces and stochastic pol
       where \(\mathbb{R}\) is the cumulative reward. \cite{Types-of-Reinforcement-Learning}
       \begin{equation}
             \nabla J(\theta) = \mathbb{E} \left[\nabla \log \pi_{\theta}(s_t,a_t) R_t \right]
+            \label{equation:policy_gradient}
       \end{equation}
       \item Actor-critic methods, combine both the policy learning (actor) with a value
       function estimator (critic) for a more stable learning process. \cite{Types-of-Reinforcement-Learning}
