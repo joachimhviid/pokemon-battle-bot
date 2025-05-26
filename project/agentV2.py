@@ -5,6 +5,8 @@ from collections import deque, namedtuple
 from gymnasium import spaces
 from typing import List, Optional, Union, Dict
 
+import tqdm
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -25,7 +27,7 @@ from poke_env.player.battle_order import BattleOrder, DefaultBattleOrder
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {DEVICE}")
 
-N_BATTLES = 1000    # Total number of battles to train for (Reduced for faster testing)
+N_BATTLES = 10000    # Total number of battles to train for (Reduced for faster testing)
 BATCH_SIZE = 128       # Number of experiences to sample from buffer for learning
 GAMMA = 0.99           # Discount factor for future rewards
 EPSILON_START = 0.9    # Starting exploration rate (Changed name for consistency)
@@ -158,12 +160,12 @@ def print_args(func_name, *args, **kwargs):
 class DQN(nn.Module):
     """Deep Q-Network model."""
     def __init__(self, n_observations, n_actions):
-        print_args("DQN.__init__", n_observations=n_observations, n_actions=n_actions)
+        # print_args("DQN.__init__", n_observations=n_observations, n_actions=n_actions)
         super(DQN, self).__init__()
         self.layer1 = nn.Linear(n_observations, 512)
         self.layer2 = nn.Linear(512, 256)
         self.layer3 = nn.Linear(256, n_actions)
-        print(f"  DQN Initialized: Input Size={n_observations}, Output Size={n_actions}")
+        # print(f"  DQN Initialized: Input Size={n_observations}, Output Size={n_actions}")
 
 
     def forward(self, x):
@@ -254,7 +256,7 @@ class DQNAgent:
             # Stack numpy arrays first, then convert to tensor
             np_states = np.array(non_final_next_states_list)
             if len(np_states.shape) != 2 or np_states.shape[1] != STATE_SIZE:
-                print(f"ERROR: Non-final next states have wrong dimension {np_states.shape[1]} in learn! Expected {self.state_dim}")
+                # print(f"ERROR: Non-final next states have wrong dimension {np_states.shape[1]} in learn! Expected {self.state_dim}")
                 return None
             non_final_next_states = torch.tensor(np_states, dtype=torch.float32, device=DEVICE)
         else:
@@ -264,7 +266,7 @@ class DQNAgent:
         state_batch_np = np.array(batch.state)
 
         if len(state_batch_np.shape) != 2 or state_batch_np.shape[1] != STATE_SIZE:
-             print(f"ERROR: State batch has wrong shape {state_batch_np.shape} in learn! Expected ({BATCH_SIZE}, {self.state_dim})")
+            #  print(f"ERROR: State batch has wrong shape {state_batch_np.shape} in learn! Expected ({BATCH_SIZE}, {self.state_dim})")
              return None
         
         state_batch = torch.tensor(state_batch_np, dtype=torch.float32, device=DEVICE)
@@ -299,13 +301,14 @@ class DQNAgent:
         self.target_net.load_state_dict(target_net_state_dict)
 
 class MyAgent(Player):
+    pbar = None
     """Custom agent environment wrapping Gen9EnvSinglePlayer."""
     def __init__(self, dqn_agent_logic: DQNAgent, 
-                log_lists: Dict[str, list],
+                log_lists: Optional[Dict[str, list]],
                 *args, **kwargs):
         
         super().__init__(*args, **kwargs)
-        print("  MyAgent initialized.")
+        # print("  MyAgent initialized.")
 
         self.type_map = {t.name.lower(): i for i, t in enumerate(PokemonType) if i < NUM_TYPES}
         if len(self.type_map) != NUM_TYPES:
@@ -392,13 +395,13 @@ class MyAgent(Player):
 
         global STATE_SIZE
 
-        if state.shape[0] != STATE_SIZE:
-            print(f"\n!!! CRITICAL WARNING: embed_battle_doubles produced state size {state.shape[0]}, but STATE_SIZE_DOUBLES is {STATE_SIZE}. !!!\n")
+        # if state.shape[0] != STATE_SIZE:
+        #     print(f"\n!!! CRITICAL WARNING: embed_battle_doubles produced state size {state.shape[0]}, but STATE_SIZE_DOUBLES is {STATE_SIZE}. !!!\n")
         if state.shape[0] < STATE_SIZE:
-            print(f"  Padding state to match STATE_SIZE_DOUBLES.")
+            # print(f"  Padding state to match STATE_SIZE_DOUBLES.")
             state = np.pad(state, (0, STATE_SIZE - state.shape[0]), 'constant')
         elif state.shape[0] > STATE_SIZE:
-            print(f"  Truncating state to match STATE_SIZE_DOUBLES.")
+            # print(f"  Truncating state to match STATE_SIZE_DOUBLES.")
             state = state[:STATE_SIZE]
 
         return state
@@ -479,17 +482,17 @@ class MyAgent(Player):
                 self.dqn_agent.replay_buffer.push(state, action_idx, step_reward, next_state, battle.finished)
 
             loss = self.dqn_agent.learn()
-            if loss is not None and "recent_losses_log" in self.log_lists: 
-                self.log_lists["recent_losses_log"].append(loss)
+            # if loss is not None and "recent_losses_log" in self.log_lists: 
+            #     self.log_lists["recent_losses_log"].append(loss)
 
         if battle.turn == 0:
-            # print(f"DEBUG: Turn 0 - Handling Team Preview (Default Order)")
+            print(f"DEBUG: Turn 0 - Handling Team Preview (Default Order)")
             self._last_battle_state = battle
             self._current_episode_reward = 0.0
             return DefaultBattleOrder()
 
         if not battle.available_moves and not battle.available_switches and not battle.trapped:
-            # print(f"Warning: No moves or switches available, and not trapped?.")
+            print(f"Warning: No moves or switches available, and not trapped?.")
             self._last_battle_state = battle
             return DefaultBattleOrder()
 
@@ -505,8 +508,10 @@ class MyAgent(Player):
     
     def _battle_finished_callback(self, battle: AbstractBattle) -> None:
         """Called when a battle ends."""
-        print(f"--- Battle Finished: {battle.battle_tag} ---")
+        # print(f"--- Battle Finished: {battle.battle_tag} ---")
         self._battles_completed += 1
+        if hasattr(self, "pbar") and self.pbar is not None:
+            self.pbar.update(1)
 
         # --- 1. Final Reward Calculation & Experience ---
         final_reward = 0.0
@@ -519,27 +524,28 @@ class MyAgent(Player):
             last_action = self._last_action_index if self._last_action_index is not None else -1
             if last_action != -1:
                  self.dqn_agent.replay_buffer.push(last_state_embedding, last_action, final_reward, None, True) # next_state is None, done is True
-        else:
-             print("Warning: Battle finished but _last_battle_state was None.")
+        # else:
+            #  print("Warning: Battle finished but _last_battle_state was None.")
 
         battle_won = battle.won
         result = "Won" if battle_won else "Lost" if battle.lost else "Draw/Other"
-        print(f"  Result: {result}, Total Reward: {self._current_episode_reward:.4f}")
+        # print(f"  Result: {result}, Total Reward: {self._current_episode_reward:.4f}")
 
         # Access logging lists passed during __init__
-        self.log_lists['recent_rewards'].append(self._current_episode_reward)
-        self.log_lists['recent_wins'].append(1 if battle_won else 0)
+        if self.log_lists:
+            self.log_lists['recent_rewards'].append(self._current_episode_reward)
+            self.log_lists['recent_wins'].append(1 if battle_won else 0)
 
         # if battle_won:
         #     self.log_lists["total_wins"] = self.log_lists.get("total_wins", 0 ) + 1
         
         # --- 3. Periodic Updates & Plotting ---
         if self._battles_completed % TARGET_UPDATE_FREQ == 0:
-            print(f"Updating target network (Battle {self._battles_completed})...")
+            # print(f"Updating target network (Battle {self._battles_completed})...")
             self.dqn_agent.update_target_network()
 
-        if self._battles_completed % LOG_FREQ == 0:
-            print(f"Logging progress (Battle {self._battles_completed})...")
+        if self._battles_completed % LOG_FREQ == 0 and self.log_lists:
+            # print(f"Logging progress (Battle {self._battles_completed})...")
             avg_reward = sum(self.log_lists['recent_rewards']) / len(self.log_lists['recent_rewards']) if self.log_lists['recent_rewards'] else 0
             avg_win_rate = sum(self.log_lists['recent_wins']) / len(self.log_lists['recent_wins']) if self.log_lists['recent_wins'] else 0
 
@@ -552,13 +558,13 @@ class MyAgent(Player):
             self.log_lists['win_rates_log'].append(avg_win_rate)
 
             # Generate periodic plot (needs plot function and lists)
-            plot_training_results(
-                self.log_lists['episode_log_points'],
-                self.log_lists['avg_rewards_log'],
-                self.log_lists['avg_losses_log'],
-                self.log_lists['win_rates_log'],
-                save_path=self.log_lists['periodic_plot_path'] # Get path from log_lists dict
-            )
+            # plot_training_results(
+            #     self.log_lists['episode_log_points'],
+            #     self.log_lists['avg_rewards_log'],
+            #     self.log_lists['avg_losses_log'],
+            #     self.log_lists['win_rates_log'],
+            #     save_path=self.log_lists['periodic_plot_path'] # Get path from log_lists dict
+            # )
         
         #Signal that the battle is finished
         self._battle_finished_event.set()
@@ -573,12 +579,12 @@ class MyAgent(Player):
         self._battle_finished_event.clear()
 
 async def train_agent(n_battles_to_run):
-    print(f"\n--- Starting Training Function: train_agent ---")
-    print(f"  n_battles_to_run: {n_battles_to_run}")
+    # print(f"\n--- Starting Training Function: train_agent ---")
+    # print(f"  n_battles_to_run: {n_battles_to_run}")
     start_time = time.time()
 
     dqn_logic = DQNAgent(STATE_SIZE, ACTION_SPACE_SIZE)
-    print(f"--- DQNAgent Initialized ---")    
+    # print(f"--- DQNAgent Initialized ---")    
 
     save_dir = "./project/output/models"
     plot_dir = "./project/output" 
@@ -590,12 +596,12 @@ async def train_agent(n_battles_to_run):
 
     if LOAD_MODEL and os.path.exists(policy_path) and os.path.exists(target_path):
         try:
-            print(f"Loading existing models from: {save_dir}")
+            # print(f"Loading existing models from: {save_dir}")
             dqn_logic.policy_net.load_state_dict(torch.load(policy_path, map_location=DEVICE))
             dqn_logic.target_net.load_state_dict(torch.load(target_path, map_location=DEVICE))
             dqn_logic.policy_net.eval() # Set policy net to eval mode if loaded (or train mode if continuing training)
             dqn_logic.target_net.eval() # Target net is always in eval mode
-            print("VGC Models loaded successfully.")
+            # print("VGC Models loaded successfully.")
         except Exception as e:
             print(f"Error loading models: {e}. Starting training from scratch.")
     else:
@@ -604,12 +610,22 @@ async def train_agent(n_battles_to_run):
         else:
              print("LOAD_MODEL is False. Starting training from scratch.")
 
-    opponent = RandomPlayer(
+    # opponent = RandomPlayer(
+    #     account_configuration=OPP_ACC_CONF,
+    #     battle_format=BATTLE_FORMAT,
+    #     server_configuration=SERVER_CONF,
+    #     team=WOLFEY_TEAM,
+    #     log_level=0
+    # )
+        # log_lists=log_lists,
+    opponent = MyAgent(
+        dqn_agent_logic=dqn_logic,
         account_configuration=OPP_ACC_CONF,
+        log_lists=None,
         battle_format=BATTLE_FORMAT,
+        log_level=0,
         server_configuration=SERVER_CONF,
-        team=WOLFEY_TEAM,
-        log_level=15
+        team=WOLFEY_TEAM
     )
 
     log_lists = {
@@ -623,36 +639,40 @@ async def train_agent(n_battles_to_run):
         'final_plot_path': final_plot_path
     }
 
+    pbar = tqdm.tqdm(total=n_battles_to_run, desc="Battles Completed", unit="battle")
+
     agent = MyAgent(
         dqn_agent_logic=dqn_logic,
         log_lists=log_lists,
         account_configuration=AGENT_ACC_CONF,
         battle_format=BATTLE_FORMAT,
-        log_level=15,
+        log_level=0,
         server_configuration=SERVER_CONF,
         team=WOLFEY_TEAM
     )
 
-    print(f"--- Starting {n_battles_to_run} Battles ---")
+    agent.pbar = pbar
+
+    # print(f"--- Starting {n_battles_to_run} Battles ---")
     opponent_task = None
     try:
-        print("Starting opponent task to accept challenges...")
+        # print("Starting opponent task to accept challenges...")
         async def opponent_accept_loop(player, agent_username):
             while True:
                 try:
                     await player.accept_challenges(agent_username, n_battles_to_run)
                 except asyncio.CancelledError:
-                    print("Opponent accept loop cancelled.")
+                    # print("Opponent accept loop cancelled.")
                     break # Exit loop if cancelled
                 except Exception as e:
-                    print(f"Error in opponent accept loop: {e}")
+                    # print(f"Error in opponent accept loop: {e}")
                     await asyncio.sleep(5) # Wait before retrying
 
         opponent_task = asyncio.create_task(
              opponent_accept_loop(opponent, agent.username)
         )
         await asyncio.sleep(3)
-        print("\n--- Starting Manual Battle Loop ---")
+        # print("\n--- Starting Manual Battle Loop ---")
         
         agent.reset_battle_event()
 
@@ -674,7 +694,8 @@ async def train_agent(n_battles_to_run):
         print(f"Error during battle loop: {e}")
         traceback.print_exc()
     finally:
-        print("\n--- Cleaning up tasks ---")
+        pbar.close()
+        # print("\n--- Cleaning up tasks ---")
         if opponent_task and not opponent_task.done():
             opponent_task.cancel()
             try:
@@ -683,21 +704,21 @@ async def train_agent(n_battles_to_run):
                 print("Opponent task successfully cancelled.")
             except Exception as e:
                 print(f"Error during opponent task cancellation: {e}")
-        print("\n--- Finished Battle Tasks ---")
+        # print("\n--- Finished Battle Tasks ---")
     
-    print(f"--- Finished {n_battles_to_run} Battles ---")
+    # print(f"--- Finished {n_battles_to_run} Battles ---")
     
     total_wins = sum(log_lists['recent_wins'])
     total_battles_completed = agent._battles_completed
     final_win_rate = sum(1 for w in log_lists['win_rates_log'] if w > 0.5) / len(log_lists["win_rates_log"]) if log_lists["win_rates_log"] else 0.0
-    print(f"Total Battles Completed: {total_battles_completed}")
-    print(f"Total Wins: {total_wins}")
-    print(f"Overall Win Rate: {final_win_rate:.2%}")
+    # print(f"Total Battles Completed: {total_battles_completed}")
+    # print(f"Total Wins: {total_wins}")
+    # print(f"Overall Win Rate: {final_win_rate:.2%}")
     
     try:
         torch.save(dqn_logic.policy_net.state_dict(), policy_path)
         torch.save(dqn_logic.target_net.state_dict(), target_path)
-        print(f"Models saved successfully to {save_dir}.")
+        # print(f"Models saved successfully to {save_dir}.")
     except Exception as e:
         print(f"Error saving models: {e}.")
     
@@ -709,12 +730,12 @@ async def train_agent(n_battles_to_run):
         save_path=final_plot_path
     )
 
-    print(f"--- Training Complete ---")
+    # print(f"--- Training Complete ---")
 
 def plot_training_results(episodes, rewards, losses, win_rates, save_path):
     """Generates and saves plots for training metrics."""
-    print(f"Generating plot with {len(episodes)} data points...")
-    fig, axs = plt.subplots(3, 1, figsize=(12, 18), sharex=True)
+    # print(f"Generating plot with {len(episodes)} data points...")
+    fig, axs = plt.subplots(2, 1, figsize=(12, 18), sharex=True)
 
     # Plot Average Reward
     axs[0].plot(episodes, rewards, label=f'Avg Reward per {LOG_FREQ} Episodes', color='blue', marker='o', linestyle='-')
@@ -724,18 +745,18 @@ def plot_training_results(episodes, rewards, losses, win_rates, save_path):
     axs[0].legend()
 
     # Plot Average Loss
-    axs[1].plot(episodes, losses, label=f'Avg Loss (Rolling)', color='red', marker='x', linestyle='-')
-    axs[1].set_ylabel('Average Loss')
-    axs[1].grid(True, linestyle='--', alpha=0.6)
-    axs[1].legend()
+    # axs[1].plot(episodes, losses, label=f'Avg Loss (Rolling)', color='red', marker='x', linestyle='-')
+    # axs[1].set_ylabel('Average Loss')
+    # axs[1].grid(True, linestyle='--', alpha=0.6)
+    # axs[1].legend()
 
     # Plot Win Rate
-    axs[2].plot(episodes, win_rates, label=f'Win Rate per {LOG_FREQ} Episodes', color='green', marker='s', linestyle='-')
-    axs[2].set_ylabel('Win Rate')
-    axs[2].set_xlabel(f'Episodes (Intervals of {LOG_FREQ})')
-    axs[2].grid(True, linestyle='--', alpha=0.6)
-    axs[2].legend()
-    axs[2].set_ylim(0, 1) # Win rate is between 0 and 1
+    axs[1].plot(episodes, win_rates, label=f'Win Rate per {LOG_FREQ} Episodes', color='green', marker='s', linestyle='-')
+    axs[1].set_ylabel('Win Rate')
+    axs[1].set_xlabel(f'Episodes (Intervals of {LOG_FREQ})')
+    axs[1].grid(True, linestyle='--', alpha=0.6)
+    axs[1].legend()
+    axs[1].set_ylim(0, 1) # Win rate is between 0 and 1
 
     plt.tight_layout(rect=(0, 0.03, 1, 0.95)) # Adjust layout to fit title
     try:
