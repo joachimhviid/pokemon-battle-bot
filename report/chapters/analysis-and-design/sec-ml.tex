@@ -151,53 +151,39 @@ and approximations on a given task, but they may only be limited to that sepcifi
 type of task. It also requires accurate models of the environment and building a model
 can be computationally difficult and expensive and therefore lead to inaccuracies. \cite{Types-of-Reinforcement-Learning}
 
-\subsection{Choice of Machine learning model}
+\subsection{Design Decision: Machine Learning Approach}
+\label{sec:ML-Design-Decision}
+In the designing of the machine learning model for this project, three core learning paradigms
+were considered: Supervised learning, unsupervised learning and reinforcement learning. Each 
+approach offers distinct advantages and challenges, but given the problem domain and 
+project goals, reinfocement learning was ultimatly selected as the most appropriate method.
 
-From these pros and cons of all three machine learning approaches, we can see that supervised learning is the most accurate and widely used approach,
-but for this project, we will be using reinforcement learning going forward.
+Supervised learning, is a powerfull approach that is known for its high accurarcy when trained on
+suffeciently large and labeled datasets. However, its not well-suited to this project for
+two main reasons. Firstly, aquiring a large and detailed labeled dataset for pokemon battles
+would be impractical and time-consuming. Secondly, supervised models are static in nature, they learn
+from pre-exisiting data and do not adapt during deployment. Since this project aims to develop
+an autonomous agnet, interact with and improve through the ever evolving environment of pokemon battles, 
+these limitations made supervised learning an unsuitable choice.
 
-\begin{table}[H]      
-      \begin{tabular}{| m{3.5cm} | m{5cm} | m{5cm} |}
-            \hline
-            \textbf{Type} & \textbf{Pros} & \textbf{Cons} \\ 
-            \hline
-            \textbf{Supervised Learning} & 
-            \begin{itemize}
-                  \item Highly accurate when trained on quality data.
-                  \item Well-understood and widely used.
-                  \item Can be used for both classification and regression tasks.
-            \end{itemize} & 
-            \begin{itemize}
-                  \item Requires large labeled datasets, which can be expensive.
-                  \item Cannot handle unseen data well without retraining.
-                  \item Prone to overfitting if the dataset is too small.
-            \end{itemize} \\ 
-            \hline
-            \textbf{Unsupervised Learning} & 
-            \begin{itemize}
-                  \item Can discover hidden patterns in data.
-                  \item No need for labeled data, reducing data preparation costs.
-                  \item Useful for clustering and anomaly detection.
-            \end{itemize} & 
-            \begin{itemize}
-                  \item Hard to evaluate results objectively.
-                  \item May identify patterns that are not meaningful.
-                  \item Requires significant computational power for large datasets.
-            \end{itemize} \\ 
-            \hline
-            \textbf{Reinforcement Learning} & 
-            \begin{itemize}
-                  \item Learns optimal behavior through trial and error.
-                  \item Can adapt to dynamic environments.
-                  \item Suitable for decision-making problems like robotics and game playing.
-            \end{itemize} & 
-            \begin{itemize}
-                  \item Training can be very slow and resource-intensive.
-                  \item Requires a well-designed reward system to work effectively.
-                  \item Can struggle with long-term dependencies if not tuned properly.
-            \end{itemize} \\ 
-            \hline
-      \end{tabular}
-      \caption{Comparison of Supervised, Unsupervised, and Reinforcement Learning}
-      \label{tab:ml_comparison}
-\end{table}
+Unsupervised learning, while advantageous in situations where data is unlabeled, is primarily
+geared towards pattern discovery and clustering. As such, it lacks the ability to learn 
+optimal behavior through interaction and feedback. Given the goal of this projects agent is not
+merely to identify patterns, but actively engage in all kinds of battles and make sequential decisions,
+unserpervised learning was deemed unsuitable.
+
+Reinforcement learning, by contrast offers a framework where an agent learns through direct interaction
+with an enviromnent by performing actions and recieveing feedback in the form of rewards or penalties.
+This alligns closely with the nature of the normal pokemon battle system, which is sequential, 
+turn-based and goverend by strategic decision making. Reinforcement learning allows the agent to
+adapt and imrpove over time through trial and error, making it a well-suited choice for this project.
+
+Having established that reinforcement learning as the preferred approach, a specific algorithm
+was selected to implement the agent's learning mechanism. The algorithm chosen is the 
+Deep Q-Network (DQN). DQN was selected for a couple of reasons. Firstly it supports discrete 
+action spaces, which aligns well with pokemon battles, where action (moves, switches ect.) are
+clearly defined and finite. Second, DQN is capable of learning from raw numerical representations
+of state data, allowing for efficient learning from the complex state space of pokemon battles.
+Finallu, the use of experience replay and a target network, which are two core components of DQN, 
+helps improve training stability and sample efficiency, which is crucial given computational constraints
+and training duration of this project.
