@@ -1,0 +1,68 @@
+\section{Custom environment cProfile}
+\label{appendix:custom-env-cprofile}
+
+\begin{changemargin}{-2cm}{-2cm}
+
+\begin{lstlisting}[basicstyle=\fontsize{8}{8}\selectfont\ttfamily,language=Python,caption={Excerpt of custom environment implementation cProfile sorted by time.}]
+        45522147 function calls (44317837 primitive calls) in 72.082 seconds
+
+  Ordered by: internal time
+
+  ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+  25340    9.179    0.000    9.179    0.000 {method 'run_backward' of 'torch._C._EngineBase' objects}
+  25460    7.725    0.000   47.040    0.002 battle_agent.py:99(train)
+  223332    6.676    0.000    6.676    0.000 {built-in method torch._C._nn.linear}
+  186428    3.844    0.000    3.845    0.000 {method 'to' of 'torch._C.TensorBase' objects}
+  29672    2.942    0.000    9.161    0.000 battle_agent.py:62(choose_action)
+  76020    1.989    0.000    1.989    0.000 {built-in method torch.cat}
+  148888    1.778    0.000    1.778    0.000 {built-in method torch.relu}
+  50680    1.575    0.000    1.575    0.000 {built-in method torch.stack}
+  251568    1.044    0.000    2.084    0.000 pokemon.py:252(encode)
+  29666    1.014    0.000    1.035    0.000 {built-in method _io.open}
+  327844    0.940    0.000    0.940    0.000 {method 'item' of 'torch._C.TensorBase' objects}
+  25340    0.806    0.000    0.806    0.000 {built-in method torch._C._nn.smooth_l1_loss}
+  788606    0.727    0.000    0.729    0.000 {method 'extend' of 'list' objects}
+  107732    0.696    0.000    0.696    0.000 {built-in method torch.tensor}
+  25340    0.693    0.000    0.693    0.000 {method 'masked_fill' of 'torch._C.TensorBase' objects}
+  25340    0.667    0.000    1.667    0.000 random.py:363(sample)
+  31875    0.652    0.000    0.652    0.000 {method '__exit__' of '_io._IOBase' objects}
+  25340    0.646    0.000    0.646    0.000 {built-in method torch._foreach_clamp_min_}
+  27460    0.586    0.000    4.651    0.000 battle_agent.py:88(store_transition)
+  25340    0.561    0.000    0.561    0.000 {built-in method torch._foreach_sqrt}
+1697427    0.548    0.000    0.845    0.000 random.py:245(_randbelow_with_getrandbits)
+  50680    0.539    0.000    0.539    0.000 {built-in method torch._ops.profiler._record_function_enter_new}
+  50680    0.524    0.000    0.524    0.000 {built-in method torch._foreach_add_}
+  74444    0.500    0.000   10.057    0.000 dqn.py:14(forward)
+  25340    0.498    0.000    0.498    0.000 {built-in method torch.zeros}
+  25340    0.481    0.000    0.481    0.000 {method 'gather' of 'torch._C.TensorBase' objects}
+  25340    0.468    0.000    4.406    0.000 adam.py:534(_multi_tensor_adam)
+  25340    0.448    0.000    0.448    0.000 {built-in method torch._foreach_addcdiv_}
+  314496    0.448    0.000    0.448    0.000 _methods.py:99(_clip)
+  268525    0.441    0.000    0.441    0.000 {built-in method numpy.array}
+  25340    0.439    0.000    0.439    0.000 {method 'max' of 'torch._C.TensorBase' objects}
+  78686    0.432    0.000    1.910    0.000 battle_agent.py:52(_flatten_observation)
+  25340    0.414    0.000    0.414    0.000 {method 'any' of 'torch._C.TensorBase' objects}
+  23764    0.405    0.000    0.405    0.000 {method 'clone' of 'torch._C.TensorBase' objects}
+  25340    0.400    0.000    0.400    0.000 {built-in method torch.ones_like}
+  25340    0.400    0.000    0.400    0.000 {built-in method torch._foreach_lerp_}
+  25340    0.389    0.000    0.389    0.000 {built-in method torch._foreach_addcmul_}
+  23764    0.382    0.000    0.382    0.000 {method 'argmax' of 'torch._C.TensorBase' objects}
+297776/74444    0.381    0.000   10.298    0.000 module.py:1755(_call_impl)
+  62892    0.315    0.000    0.366    0.000 shape_base.py:380(stack)
+  786860    0.311    0.000    0.311    0.000 {method 'flatten' of 'numpy.ndarray' objects}
+  214698    0.304    0.000    0.304    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+  50680    0.303    0.000    0.303    0.000 {built-in method torch._C._group_tensors_by_device_and_dtype}
+  25340    0.302    0.000    0.472    0.000 adam.py:137(_init_group)
+      1    0.295    0.295    0.390    0.390 __init__.py:158(_load_dll_libraries)
+297776/74444    0.288    0.000   10.388    0.000 module.py:1747(_wrapped_call_impl)
+  74444    0.286    0.000    0.286    0.000 {method 'unsqueeze' of 'torch._C.TensorBase' objects}
+2773908/2597068    0.284    0.000    0.444    0.000 {built-in method builtins.isinstance}
+  670068    0.269    0.000    0.269    0.000 module.py:1927(__getattr__)
+  62892    0.264    0.000    2.207    0.000 battle_state.py:24(encode_team)
+  25340    0.260    0.000    1.198    0.000 optimizer.py:931(zero_grad)
+  88380    0.253    0.000    0.610    0.000 multi_binary.py:124(contains)
+
+
+\end{lstlisting}
+\end{changemargin}
+\clearpage

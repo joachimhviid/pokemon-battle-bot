@@ -10,6 +10,44 @@
     \item How these affected GPU utilization and training speed
 \end{itemize}
 
+\subsection{Profiling}
+\label{sec:profiling}
+To evaluate the performance of the environments, the \lstinline|cProfile| module was used to collect detailed runtime statistics during a training loop. 
+Profiling was done on both the custom environment and the Poke-env implementation. The results highlighted the most time-consuming functions and provided 
+insights into where computational resources were being spent. It also showed how much time it took to run a training loop for both environments.
+Each profiling test was performed over a 1000 episode training session to make sure each environment performed the same amount of work.
+
+Poke-env used 311.433 seconds to complete 1000 episodes. When inspecting the cProfile output there was a notably large amount of time spent on serialization.
+Almost half of the execution time was used on serialization, however it was only called one time. This could suggest that the serialization process involves 
+handling a large amount of data or complex objects, resulting in a significant overhead during that single call. It may also indicate that the 
+observations being serialized is particularly large, leading to a longer processing time. 
+
+Following the serialization there was a lot of time spent inside the torch tensor functions used for the actual training portion of the program. Of the Poke-env
+functions there are a notable amount of calls to parsing the Pokemon in battle. Over the course of 1000 episodes, there were 338913 calls to \lstinline|from_pokemon|, 
+a function that parses a Pokemon from the showdown runtime to an observation. This introduces a lot of overhead to the program and could be an entryway
+to optimizing the performance of Poke-env. The cProfile can be found in appendix \ref{appendix:poke-env-cprofile}.
+
+
+% For the custom environment, the majority of the runtime was spent in the environment's step and observation processing functions, with a significant portion of time also attributed to data transfers between the CPU and GPU via \lstinline|torch.to()|. In contrast, the Poke-env implementation showed a higher proportion of time spent in environment logic and communication with the battle server.
+
+% A summary of the profiling results is shown below:
+
+% \begin{itemize}
+%     \item \textbf{Custom environment:} Main bottlenecks were in observation encoding and data transfer to the GPU.
+%     \item \textbf{Poke-env:} Significant time spent in environment logic and server communication.
+% \end{itemize}
+
+% These findings informed subsequent optimization efforts, such as vectorizing observation encoding and exploring batch processing to reduce overhead.
+
+\subsection{Identified bottlenecks}
+\label{sec:bottlenecks}
+By profiling the program runtimes a few bottlenecks were found with regards to performance.
+Both Poke-env and the custom environment had issues that limited their speed. Notably, both environments are
+largely CPU-bound. This means that, even though the processing related to the learning part is handled by the GPU, it is often
+limited by how much data the CPU can provide. Each episode needs to be processed by the CPU in both environments. The observation data
+that is obtained by this processing is then sent to the GPU using \lstinline|torch.to()|. A possible solution to this bottleneck could
+be employing multi-threading to run multiple episodes concurrently in order to sufficiently occupy the GPU with work.
+
 Custom environment 20 iterations pr second
 Poor GPU utilization (around 40 percent)
 
