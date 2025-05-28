@@ -67,6 +67,8 @@ class BattleAgent:
         if random.random() < self.epsilon:
             # Random choice from valid actions only
             valid_actions = np.where(action_mask[0])[0]
+            if len(valid_actions) == 0:
+                print(action_mask)
             # print(valid_actions)
             return np.random.choice(valid_actions)
 

@@ -65,6 +65,7 @@ def main(episodes: int = 1000, target_update: int = 10, log_name: str = 'test-lo
             action = player_agent.choose_action(state, player_action_mask)
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
+            episode_reward = reward
 
             # Store the transition in memory
             player_agent.store_transition(state, action, next_state, reward, done)

@@ -1,0 +1,64 @@
+\section{Poke-env cProfile}
+\label{appendix:poke-env-cprofile}
+
+\begin{changemargin}{-2cm}{-2cm}
+
+
+
+\begin{lstlisting}[basicstyle=\fontsize{8}{8}\selectfont\ttfamily,language=Python,caption={Excerpt of Poke-env implementation cProfile sorted by time.}]
+--- Script Execution Finished ---
+         198618361 function calls (196480467 primitive calls) in 311.433 seconds
+
+   Ordered by: internal time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1  154.404  154.404  154.404  154.404 serialization.py:1141(_save)
+271652/77   23.597    0.000    0.000    0.000 {built-in method _overlapped.GetQueuedCompletionStatus}
+   189342   14.954    0.000   14.954    0.000 {built-in method torch.tensor}
+    28097   13.472    0.000   13.472    0.000 {method 'run_backward' of 'torch._C._EngineBase' objects}
+    28217    7.788    0.000   69.011    0.002 agentV2.py:244(learn)
+   230844    6.869    0.000    6.869    0.000 {built-in method torch._C._nn.linear}
+   386015    3.845    0.000    3.845    0.000 {method 'item' of 'torch._C.TensorBase' objects}
+  3069996    3.339    0.000    9.412    0.000 target.py:35(from_showdown_message)
+   324352    2.793    0.000    2.793    0.000 {built-in method numpy.array}
+   180591    2.225    0.000   13.998    0.000 double_battle.py:256(get_possible_showdown_targets)
+   338913    2.037    0.000    8.914    0.000 observed_pokemon.py:57(from_pokemon)
+    88651    1.861    0.000    8.280    0.000 agentV2.py:332(embed_battle_doubles)
+    25094    1.743    0.000    1.881    0.000 battle_order.py:82(join_orders)
+  1025398    1.699    0.000    2.984    0.000 copy.py:248(_reconstruct)
+   153896    1.658    0.000    1.658    0.000 {built-in method torch.relu}
+  3075689    1.604    0.000    1.605    0.000 {method 'sub' of 're.Pattern' objects}
+    28097    1.522    0.000    3.541    0.000 random.py:363(sample)
+  1028322    1.493    0.000    5.667    0.000 copy.py:62(copy)
+  3648050    1.104    0.000    1.708    0.000 random.py:245(_randbelow_with_getrandbits)
+  3072778    1.053    0.000    3.743    0.000 __init__.py:183(sub)
+   496872    1.020    0.000   11.872    0.000 abstract_battle.py:413(parse_message)
+  1169228    1.012    0.000    1.629    0.000 double_battle.py:71(_get_active_pokemon)
+7542218/7369342    0.961    0.000    1.222    0.000 {built-in method builtins.isinstance}
+    48851    0.911    0.000    0.911    0.000 {method 'max' of 'torch._C.TensorBase' objects}
+  9418982    0.889    0.000    0.889    0.000 {method 'replace' of 'str' objects}
+  1242247    0.861    0.000    0.862    0.000 {method 'extend' of 'list' objects}
+    28097    0.830    0.000    0.830    0.000 {built-in method torch._C._nn.smooth_l1_loss}
+    28097    0.819    0.000    0.819    0.000 {built-in method torch._foreach_clamp_min_}
+    30217    0.779    0.000  102.677    0.003 agentV2.py:467(choose_move)
+    35600    0.742    0.000    0.742    0.000 {method 'WSASend' of '_overlapped.Overlapped' objects}
+  4118786    0.730    0.000    0.730    0.000 {method 'split' of 'str' objects}
+  3079682    0.729    0.000    1.151    0.000 __init__.py:330(_compile)
+7730036/7699147    0.691    0.000    0.697    0.000 {built-in method builtins.len}
+    28097    0.687    0.000    0.687    0.000 {method 'gather' of 'torch._C.TensorBase' objects}
+  5970690    0.685    0.000    0.685    0.000 {method 'get' of 'dict' objects}
+ 144872/1    0.672    0.000    0.000    0.000 base_events.py:1953(_run_once)
+    56194    0.662    0.000    0.662    0.000 {built-in method torch._ops.profiler._record_function_enter_new}
+  3981553    0.648    0.000    0.982    0.000 enum.py:1308(__hash__)
+    56194    0.604    0.000    0.604    0.000 {built-in method torch._foreach_add_}
+    37072    0.601    0.000    2.041    0.000 double_battle.py:83(parse_request)
+    28097    0.601    0.000    0.601    0.000 {built-in method torch._foreach_sqrt}
+  1025398    0.585    0.000    0.585    0.000 {method '__reduce_ex__' of 'object' objects}
+   106131    0.550    0.000  121.615    0.001 player.py:251(_handle_battle_message)
+  8233225    0.544    0.000    0.545    0.000 {built-in method builtins.setattr}
+    88651    0.527    0.000    2.398    0.000 _arraypad_impl.py:545(pad)
+    76948    0.516    0.000   10.057    0.000 agentV2.py:171(forward)
+
+\end{lstlisting}
+\end{changemargin}
+\clearpage
