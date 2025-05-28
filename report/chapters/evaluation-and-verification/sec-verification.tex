@@ -1,4 +1,4 @@
-\section{verification}
+\section{Verification}
 \label{sec:verification}
 
 This chapter evaluates the performance and learning progression og the Deep Q-network 
@@ -58,15 +58,16 @@ compared to the just 1000 episodes in the first iteration, without crashing or i
 
 Notably, while the average reward trend is still noisy, the longer training horizon
 and improved reward shaping, has allowed the agent to learn more stable strategies, over time.
+
 \subsection{Discussion}
-The improves between iterations, can be attributed to several factors:
+The improvements between iterations, can be attributed to several factors:
 \begin{itemize}
-    \item Expanded state space: Going form a state space of 92 features in the first iteration
-    to 128 features in the second iteration, allows the agent to capture more complex information
+    \item Expanded state space: Going from a state space of 92 features in the first iteration
+    to 128 features in the second iteration, allowed the agent to capture more complex information
     about the environment, leading to better decision making.
-    \item Replay buffer: Iteration 2's structured implementation of the replay buffer, improves 
+    \item Replay buffer: Iteration 2's structured implementation of the replay buffer, improved 
     learning consistency and sample efficiency.
     \item Reward design: By incorporating move intermediate rewards (e.g., for fainting enemies or preserving HP),
-    the agent receives more meaningful feedback per action, leading to smoother learning curevs.
+    the agent receives more meaningful feedback per action, leading to smoother learning curves.
     \item Network Depth: A deeper DQN enabled our model to better capture complex patterns in the data.
 \end{itemize}
