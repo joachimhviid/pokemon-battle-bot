@@ -43,52 +43,32 @@ all of their abilites, moves and types, as well as all of the held items that ca
 All of this makes PokeAPI a strong candidate for the projects data source, both in terms of data completeness, but also ease of use.
 
 
-\subsection{Choice of Data Source}
+\subsection{Design Desicion: Data Source}
+Selecting a reliable and appropriate data source was a diffucult step in the design
+of this project, as the quality, structure and source of the data could possibly 
+affect the performance of the system. Several option were considered each with their
+own pros and cons.
 
+\textbf{Data mining} was evaluated to be the most accurate data source, as it would
+provide the most complete and up-to-date data directly from the game files. This method
+however comes with some significant drawbacks. It requires a lot of technical skills and tooling
+to extact and implement the data correctly, which introduces complecity and a high development overhead.
+Moreover, data mining from a prprietary game is a grey area in terms of legality and raises ethical 
+and legal concerns, making it less desirable for this project.
 
+Another option was to use \textbf{Kaggle}, a popular platform known for its vast collection
+of datasets and strong community support. Kaggle procides access to a wide range of Pokemon-related
+datasets, which could potentially accelerate development. However, many datasets on Kaggle
+may be outdated, inconsistent, incomplete or even AI-generated, leadning to concerns about data 
+validity and reliability. Additionally, the large amount of datasets can make it difficult to 
+identify which dataset is best suited for the project's requirements and specifications.
 
-\begin{table}[h]      
-      \begin{tabular}{| m{3.5cm} | m{5cm} | m{5cm} |}
-            \hline
-            \textbf{Type} & \textbf{Pros} & \textbf{Cons} \\ 
-            \hline
-            \textbf{Data Mining} & 
-            \begin{itemize}
-                  \item Getting the most accurate data from the games themselves
-            \end{itemize} & 
-            \begin{itemize}
-                  \item Requires a lot of work and technical knowledge
-                  \item Isnt ethical
-            \end{itemize} \\ 
-            \hline
-            \textbf{kaggle} & 
-            \begin{itemize}
-                  \item Big community support
-                  \item A lot of datasets to choose from
-            \end{itemize} & 
-            \begin{itemize}
-                  \item Not always up to date
-                  \item Can be AI generated
-                  \item Too many datasets to choose from
-            \end{itemize} \\ 
-            \hline
-            \textbf{PokeAPI} & 
-            \begin{itemize}
-                  \item Contains all pokemon species, movesets, abilities, items and ect.
-                  \item Easy to use
-                  \item Has a lot of community support
-            \end{itemize} & 
-            \begin{itemize}
-                  \item Risk its down for maintenance
-                  \item Requires internet connection
-            \end{itemize} \\ 
-            \hline
-      \end{tabular}
-      \caption{Comparison of researched Data sources}
-      \label{tab:datasource_comparison}
-  \end{table}
-
-
-
+Ultimately, the decision made was to use \textbf{PokeAPI} as the data source for the project. PokeAPI
+is a well-maintained and widely used public API that provides structured and comprehensice Pokemon data,
+including species, movesets, abilities, items and alot more. It is easy to integrate into
+a Python-based project, which is the language of choice for this project. The API is 
+supported by a strong community, making it easier to troubleshoot issues and ensure long-term'
+mainttainability. While reliance on an external API does introduce som risk of downtime and 
+requreies an internet connection, these concers were considered manageable, within the scope of the project.
 
 
