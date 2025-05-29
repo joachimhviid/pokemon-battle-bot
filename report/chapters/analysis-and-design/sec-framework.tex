@@ -32,5 +32,36 @@ than TensorFlow on smaller-scale models it has made a huge leap in favorability 
 scientific-research and smaller scale projects. \cite{simplilearn}
 
 \subsection{Design decision: ML Frameworks}
+The selection of a machine learning framework is a key architectual decision, that
+will have a significant impact on the models development, debugging, training efficiency,
+and integration with other components. The two leading frameworks that were considered were
+TensorFlow and PyTorch. 
+
+\textbf{TensorFlow}, developed by Google, is widely adopted in industry for building 
+and deploying large-scale machine learning systems. It offers robust tools along with
+a versatile framework that supports production-grade AI applications. Its sttic computation
+graphs can improve performance in production scnearios and is generally favoured for 
+large-scale applications. However, TensorFlow comes with a muc hsteeper learning curve,
+especially for beginners. Its static graph model can complicate debugging and 
+limit flexibility during development often requiring additional abstraction layers.
+
+On the other hand, \textbf{PyTorch}, developed by Meta/Facebook, is known for its dynamic
+computation grpahs, which allows for greater flexibility and ease of use. It adopts a
+more pythonic coding style, making it more intuitive to devlopers already familiar with
+Python. PyTorch also integrates well with tools such as jupyter notebooks and Gymnasium,
+which are usefull for reinforcement learning tasks and interactive development. Additionally,
+PyTorch has shown faster training times for smaller-scale models, which aligns well with
+the scope and scale of this project.
+
+Despite the limitations in production-readiness and scalability and the fact that the
+Poke-env environment that we are using is made using TensorFlow, the decision was made
+to use Pytorch for this project. The reasons for this was due to its flexibility, better
+debugging support and smoother development experience and learning curve. The advantages
+were particularly important given the iterative nature of designing and tuning of reinforcement
+agent, where frequent model adjustments and state inspections are necessary. 
+
+In conclusion, Pytorch provided a more accessible and developer-friendly framework for
+implementing and experimenting with Deep Q-Networks, making it a suitable choice for this
+bachelor-level project.
 
 
