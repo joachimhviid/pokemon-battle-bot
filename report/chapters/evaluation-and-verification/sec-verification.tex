@@ -2,15 +2,15 @@
 \label{sec:verification}
 
 This chapter evaluates the performance and learning progression og the Deep Q-network
-(DQN)-based pokemon battle agent over two iteration. The objective of this analysis
-is to validate the effectiveness of the chosen algorithm and wether we have achieved
+(DQN)-based pokemon battle agent over three iterations. The objective of this analysis
+is to validate the effectiveness of the chosen algorithm and whether we have achieved
 the desired results based on our reqirements. Performance is assessed through empirical
 training results, including average rewards and win rates.
 
 \subsection{Methodology}
 Over the 2 Poke-env iterations, the verification process was conducted using the same hyperparameters
 but using different formats of the pokemon battle environment.
-The first iteration used a signle battle format with randomly selected pokemon each
+The first iteration used a single battle format with randomly selected pokemon each
 episode, while the second iteration was trained using the VGC 2025 regulation G format.
 Each version of the agent, was evaluated over a series of training episodes, and data
 was collected for:
@@ -18,6 +18,15 @@ was collected for:
     \item Average reward per interval of 10 episodes
     \item Win rate per interval of 10 episodes.
 \end{itemize}
+
+\subsubsection{Self-play vs Heuristic Opponents}
+All iterations were trained using self-play. In self-play, the agent competes against a copy of itself, allowing it to 
+continually adapt and improve its strategies. This approach encourages the development of stronger policies, as the agent 
+must learn to counter its own tactics rather than relying on one single strategy. 
+A quirk of self-play is that it often leads to a cyclical arms race, where the agent alternates between exploiting and adapting
+to its own weaknesses. This has been shown to be an effective method when it comes to training agents in a competitive environment \cite{pmlr-v119-bai20a} like
+Pokemon battles. In contrast, training against a heuristic or rule-based opponent might result in the agent overfitting to
+a specific strategy, limiting its ability to generalize its own strategies.
 
 \subsection{Results and analysis}
 \subsubsection{Iteration 1 - Baseline model}
