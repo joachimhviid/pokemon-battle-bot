@@ -1,6 +1,3 @@
-import gym
-import gym.envs
-
 import numpy as np
 import torch 
 import torch.nn as nn 
@@ -11,7 +8,7 @@ import json
 import time
 import os
 
-from gym import spaces
+from gymnasium import spaces
 from collections import deque
 from matplotlib import pyplot as plt
 from dqn import DQN

@@ -376,6 +376,24 @@
   year   = {2025}
 }
 
+
+@InProceedings{pmlr-v119-bai20a,
+  title = 	 {Provable Self-Play Algorithms for Competitive Reinforcement Learning},
+  author =       {Bai, Yu and Jin, Chi},
+  booktitle = 	 {Proceedings of the 37th International Conference on Machine Learning},
+  pages = 	 {551--560},
+  year = 	 {2020},
+  editor = 	 {III, Hal Daumé and Singh, Aarti},
+  volume = 	 {119},
+  series = 	 {Proceedings of Machine Learning Research},
+  month = 	 {7},
+  publisher =    {PMLR},
+  pdf = 	 {http://proceedings.mlr.press/v119/bai20a/bai20a.pdf},
+  url = 	 {https://proceedings.mlr.press/v119/bai20a.html},
+  abstract = 	 {Self-play, where the algorithm learns by playing against itself without requiring any direct supervision, has become the new weapon in modern Reinforcement Learning (RL) for achieving superhuman performance in practice. However, the majority of exisiting theory in reinforcement learning only applies to the setting where the agent plays against a fixed environment; it remains largely open whether self-play algorithms can be provably effective, especially when it is necessary to manage the exploration/exploitation tradeoff. We study self-play in competitive reinforcement learning under the setting of Markov games, a generalization of Markov decision processes to the two-player case. We introduce a self-play algorithm—Value Iteration with Upper/Lower Confidence Bound (VI-ULCB)—and show that it achieves regret $\mathcal{\tilde{O}}(\sqrt{T})$ after playing $T$ steps of the game, where the regret is measured by the agent’s performance against a fully adversarial opponent who can exploit the agent’s strategy at any step. We also introduce an explore-then-exploit style algorithm, which achieves a slightly worse regret of $\mathcal{\tilde{O}}(T^{2/3})$, but is guaranteed to run in polynomial time even in the worst case. To the best of our knowledge, our work presents the first line of provably sample-efficient self-play algorithms for competitive reinforcement learning.}
+}
+
+
 @online{HeldItems,
   author = {Bulbapedia},
   title  = {Held Item},
