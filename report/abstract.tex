@@ -1,10 +1,14 @@
 % abstract / resume
 \begin{abstract}
-  Pokemon battles are complex environments with high variance. There are many factors that affect the outcome of a battle.
-  Did a Pokemon land a critical hit? Did a move miss its target at a crucial moment? This project aims to learn how to
-  optimize battle strategies and calculate how well a team of Pokemon match up against another team of Pokemon. 
-  The project explores the use of reinforcement learning implemented using Gymnasium with Pytorch in order 
-  to achieve these goals. The project uses Deep Q-Networks to train its AI agents used for the strategy optimizations.
-  The project describes the implementation of both pre-built environments and custom environments used by the agents.
-  Finally, the project reflects on the findings gathered during the training of the agents.
+  Pokemon battles represent a complex and high-variance environment that is influenced by a wide range of mechanics such as 
+  type advantages, status effects and probabilistic events like move accuracy and critical hits. This project 
+  investigates whether reinforcement learning can be used to optimize strategies within such an environment, and 
+  whether knowledge gained from a trained agent can help human players improve their decision-making in Pokemon battles. 
+  The study uses Deep Q-Networks (DQN) implemented with PyTorch and Gymnasium to train agents capable of playing Pokemon 
+  battles. A custom battle simulator was developed to overcome the limitations of third-party environments and to provide 
+  a fully controllable and extensible environment. The report details the design, implementation and iterative 
+  development of both the agents and the environment, including handling of game mechanics, state representation 
+  and reward functions. Evaluation includes agent performance over 10.000 self-play episodes 
+  and profiling of the systems performance. The project concludes with reflections on learned agent behavior, performance 
+  bottlenecks and opportunities for future improvement.
 \end{abstract}
