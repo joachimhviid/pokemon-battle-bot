@@ -17,10 +17,10 @@ A model is a specific instance of a trained system that has learned from the dat
 The recipe (algorithm) was used to prepare it, but now it is a ready-to-use product.
 
 \subsection{Supervised Learning}
-The supervised learning approach is the more common approach of 3 machine learning approaches.
+The supervised learning approach is the more common approach of the 3 machine learning approaches.
 This is due to its ability to predict a wide range of problems accurately,
 however its effectiveness is dependent on the quality of the training data.
-Supervised learning uses labeled datasets to train the model,
+Supervised learning uses labeled datasets to train a model,
 which means that from the input data we expect the correct output data as well.
 \cite{GoogleCloud-SL}
 
@@ -28,15 +28,14 @@ Some examples of supervised learning are spam email classifiers,
 so whether or not an email is spam, and weather prediction models.
 
 \subsection{Unsupervised Learning}
-Unsupervised learning is a type of machine learning
-that learns from data without human supervision. Unlike supervised learning,
-unsupervised machine learning models are given unlabeled data and are allowed to discover patterns
+Unsupervised learning is a type of machine learning that learns from data without human supervision. 
+Unlike supervised learning, unsupervised machine learning models are given unlabeled data and are allowed to discover patterns
 and relationships without any explicit guidance or instructions. \cite{GoogleCloud-UL}
 
 \subsection{Reinforcement Learning}
 Reinforcement learning is the third type of machine learning.
 Unlike the previous branches of machine learning,
-reinforcement learning relies on a datasets with predefined answers, it learns by experience.
+reinforcement learning doesnt rely on a dataset with predefined answers, it learns by experience.
 In reinforcement learning, an agent learns to achieve a goal in
 uncertain and potentially complex environments by receiving feedback
 through rewards and penalties. \cite{RL-GeeksForGeeks}
@@ -67,12 +66,12 @@ The key concepts of reinforcement learning:
       \item Rewards: Feedback from the environment, that helps guide the learning process.
       \item Policy: The agent's strategy for decision making.
       \item Value Function: Predicts future rewards of a state and/or action.
-      \item Exploration vs Exploitation: Balancing between trying new action or using known best actions.
+      \item Exploration vs Exploitation: Balancing between trying new actions or using known best actions.
 \end{itemize}
 
 
 \subsubsection{Types of Reinforcement Learning Agents}
-And even in reinfocement learning there exists subsets of algorithms that can be used, where
+Even in reinfocement learning there exists subsets of algorithms that can be used, where
 the two main types of reinforcement learning algorithms:
 \begin{itemize}
       \item Model-Free Reinforcement Learning: Uses experience to learn directly from one or both of simpler quantities, state/action value-functions or policies.
@@ -107,7 +106,7 @@ the expected return (cumulative reward) from a given state or state-action pair.
 Policy-based methods, on the other hand learn a policy direcly without estimating
 value functions. They are usefull in continuous action spaces and stochastic policies.
 \begin{itemize}
-      \item REINFORCE is on one such policy and is a Monte Carlo policy gradient methods, 
+      \item REINFORCE is on one such policy and is a Monte Carlo policy gradient method, 
       that optimizes the policy by adjusting probability of taking actions that lead to a 
       higher cumulative reward. The policy is updated accoding to the gradient of expected rewards,
       where \(\mathbb{R}\) is the cumulative reward. \cite{Types-of-Reinforcement-Learning}
