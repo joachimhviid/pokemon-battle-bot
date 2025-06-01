@@ -5,7 +5,7 @@ In order to simulate a Pokemon battle, it is necessary to have the data needed f
 The simulator needs data on Pokemon species and their stats and moves, as well as data on what the individual moves do.
 It needs to know about Pokemon abilities and held items, and how they interact with eachother.
 
-To this end it is important to find a good data source to work with. The following are some options to consider
+To this end, it is important to find a good data source to work with. The following are some options to consider
 for this purpose.
 
 \subsection{Data mining}
@@ -34,7 +34,7 @@ This data source is potentially viable for the project, but would require some e
 
 \subsection{PokeAPI}
 PokeAPI is an open-source REST API featuring all available Pokemon data \cite{PokeAPI}. Its data is sourced by multiple different projects, most notably 
-Veekun \cite{Veekun} a site with a collection of data mined info from the Pokemon games. PokeAPI even has some wrapper libraries that can be easily integrated
+Veekun \cite{Veekun}, a site with a collection of data-mined info from the Pokemon games. PokeAPI even has some wrapper libraries that can be easily integrated
 into the project \cite{PokeAPIWrapperLibs}. 
 
 PokeAPI contains all the data needed for the project and is neatly organized in their API. It contains all the Pokemon species and their various forms, 
@@ -44,31 +44,29 @@ All of this makes PokeAPI a strong candidate for the projects data source, both 
 
 
 \subsection{Design Desicion: Data Source}
-Selecting a reliable and appropriate data source was a diffucult step in the design
+Selecting a reliable and appropriate data source was a difficult step in the design
 of this project, as the quality, structure and source of the data could possibly 
-affect the performance of the system. Several option were considered each with their
+affect the performance of the system. Several options were considered each with their
 own pros and cons.
 
 \textbf{Data mining} was evaluated to be the most accurate data source, as it would
 provide the most complete and up-to-date data directly from the game files. This method
 however comes with some significant drawbacks. It requires a lot of technical skills and tooling
-to extact and implement the data correctly, which introduces complecity and a high development overhead.
-Moreover, data mining from a prprietary game is a grey area in terms of legality and raises ethical 
+to extact and implement the data correctly, which introduces complexity and a high development overhead.
+Moreover, data mining from a proprietary game is a grey area in terms of legality and raises ethical 
 and legal concerns, making it less desirable for this project.
 
 Another option was to use \textbf{Kaggle}, a popular platform known for its vast collection
-of datasets and strong community support. Kaggle procides access to a wide range of Pokemon-related
+of datasets and strong community support. Kaggle provides access to a wide range of Pokemon-related
 datasets, which could potentially accelerate development. However, many datasets on Kaggle
-may be outdated, inconsistent, incomplete or even AI-generated, leadning to concerns about data 
+may be outdated, inconsistent, incomplete or even AI-generated, leading to concerns about data 
 validity and reliability. Additionally, the large amount of datasets can make it difficult to 
 identify which dataset is best suited for the project's requirements and specifications.
 
 Ultimately, the decision made was to use \textbf{PokeAPI} as the data source for the project. PokeAPI
-is a well-maintained and widely used public API that provides structured and comprehensice Pokemon data,
+is a well-maintained and widely used public API that provides structured and comprehensive Pokemon data,
 including species, movesets, abilities, items and alot more. It is easy to integrate into
 a Python-based project, which is the language of choice for this project. The API is 
-supported by a strong community, making it easier to troubleshoot issues and ensure long-term'
-mainttainability. While reliance on an external API does introduce som risk of downtime and 
-requreies an internet connection, these concers were considered manageable, within the scope of the project.
-
-
+supported by a strong community, making it easier to troubleshoot issues and ensure long-term
+maintainability. While reliance on an external API does introduce som risk of downtime and 
+requires an internet connection, these concerns were considered manageable within the scope of the project.
