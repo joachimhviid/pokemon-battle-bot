@@ -1,7 +1,7 @@
 \section{Programming language}
 \label{sec:choice-of-language}
 
-When starting a large project like a battle simulator it is important to consider your options when it comes to choosing a technology to build with.
+When starting a large project like a battle simulator it is important to consider the options when it comes to choosing a technology to build with.
 For a technical project, the initial building block is the programming language. While it is possible to do almost anything with any 
 programming language, there are some that are more suited to certain tasks than others. For the battle simulator, a tool that is well 
 suited for machine learning and handling large sets of data is desired.
@@ -14,7 +14,7 @@ easier to focus on what is important for this project: the machine learning.
 Python is also home to a large ecosystem of libraries made specifically for the purpose of machine learning. Examples of these libraries are
 TensorFlow, PyTorch and Pandas.
 
-However, Python is an interpreted language with slow runtime performance compared to compiled languages such as C++. 
+However, Python is an interpreted language with a slow runtime performance compared to compiled languages such as C++. 
 If performance becomes an issue it could be desirable to use a more performant language.
 
 
@@ -37,13 +37,13 @@ for machine learning, so choosing C++ would involve creating a lot of tools befo
 \end{quote}
 
 JavaScript is the main language used by the browser and has traditionally not been used for machine learning. In spite of this, Atwood's Law \cite{AtwoodsLaw} dictates
-that machine learning in the browser was inevitable, and has in recent times been proven correct. JavaScript has received a number of libraries
+that machine learning in the browser is inevitable, and has in recent times been proven correct. JavaScript has received a number of libraries
 for machine learning over the years, such as brain.js \cite{BrainJS}, ml5.js \cite{ML5JS} and even a JavaScript version of TensorFlow \cite{TensorFlowJS}.
 
 Using JavaScript could be beneficial as it is easy to use, like Python, but runs on any platform that has a browser. JavaScript loses its edge over Python
-when it comes to performance. While both languages are interpreted, JavaScript runs in the browser and as such only has access to WebGL and WebGPU. 
+when it comes to performance. While both languages are interpreted, JavaScript runs in the browser and as such only has access to WebGL and WebGPU when it comes to utilizing the GPU's power. Using the systems GPU is important as it can greatly speed up the machine learning process. 
 These APIs are not supported on all devices and are generally less efficient than the low-level compiled C libraries used in Python \cite{WebGPUvsCUDA}.
-There is also a significant performance overhead because of these APIs that can slow down model execution \cite{DeepLearningInBrowsers}. Therefore JavaScript
+There is also a significant performance overhead because of these APIs that can slow down model execution \cite{DeepLearningInBrowsers}. For that reason, JavaScript
 might not be suitable for this project.
 
 In F5 (see table \ref{tab:functional-requirements}) a GUI is described such that a user might be able to visualize the actions of an agent. JavaScript would be an 
@@ -55,18 +55,18 @@ Unity is a popular game engine used to create both 3D and 2D games and simulatio
 for training agents using various methods such as reinforcement learning or imitation learning \cite{UnityMLAgents}. 
 
 Compared to Python, Unity has a steep learning curve,
-due to the required knowledge in C\# and Unity's domain specific constructs based on game development concepts. Unity has excellent support for 3D environments and controls,
-something that Python might struggle with out of the box. However, a Pokemon battle simulator is not bound to a physics enabled 3D environment and as such
+due to the required knowledge of C\# and Unity's domain specific constructs based on game development concepts. Unity has excellent support for 3D environments and controls,
+something that Python might struggle with out of the box. However, a Pokemon battle simulator does not require a physics-enabled 3D environment and as such
 Unity might be overly complex for the purposes of this project.
 Unity is also lacking in certain traditional machine learning tasks such as data analysis, making further learnings more difficult to attain.  
 
 \subsection{Design Decision: Programming language}
 After evaluating the strengths and weaknesses of each language, Python was chosen as the programming language for this project. 
-Its extensive ecosystem of machine learning libraries, ease of use, and strong community support made it the most suitable choice for developing
+Its extensive ecosystem of machine learning libraries, ease of use and strong community support made it the most suitable choice for developing
 and working with machine learning. While C++ offered better performance, the lack of available machine learning libraries and
 increased development complexity as well as lack of experience with the language outweighed its benefits for this use case. JavaScript and 
 Unity with C\# were also considered, but their limitations in performance and unnecessary complexity for the project's requirements led to 
-their exclusion as development languages. One point for using Unity is that, if the project were to expand to also include out of battle scenarios, it 
+their exclusion as development languages. One point for using Unity was that, if the project were to expand to also include out of battle scenarios, it 
 would become a more attractive option, due to being a game development focused engine.
-In the end, Python's balance of simplicity, flexibility, and powerful libraries like PyTorch aligned best with the goals of the battle simulator and became the 
+In the end, Python's balance of simplicity, flexibility and powerful libraries like PyTorch aligned best with the goals of the battle simulator and became the 
 programming language for this project.
