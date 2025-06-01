@@ -72,23 +72,21 @@ The key concepts of reinforcement learning:
 
 
 \subsubsection{Types of Reinforcement Learning Agents}
-And even in reinfocement learning there exists subsets of algorithms that can be used, where
-the two main types of reinforcement learning algorithms:
+Even in reinforcement learning there are subsets of algorithms that can be used. The two main types of reinforcement learning algorithms work in the following ways:
 \begin{itemize}
-      \item Model-Free Reinforcement Learning: Uses experience to learn directly from one or both of simpler quantities, state/action value-functions or policies.
-      \item Model-Based Reinforcement Learning: Uses experience to construct an internal model of the 
-      transitions and immediate outcomes in the environment.
+      \item \textbf{Model-Free Reinforcement Learning} uses experience to learn directly from one or both of simpler quantities, state/action value-functions or policies. % TODO: I am not sure I understand what this says 
+      \item \textbf{Model-Based Reinforcement Learning} uses experience to construct an internal model of the transitions and immediate outcomes in the environment.
 \end{itemize}
 
-\paragraph{Model-free Reinforcement Learning}
+\subsubsection{Model-free Reinforcement Learning}
 Model-free methods bypass the need for an environmental model and instead
-learns a policy or value function directly through interactions. These metehods
+learns a policy or value function directly through interactions. These methods
 can generally be simpler to implement but often, require a lot more training data 
 and memory to store Q-tables for large environments.
 Value-based methods, focus on the learning of a value function that estimates 
 the expected return (cumulative reward) from a given state or state-action pair.
 \begin{itemize}
-      \item Q-learning is on of these value-based methods, and is an off policy algorithm,
+      \item Q-learning is a value-based method, and is an off-policy algorithm,
       that learns the optimal action-value function \(Q*(s,a) \). The agent updates the 
       Q-values using to Bellman's equation: \cite{Types-of-Reinforcement-Learning}
       \begin{equation}
@@ -104,51 +102,51 @@ the expected return (cumulative reward) from a given state or state-action pair.
       to approximate Q-values. \cite{Types-of-Reinforcement-Learning}
 \end{itemize}
 
-Policy-based methods, on the other hand learn a policy direcly without estimating
-value functions. They are usefull in continuous action spaces and stochastic policies.
+Policy-based methods, on the other hand learn a policy directly without estimating
+value functions. They are useful in continuous action spaces and stochastic policies.
 \begin{itemize}
-      \item REINFORCE is on one such policy and is a Monte Carlo policy gradient methods, 
-      that optimizes the policy by adjusting probability of taking actions that lead to a 
-      higher cumulative reward. The policy is updated accoding to the gradient of expected rewards,
-      where \(\mathbb{R}\) is the cumulative reward. \cite{Types-of-Reinforcement-Learning}
+      \item \textbf{REINFORCE} is one such policy and is a Monte Carlo policy gradient method, 
+      that optimizes the policy by adjusting the probability of taking actions that lead to a 
+      higher cumulative reward. The policy is updated according to the gradient of expected rewards,
+      where \(\mathbb{R}\) is the cumulative reward. \cite{Types-of-Reinforcement-Learning} % TODO: should this just be a normal R?
       \begin{equation}
             \nabla J(\theta) = \mathbb{E} \left[\nabla \log \pi_{\theta}(s_t,a_t) R_t \right]
             \label{equation:policy_gradient}
       \end{equation}
-      \item Actor-critic methods, combine both the policy learning (actor) with a value
+      \item \textbf{Actor-critic methods} combine both the policy learning (actor) with a value
       function estimator (critic) for a more stable learning process. \cite{Types-of-Reinforcement-Learning}
-      \item Proximal Policy Optimization (PPO) is an improvement upon the basic policy
+      \item \textbf{Proximal Policy Optimization (PPO)} is an improvement upon the basic policy
       gradient methods. It uses a clipped objective function to limit the amount of policy 
-      changes, to prevent drastic cnages during training, and thus improving stability. \cite{Types-of-Reinforcement-Learning}
+      changes that can be made, to prevent drastic changes during training, and thus improving stability. \cite{Types-of-Reinforcement-Learning}
 \end{itemize}
-Some disadvantages of policy-based methods is they have a high variance in gradient estimates and often requires careful 
+Some disadvantages of policy-based methods is that they have a high variance in gradient estimates and often requires careful 
 tuning of learning rates and other hyperparameters. \cite{Types-of-Reinforcement-Learning}
 
-\paragraph{Model-Based Reinforcement Learning}
-Model-based RL aims to learn a model of the environment's transitions dynamics
+\subsubsection{Model-Based Reinforcement Learning}
+Model-based RL aims to learn a model of the environment's transitions, dynamics % TODO: list? (comma separated or not)
 and reward function. Once a model is accurate enough, it can be used to 
-simulate trajectories and plan ahead, making an agent learning significantly more
+simulate trajectories and plan ahead, making an agent's learning significantly more
 sample efficient. There are two main approaches to model-based RL \cite{ReinforcementLearning}:
 \begin{itemize}
-      \item Learn the model 
+      \item Learn the model % TODO: flow?
       \item Given a model
 \end{itemize}
-Typically, model-based agents has a model of the environment, a planner function that uses
+Typically, model-based agents have a model of the environment, a planner function that uses
 the model to search for optimal actions (e.g., via tree search or Optimization), and a policy
 that may be learned directly or indirectly through planning.
 Some types of model-based methods are:
 \begin{itemize}
-      \item Dyna Architecture (Sutton) that combines learning from lear experiences, 
-      with a simulated planning from the learned model.
+      \item Dyna Architecture (Sutton) that combines learning from real experiences, 
+      with a simulated plan from the learned model.
       \item Monte Carlo Tree Seach (MCTS) which is used in conjunction with learned models
       to plan moves by simulating possible future states (Notably used in AlphaGo). \cite{ReinforcementLearning}
       \item Model predictive Control (MPC), is a planning based method, where the agent
-      uses a learned or predefined model to predict a few stepts in the environment and 
-      selcts the action that optiomizes the cumulative reward function over a planning horizon. \cite{Types-of-Reinforcement-Learning} 
+      uses a learned or predefined model to predict a few steps ahead in the environment and 
+      selects the action that optimizes the cumulative reward function over a planning horizon. \cite{Types-of-Reinforcement-Learning} 
 \end{itemize}
-The drawbacks of model-based methods is that altough they can have more assumptions
-and approximations on a given task, but they may only be limited to that sepcific 
-type of task. It also requires accurate models of the environment and building a model
+The drawbacks of model-based methods is that although they can make more assumptions
+and approximations on a given task, they are limited to only that specific 
+type of task. It also requires an accurate model of the environment and building a model
 can be computationally difficult and expensive and therefore lead to inaccuracies. \cite{Types-of-Reinforcement-Learning}
 
 \subsection{Design Decision: Machine Learning Approach}
@@ -158,7 +156,7 @@ were considered: Supervised learning, unsupervised learning and reinforcement le
 approach offers distinct advantages and challenges, but given the problem domain and 
 project goals, reinfocement learning was ultimatly selected as the most appropriate method.
 
-\textbf{Supervised learning}, is a powerfull approach that is known for its high accurarcy when trained on
+\textbf{Supervised learning}, is a powerful approach that is known for its high accurarcy when trained on
 suffeciently large and labeled datasets. However, its not well-suited to this project for
 two main reasons. Firstly, aquiring a large and detailed labeled dataset for pokemon battles
 would be impractical and time-consuming. Secondly, supervised models are static in nature, they learn
