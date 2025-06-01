@@ -153,34 +153,34 @@ can be computationally difficult and expensive and therefore lead to inaccuracie
 In the designing of the machine learning model for this project, three core learning paradigms
 were considered: Supervised learning, unsupervised learning and reinforcement learning. Each 
 approach offers distinct advantages and challenges, but given the problem domain and 
-project goals, reinfocement learning was ultimatly selected as the most appropriate method.
+project goals, reinforcement learning was ultimately selected as the most appropriate method.
 
-\textbf{Supervised learning}, is a powerful approach that is known for its high accurarcy when trained on
-suffeciently large and labeled datasets. However, its not well-suited to this project for
-two main reasons. Firstly, aquiring a large and detailed labeled dataset for pokemon battles
+\textbf{Supervised learning} is a powerful approach that is known for its high accuracy when trained on
+sufficiently large and labeled datasets. However, it is not well-suited to this project for
+two main reasons. Firstly, acquiring a large and detailed labeled dataset for Pokemon battles
 would be impractical and time-consuming. Secondly, supervised models are static in nature, they learn
 from pre-exisiting data and do not adapt during deployment. Since this project aims to develop
-an autonomous agnet, interact with and improve through the ever evolving environment of pokemon battles, 
+an autonomous agent, that interacts with and improves through the ever evolving environment of Pokemon battles, 
 these limitations made supervised learning an unsuitable choice.
 
 \textbf{Unsupervised learning}, while advantageous in situations where data is unlabeled, is primarily
 geared towards pattern discovery and clustering. As such, it lacks the ability to learn 
 optimal behavior through interaction and feedback. Given the goal of this projects agent is not
 merely to identify patterns, but actively engage in all kinds of battles and make sequential decisions,
-unserpervised learning was deemed unsuitable.
+unsupervised learning was deemed unsuitable.
 
 \textbf{Reinforcement learning}, by contrast offers a framework where an agent learns through direct interaction
-with an enviromnent by performing actions and recieveing feedback in the form of rewards or penalties.
-This alligns closely with the nature of the normal pokemon battle system, which is sequential, 
-turn-based and goverend by strategic decision making. Reinforcement learning allows the agent to
-adapt and imrpove over time through trial and error, making it a well-suited choice for this project.
+with an enviromnent by performing actions and receiving feedback in the form of rewards or penalties.
+This aligns closely with the nature of the normal Pokemon battle system, which is sequential, 
+turn-based and governed by strategic decision making. Reinforcement learning allows the agent to
+adapt and improve over time through trial and error, making it a well-suited choice for this project.
 
-Having established that reinforcement learning as the preferred approach, a specific algorithm
+Having established reinforcement learning as the preferred approach, a specific algorithm
 was selected to implement the agent's learning mechanism. The algorithm chosen is the 
-Deep Q-Network (DQN). DQN was selected for a couple of reasons. Firstly it supports discrete 
-action spaces, which aligns well with pokemon battles, where action (moves, switches ect.) are
+Deep Q-Network (DQN). DQN was selected for a couple of reasons. Firstly, it supports discrete 
+action spaces, which aligns well with Pokemon battles, where actions (moves, switches ect.) are
 clearly defined and finite. Second, DQN is capable of learning from raw numerical representations
-of state data, allowing for efficient learning from the complex state space of pokemon battles.
-Finallu, the use of experience replay and a target network, which are two core components of DQN, 
-helps improve training stability and sample efficiency, which is crucial given computational constraints
-and training duration of this project.
+of state data, allowing for efficient learning from the complex state space of a Pokemon battle.
+Finally, the use of experience replay and a target network, which are two core components of DQN, 
+helps improve training stability and sample efficiency, which is crucial given the computational constraints
+and training duration allotted for this project.
