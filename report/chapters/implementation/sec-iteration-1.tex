@@ -1,11 +1,17 @@
 \section{Iteration 1: Agent and a Pokemon environment} 
 \label{sec:Iteration-1-Agent-Environment}
 
-The first iteration of the implementation focuses on having a minimum viable product \(MVP\). The MVP
-consists of all MUST (M) requirements, which can be used as a baseline for next iterations.
-Look chapter \ref{sec:functional-requirements} for a complete list of the MUST have requirements.
-The MVP consists of a custom agent, with a custom training loop, that plays against a poke-env random agent,
-in a generation 9, single battle pokemon showdown environment, where held items are available. 
+The first iteration of the implementation focused on developing a foundational version of the 
+agent that satisfies all MUST (M) requirements identified in Chapter 2.1. These essential requirements 
+were prioritized to ensure that the agent could operate effectively within a structured Pokémon environment, 
+forming a solid basis for further development and refinement in subsequent iterations.
+
+In this initial version, a custom agent was implemented along with a dedicated training loop. The agent was 
+designed to interact with Pokémon Showdown through the poke-env library, enabling participation in generation 9 single battles, 
+including the use of held items and the generation specific mechanic Terastilization. To evaluate the agent's 
+performance and support training, it was set up to play against a random opponent, also implemented using poke-env. 
+
+
 
 \subsection{Poke-env Library}
 The backbone of the first iteration of implementation is the Poke-env library. 
