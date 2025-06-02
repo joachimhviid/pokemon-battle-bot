@@ -3,11 +3,11 @@
 
 The first iteration of the implementation focused on developing a foundational version of the 
 agent that satisfies all MUST (M) requirements identified in Chapter 2.1. These essential requirements 
-were prioritized to ensure that the agent could operate effectively within a structured Pokémon environment, 
+were prioritized to ensure that the agent could operate effectively within a structured Pokemon environment, 
 forming a solid basis for further development and refinement in subsequent iterations.
 
 In this initial version, a custom agent was implemented along with a dedicated training loop. The agent was 
-designed to interact with Pokémon Showdown through the poke-env library, enabling participation in generation 9 single battles, 
+designed to interact with Pokemon Showdown through the poke-env library, enabling participation in generation 9 single battles, 
 including the use of held items and the generation specific mechanic Terastilization. To evaluate the agent's 
 performance and support training, it was set up to play against a random opponent, also implemented using poke-env. 
 
@@ -15,25 +15,25 @@ performance and support training, it was set up to play against a random opponen
 
 \subsection{Poke-env Library}
 The backbone of the first iteration of implementation is the Poke-env library. 
-Poke-env is a python library that provides a framework for creating and simulating pokemon
-battles in a variety of formats, including single and doubble battles and supports the latests
-generation of pokemon games, such as generation 9. Poke-env also provides a set of tools
-for interacting with the pokemon showdown API, allowing for easier inetgration with the formats
-and to not overlow the online version of pokemon showdown with too many requests.
+Poke-env is a Python library that provides a framework for creating and simulating Pokemon
+battles in a variety of formats, including single and double battles and supports the latest
+generation of Pokemon games, such as generation 9. Poke-env also provides a set of tools
+for interacting with the Pokemon Showdown API, allowing for easier integration with the formats
+and to not overload the online version of Pokemon Showdown with too many requests.
 
-To simulate pokemon battles, we wrap our agent in a custom player class which inherits from the
-Poke-env player class. This allowed us to model the agent for any pokemon showdown 
+To simulate Pokemon battles, we wrap our agent in a custom player class which inherits from the
+Poke-env player class. This allowed us to model the agent for any Pokemon Showdown 
 provided battle format, such as Single, Double battles or VGC regulated battles and 
 retrieve relevant game information. The agent was embedded into the environment, and could 
-interact through an asynchronouns function to reflect the turn-based format of pokemon battles.
+interact through an asynchronous function to reflect the turn-based format of Pokemon battles.
 
 
 
 \subsection{Deep Q-Network Agent}
 The agent is implemented using a Deep Q-Network (DQN) model. This approach leverages
-a nerual network to approximate the Q-values, enabling the agent to learn an 
-effective policy directly from the environments state representation. 
-The Q-network was constructed using Pytorch and consists of a simple feedforward
+a neural network to approximate the Q-values, enabling the agent to learn an 
+effective policy directly from the environment's state representation. 
+The Q-network was constructed using PyTorch and consists of a simple feedforward
 architecture with two hidden layers. 
 \begin{lstlisting}[basicstyle=\fontsize{10}{10}\selectfont\ttfamily,language=Python,caption={The defined action space.},label=lst:action-space-def,breaklines]
 class DQN(nn.Module):
@@ -58,22 +58,22 @@ This structure includes:
 
 \subsubsection{State Representation and Action Space}
 The state representation is a simple embedding consisting of the normalized Hit Point (HP) values
-for the active pokemon and opponent. The action space is a flattend list that
-include all available actions in the current state, such as moves, switching pokemon
-or using items. These 2 features are simplified yet informative and generalized 
-enough to be used in the two core formats of the pokemon game.
+for the active Pokemon and opponent. The action space is a flattened list that
+includes all available actions in the current state, such as moves or switching Pokemon. 
+These 2 features are simple yet informative and generalized 
+enough to be used in the two core formats of the Pokemon game.
 
 \subsubsection{Exploration, Learning Process and Training configuration}
-To manage the exploration-exploitation trade-off, an epsilon-greedy ploicy is employed.
-The epsilon value stats at 1.0, allowing the agent to explore in the early stages of training,
-where after it decays after each episode with a factor of 0.995 with a lower bound of 0.05.
+To manage the exploration-exploitation trade-off, an epsilon-greedy policy is employed.
+The epsilon value starts at 1.0, allowing the agent to explore in the early stages of training,
+where it decays after each episode with a factor of 0.995 with a lower bound of 0.05.
 This ensures that the agent gradually shifts from exploration early in training
 and focuses more on exploitation later on.
 A replay buffer is used to store the agent's transitions (state, action, reward, next-state, done), 
 and are sampled in batches for training, which can help stabilize the learning process 
 by reducing correlations between sequential experiences. Furthermore, a target 
 network is periodically updated to improve learning stability.
-The agents was trained using the following hyperparameters:
+The agent was trained using the following hyperparameters:
 \begin{itemize}
     \item \textbf{Batch Size:} 64
     \item \textbf{Replay Buffer Size:} 100000
@@ -86,13 +86,13 @@ The agents was trained using the following hyperparameters:
 \end{itemize}
 
 \subsubsection{Limitations and Challenges}
-while the first iteration of the implementation was successful in creating a custom agent
-and training loop, it was faced with soem limitations and challenges.
+While the first iteration of the implementation was successful in creating a custom agent
+and training loop, it was faced with some limitations and challenges.
 \begin{itemize}
     \item The training loop was constrained to only single battle formats, with
     randomly generated teams, for both agents, for each episode. This was done to create a
-    more generalzed agent, but introduced a high variance in the training process and came with more challenges.
-    \item In some cases, the agent would be unable to finnish the training process, due to the 
+    more generalzed agent, but introduced too high variance in the training process and came with more challenges.
+    \item In some cases, the agent would be unable to finish the training process, due to the 
     opponent agent not able to finish the battle. It would get stuck in a loop, trying to switch when it
-    wasnt a valid action.
+    wasn't a valid action.
 \end{itemize}
