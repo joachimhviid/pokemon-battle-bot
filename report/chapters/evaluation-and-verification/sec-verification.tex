@@ -1,16 +1,16 @@
 \section{Verification}
 \label{sec:verification}
 
-This chapter evaluates the performance and learning progression og the Deep Q-network
-(DQN)-based pokemon battle agent over three iterations. The objective of this analysis
+This chapter evaluates the performance and learning progression of the Deep Q-network
+(DQN)-based Pokemon battle agent over three iterations. The objective of this analysis
 is to validate the effectiveness of the chosen algorithm and whether we have achieved
-the desired results based on our reqirements. Performance is assessed through empirical
+the desired results based on our requirements. Performance is assessed through empirical
 training results, including average rewards and win rates.
 
 \subsection{Methodology}
 Over the 2 Poke-env iterations, the verification process was conducted using the same hyperparameters
-but using different formats of the pokemon battle environment.
-The first iteration used a single battle format with randomly selected pokemon each
+but using different formats of the Pokemon battle environment.
+The first iteration used a single battle format with randomly selected Pokemon each
 episode, while the second iteration was trained using the VGC 2025 regulation G format.
 Each version of the agent, was evaluated over a series of training episodes, and data
 was collected for:
@@ -25,7 +25,7 @@ continually adapt and improve its strategies. This approach encourages the devel
 must learn to counter its own tactics rather than relying on one single strategy. 
 A quirk of self-play is that it often leads to a cyclical arms race, where the agent alternates between exploiting and adapting
 to its own weaknesses. This has been shown to be an effective method when it comes to training agents in a competitive environment \cite{pmlr-v119-bai20a} like
-Pokemon battles. In contrast, training against a heuristic or rule-based opponent might result in the agent overfitting to
+Pokemon battles. In contrast, training against a heuristic or rule-based opponent might have resulted in the agent overfitting to
 a specific strategy, limiting its ability to generalize its own strategies.
 
 \subsection{Results and analysis}
@@ -36,7 +36,7 @@ policy, its reward curve was very erratic and lacked consistency.
 \begin{itemize}
     \item The average reward fluctuated significantly, generally ranging between -10 and +5
           indicating the agent struggled to consistently achieve positive outcomes.
-    \item Our Agents winrate hovered around 0.4 to 0.6, which isn't generally bad, it's almost a 50\% winrate
+    \item Our agent's winrate hovered around 0.4 to 0.6, which isn't generally bad, it's almost a 50\% winrate
           and shows that it performed marginally better with random teams, but still with no clear upward trend.
 \end{itemize}
 This indicated that while the agent was learning, it was not effectivly generalizing
@@ -97,7 +97,7 @@ super effective moves or knocking out opposing Pokemon.
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{assets/iteration-3-10k-rewards.png}
-    \caption{Iteration 3 - Custom environment over 10000 episodes}
+    \caption{Iteration 3 - Custom environment over 10.000 episodes}
     \label{fig:iteration-3-graph}
 \end{figure}
 
