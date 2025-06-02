@@ -4,10 +4,10 @@
 The Pokemon games are home to a vast amount of mechanics. In order to fully understand
 this project, it is important to have a basic understanding of the mechanics present in a Pokemon battle.
 
-The following section aims to briefly explain these mechanics.
+The following sections aim to briefly explain these mechanics.
 
 \subsection{Type chart}
-A Pokemon will under normal circumstances have 1 or 2 types that represents its elemental alignment and similarly a Pokemon move will have 1 type.
+A Pokemon will under normal circumstances have 1 or 2 types that represent its elemental alignment and similarly a Pokemon move will have 1 type.
 Each type determines its effectiveness against other types. The effectivenesses are categorized as follows:
 \begin{itemize}
   \item No effect (0x multiplier)
@@ -39,7 +39,8 @@ Together they compose the Pokemons actual stats.
 Individual values \cite{IndividualValues} and effort values \cite{EffortValues} (referred to as IVs and EVs) are hidden values attributed to a Pokemon to create variety in each Pokemons power levels within its species.
 When a Pokemon is encountered it will be generated with IVs ranging from 0-31 for each of its stats. A higher IV will result in a higher total stat.
 
-EVs are values gained through battles. A Pokemon can have a total number of 510 EVs with a limit of 255 points per stat.
+EVs are values gained through battles. A Pokemon can have a total number of 510 EVs with a limit of 255 points per stat. Like IVs, EVs increase
+the stats of a Pokemon.
 
 \subsubsection{Natures}
 A Pokemons nature \cite{Natures} is determined when it is generated. A nature gives a Pokemon a ±10\% modifier to select stats.
@@ -54,7 +55,7 @@ Please refer to figure \ref{tab:nature-table} for the full list of natures and t
 
 \subsubsection{Stat boosts}
 Stat boosts are temporary modifiers applied to a Pokemons stat in combat. A stat is raised and lowered in stages ranging from -6 to +6 \cite{StatBoosts}.
-Certain moves or abilities can raise or lower a Pokemons stat in stages. By default all stats begin at stage 0, meaning no change. 
+Certain moves or abilities can raise or lower a Pokemons stat by a number of stages. By default all stats begin at stage 0, meaning no change. 
 See figure \ref{tab:stat-stage-modifiers} to see how each stage affects a stat.
 
 \begin{figure}[H]
@@ -95,158 +96,156 @@ Since generation 3 of Pokemon, a Pokemon has had an Ability \cite{Abilities}. Th
 A Pokemon species can have multiple possible abilities, but a single Pokemon will only ever have one that is determined when the Pokemon is generated.
 Abilities can have a wide variety of effects, ranging from setting a weather condition upon entering battle \cite{DrizzleAbility}, to increasing the damage of certain types of moves \cite{IronFistAbility}.
 
-There are almost 300 abilities available in generation 9 of Pokemon. For this project to accurately describe the real world, most of these should be implemented, but the focus will be to implement the most common ones.
+There are almost 300 abilities available in generation 9 of Pokemon. For this project to accurately describe the real world, most of these should be implemented, but the focus will be to implement some of the most common ones.
 
 \subsection{Held items}
 A Pokemon is able to hold an item \cite{HeldItems}. These items provide an effect to the Pokemon that can significantly change how a battle pans out. Like Abilities (see \ref{subsec:abilities}),
 held items can have a lot of different effects. Notable examples are berries that a Pokemon may consume during battle, such as a Sitrus Berry \cite{SitrusBerry} that a Pokemon will automatically eat
-when its HP is reduced below 50\%, resulting in the Pokemon restoring 25\% of its maximum HP. There are also items that provide a bonus through the entire battle such as Choice Band \cite{ChoiceBand}.
+when its HP is reduced below 50\%, resulting in the Pokemon restoring 25\% of its maximum HP. There are also items that provide a bonus through the entire battle such as a Choice Band \cite{ChoiceBand}.
 The Choice Band increases the Pokemons Attack stat by 50\%, but only allows it to use the first move it selects. The effect resets when it is withdrawn from battle.
 
-There are a \textit{lot} of held items in generation 9 of Pokemon. For this project, the focus will be to implement the most common ones and expanding the available selection of held items as the time frame allows. 
+There are a \textit{lot} of held items in generation 9 of Pokemon. For this project, the focus will be to implement some of the most common ones and expanding the available selection of held items as the time frame allows. 
 
 \subsection{Status conditions}
-In pokemon there exists a variety of status conditions that fall into either of two categories: Volatile and Non-volatile. Non-volatile status conditions
-lasts until a pokemon is healed, and volatile conditions only lasts for the duration of a battle. \cite{StatusCondition}
+In Pokemon there exists a variety of status conditions that fall into one of two categories: Volatile and Non-volatile. Non-volatile status conditions
+lasts until a Pokemon is healed at a Pokemon Center or otherwise cured, and volatile conditions only lasts for the duration of a battle. \cite{StatusCondition}
 \begin{itemize}
-  \item Poison (PSN): Is a condition non-volatile that deals 1/8 of the pokemon's health at the end of each turn and can only be avoided by a few abilities,
+  \item Poison (PSN): Is a non-volatile condition that deals 1/8 of the Pokemon's health at the end of each turn and can only be avoided by a few abilities,
   moves or items.
   \begin{itemize}
-    \item Badly Poisoned: Is another type of the non-volatile poison status condition that starts to deal 1/16 at the start of a turn, 
-      but increases the damage taken by 1/16 every turn, so after 3 turns it deals 3/16 of a pokemons health. 
+    \item Badly Poisoned: Is another type of the non-volatile poison status condition that begins by dealing 1/16 of a Pokemon's health as damage at the end of a turn, 
+      but increases the damage taken by 1/16 every turn, so after 3 turns it deals 3/16 of a Pokemon's health. 
       This condition can be avoided by the same abilities, moves or items as the normal poison condition.
   \end{itemize}
-  \item Burn (BRN): Is another non-volatile status condition that deals 1/16 from generation 1 and 7 onwards while also cutting the pokemons attack stat
-    in half until the pokemon is heald. There are one ability and move that negates the attack drop from burn and turns it into an attack boost instead.
-  \item Sleep (SLP): This condition causes a pokemon unable to use moves, except snore and sleep talk and 
-    randomly lasts 1 to 3 turns in generation 5 and onwards. The first turn of sleep is always skipped.
-  \item Paralysis (PAR): Is a non-volatile status condition that has a 25\% chance of preventing the pokemon from moving each turn and reduces a pokemons
-    speed 50\% from generation 7 onwards.
-  \item Freeze (FRZ): This is a non-volatile condition that renders the pokemon unable to move unless, it thawes out by a 20\% chance or 
-    by using a move to thaw it out.
-  \item Confusion: Is a type of volatile status condition that has a 33\% chance of causing a pokemon to hurt itself in its confusion instead of executing
+  \item Burn (BRN): Is another non-volatile status condition that deals 1/16 of a Pokemon's health as damage while also cutting the Pokemons attack stat
+    in half until the Pokemon is cured. 
+  \item Sleep (SLP): This condition causes a Pokemon to be unable to use moves, except Snore and Sleep Talk. 
+    It randomly lasts 1 to 3 turns from generation 5 and onwards. The first turn of sleep is always skipped.
+  \item Paralysis (PAR): Is a non-volatile status condition that has a 25\% chance of preventing the Pokemon from moving each turn and reduces a Pokemons
+    speed by 50\% from generation 7 onwards.
+  \item Freeze (FRZ): This is a non-volatile condition that renders the Pokemon unable to move. The Pokemon has a 20\% chance of thawing out each turn, but 
+    certain moves causes the Pokemon to thaw out immediately.
+  \item Confusion: Is a volatile status condition that has a 33\% chance of causing a Pokemon to hurt itself in confusion instead of executing
     a selected move.
-  \item Flinch: The flinch status is volatile and prevents an oppossing pokemon from moving for the turn it was flinched. This can be done by moves like 
-    fake out that has Priority +3, and rock slide that has a 30\% chance of flinching if you move before the oppossing pokemon.
+  \item Flinch: The flinch status is volatile and prevents an opposing Pokemon from moving for the turn it was flinched. This can be done by moves like 
+    Fake Out and Rock Slide.
   \item Others: There are a lot of other volatile status conditions that are not as common as the ones mentioned above.
   \begin{itemize}
-    \item Grounded: Pokemon that are grounded looses their imunity to ground type moves.
-    \item Nightmare: Only affects sleeping pokemon and deal 1/4 of their hp each turn they stay asleep.
-    \item Curse: Deals 1/4 of the users hp each turn if used by a ghost type. If not lowers the users speed by 1 stage and increases 
-      the users attack and defense by 1 stage.
+    \item Grounded: Pokemon that are normally immune to ground type moves can be grounded to lose their immunity.
+    \item Nightmare: Only affects sleeping Pokemon and deals 1/4 of their health as damage each turn they stay asleep.
+    \item Curse: Deals 1/4 of the users health as damage each turn if used by a ghost type. 
   \end{itemize}
 \end{itemize}
 \subsection{Moves}
-In pokemon every move conisists of 6 key components:
+In Pokemon every move is composed of 6 key components:
 \begin{itemize}
   \item Type: The type of the move determines the effectiveness of the move against the opponent pokemon. 
-    The type of the move is also used to determine the STAB bonus.
-  \item Category: There are three categories that every move falls into: Physical, Special and Status. 
-    Physical moves are based on the users attack and the opponents defense, while special moves are based on the users 
-    special attack and the opponents special defense. Status moves are not based on any 
-    stats and can be used to inflict status conditions or change the field. There are also moves that are exceptions but they are few.
-  \item Power: The power of the move determins how much damage it will do to the opponent. The power of the move is 
+    The type of the move is also used to determine if the move should receive a 50\% "same type attack bonus" (STAB) to its power.
+  \item Category: There are three main categories that every move falls into: Physical, Special and Status. 
+    Physical moves have their power based on the users attack stat and the opponents defense stat, while special moves have their power based on the users 
+    special attack stat and the opponents special defense stat. Status moves generally do not have a power value and as such are not based on any 
+    stats. These moves can be used to inflict status conditions or change the field. 
+  \item Power: The power of the move determines how much damage it will do to the opponent. The power of the move is 
     multiplied by the STAB bonus and the effectiveness of the move against the opponent. Some moves have a power of 0,
     and can be considered as a status move, non-damaging move or a One Hit Knock Out (OHKO) move.
-  \item Accuracy: The accuracy determines how likely a move is to hit the opponent pokemon.
+  \item Accuracy: The accuracy determines how likely a move is to hit the opponent Pokemon.
   \item Power Points (PP): The PP of a move determines how many times a move can be used before it needs to be restored.
     The PP of a move is between 0 and 64, with most moves having between 5 and 20 PP.
   \item Priority: The priority of a move determines the order in which moves are executed. A move with a higher priority 
   will be executed before a move with a lower priority. The priority of a move is between -7 and +5, 
   with most moves having a priority of 0.
 \end{itemize}
-Even with the above components, there are still more factors that can affect the power of moves in a pokemon battle.
+Even with the above components, there are still more factors that can affect the power of moves in a Pokemon battle.
 Moves can have a secondary effect, that might stop the opponent from moving or inflict a status condition. 
-Moves can also haev an increased change of critical hitting which is a mechanic that deals 1.5 times the damage, instead
-of the normal amount. There also exists move that regardless of the type, can One Hit Knock Out (OHKO) the opponent.
-The OHKO moves are very few, have very low accurarcy and are not very common on any pokemon, and can only
-target one pokemon at a time. The moves are: Fissure, Horn Drill, Guillotine and Sheer Cold
+Moves can also have an increased chance of landing a critical hit which is a mechanic that causes a move to deal 1.5 times the damage, instead
+of the normal amount. There also exists move that, regardless of the type, can One Hit Knock Out (OHKO) the opponent.
+The OHKO moves are very few, have very low accuracy and are only learned by few Pokemon. The OHKO moves are: Fissure, Horn Drill, Guillotine and Sheer Cold
 
 \subsection{Weather}
-Weather in pokemon is a mechanic that changes the rules of the battle field. There exists 8 different types of weather: \cite{Weather}
+Weather in Pokemon is a mechanic that changes the rules of the battle field. There are 8 different types of weather: \cite{Weather}
 \begin{itemize}
   \item Harsh Sunlight: Can be set up by the move Sunny day or the ability Drought. It boosts the power of fire type moves by 50\% and weakens 
-    water type moves by 50\%. no pokemon can get the Frozen condition and makes the moves Solar Beam and Solar Blade only take 1 turn to charge.
-  \item Rain: Is gives opposite boosts and weaknesses of Harsh Sunlight and can be set up by the move Rain dance or the ability Drizzle. It also makes moves
+    water type moves by 50\%. Additionally, no Pokemon can get the Frozen condition during harsh sunlight and it makes the moves Solar Beam and Solar Blade only take 1 turn to charge up.
+  \item Rain: Rain gives the opposite boosts and weaknesses of Harsh Sunlight and can be set up by the move Rain Dance or the ability Drizzle. It also makes moves
     like Thunder and Hurricane have 100\% accuracy.
-  \item Hail/Snow: Hail got changed to the Snow weather in generation 8 and used to deal 1/16 of a pokemons health at the end of each turn if they werent ice 
-    type. The newer Snow weather had the damage removed but instead gives ice types a 50\% increase in defense. It also makes the move blizzard by 
-    pass accuarcy checks.
-  \item Sandstorm: Works a lot like Hail/Snow, it damages all pokemon expect rock, ground and steel types for 1/16 of their health at the end of the turn. 
-    Sandstorm also boosts the special defense of rock types by 50\% and is setup by the move sandstorm or by the ability Sand stream.
-  \item Fog: Is a weather condition that only existed in the generation 4 games and Legends Arceus. it reduced the Accuracy of all moves, 
-    and could only be removed by the move Defog, that also removes entry hazards and screen effects.
+  \item Hail/Snow: Hail was changed to the Snow weather condition in generation 8 and used to deal 1/16 of a Pokemons health as damage at the end of each turn if they weren't an ice 
+    type Pokemon. The newer Snow weather had the damage removed, but instead gives ice type Pokemon a 50\% increase to their defense stat. It also makes the move Blizzard bypass accuracy checks.
+  \item Sandstorm: Works a lot like Hail and Snow. It damages all Pokemon except rock, ground and steel types for 1/16 of their health as damage at the end of the turn. 
+    Sandstorm also boosts the special defense stat of rock types by 50\% and is setup by the move Sandstorm or by the ability Sand Stream.
+  \item Fog: Is a weather condition that only existed in the generation 4 games and Legends Arceus. It reduced the Accuracy of all moves, 
+    and could only be removed by the move Defog.
   \item Extremly Harsh Sunlight: Is a stronger version of Harsh Sunlight and can only appear by using Primal Groudon. This weather conditions makes any 
-    water type move unusable while still giving fire type moves a boost in power. 
+    water type move unusable while still giving fire type moves a power boost. 
   \item Heavy Rain: Is the stronger version of rain and can only appear by using Primal Kyogre. This weather condition makes any fire type move unusable 
-    while still giving water type moves a boost in power.
-  \item Strong Winds: Is a weather condition unique to Mega Rayquaza and makes any move super effective move on flying types deal neutral damage instead.
+    while still giving water type moves a power boost.
+  \item Strong Winds: Is a weather condition unique to Mega Rayquaza and makes any move, that would otherwise be super effective against flying types, deal neutral damage instead.
 \end{itemize}
 
 
 \subsection{Terrain effects}
-Terrain is one of the newer mechaincs in pokemon and was introduced in generation 7. There exists 4 different types of terrain and a variety of moves and abilities
-that recieves a boost from having a terrain or remove terrain effects. Each Terrain lasts for 5 turns and can be overwritten by other terrains. \cite{Terrain}
+Terrain is one of the newer mechanics in Pokemon and was introduced in generation 7. There exists 4 different types of terrain and a variety of moves and abilities
+that receive a boost from having a terrain active. Each terrain lasts for 5 turns and can be overwritten by other terrains. \cite{Terrain}
 \begin{itemize}
-  \item Electric Terrain: Prevents all pokemon on the ground from falling asleep and boosts the power of electric type moves by 30\%.
-  \item Grassy Terrain: Restores all grounded pokemon on the field by 1/16 of their max hp each turn and boosts the power of grass type moves by 30\%.
-  \item Misty Terrain: Halves the damage taken from dragon type moves and prevents grounded pokemon from being affected by non-volatile status conditions and 
+  \item Electric Terrain: Prevents all Pokemon on the ground from falling asleep and boosts the power of electric type moves by 30\%.
+  \item Grassy Terrain: Restores the health of all grounded Pokemon on the field by 1/16 of their max health each turn and boosts the power of grass type moves by 30\%.
+  \item Misty Terrain: Halves the damage taken from dragon type moves and prevents grounded Pokemon from being affected by non-volatile status conditions and 
     confusion.
-  \item Psychic Terrain: Prevents pokemon on the ground from being hit by moves with increased priority, and boosts the power of psychic type moves by 30\%.
+  \item Psychic Terrain: Prevents Pokemon on the ground from being hit by moves with increased priority, and boosts the power of psychic type moves by 30\%.
 \end{itemize}
 
 \subsection{Battles}
-% Turn order
 There exists a lot of different types of battles in the Pokemon games, the most common ones being Single battles and Double battles that have been present 
-since generation 3. Each variation of battles builds upon the standard Single battle format. Single battles have 4 commands that can be done each turn:
+since generation 3. Each variation of battles, build upon the standard Single battle format. Single battles have 4 commands that can be executed each turn:
 \cite{PokemonBattles}
 \begin{itemize}
   \item Battle: The player chooses a move to use against the opponent
-  \item Pokemon: The player can switch to any pokemon in their party 
-  \item Bag: The player can use items and berryies to heal their pokemon, this choice cannot be used in competitive battles.
+  \item Pokemon: The player can switch to any Pokemon in their party 
+  \item Bag: The player can use items and berries to heal their Pokemon, this choice cannot be used in competitive battles.
   \item Run: The player can choose to run from a wild battle, but this choice cannot be used in trainer battles.
 \end{itemize}
 \subsubsection{Double battles}
 Double battles are the main variation of the standard single battle format and is also the standard competitive format. In double battles 
-each player sends out 2 pokemon at the start of the battle and can target any of the 4 pokemon on the field with their moves. Several moves change 
-when used in a double battle, because they can be used to target both opponents, everyone except itself on the field or redirect moves.
-This format gives a pokemon battle a lot more complexity and strategy than the single battle format, which is why it became the competitive standard.
-Double battles also feature a mechanic that the single battle format doesnt have, a Dynamic turn order, which means that during a turn the pokemon
-moving first can change during the turn. An example of having a dynamic turn order is with the move Tailwind tht doubles the speed of the users team for 
-4 turns, and trick room that reverses the speed order of all pokemon on the field. \cite{PokemonBattles}
+each player sends out 2 Pokemon at the start of the battle and can target any of the 4 Pokemon on the field with their moves. Several moves change 
+when used in a double battle. Some moves can be used to target both opponents, others can target everyone except itself and other moves are able to redirect targeted moves.
+This format gives a Pokemon battle a lot more complexity and strategy than the single battle format, which is why it became the competitive standard.
+Double battles also feature a mechanic that the single battle format doesn't have, a dynamic turn order, which means that during a turn the order of attacks 
+can change on the fly. An example of having a dynamic turn order is with the move Tailwind that doubles the speed of the users team for 
+4 turns, and trick room that reverses the speed order of all Pokemon on the field. Depending on when these moves are executed, it might shuffle the turn order
+of the currently processing turn. \cite{PokemonBattles}
 
 \subsubsection{Special battles}
-As mentioned before there are a lot of different types of battles in the pokemon games, and some of them are special battles that have different rules
+As mentioned before there are a lot of different types of battles in the Pokemon games, and some of them are special battles that have different rules
 than the standard single and double battles. Some of the special battles are: \cite{PokemonBattles}
 \begin{itemize}
-  \item Sky Battle: Only flying type pokemon and pokemon that are levitating can participate in this type of battle.
-  \item Triple battle: This type of battle is like playing through two double battles at once where only the middle pokemon is participating 
+  \item Sky Battle: Only flying type Pokemon and Pokemon that are levitating can participate in this type of battle.
+  \item Triple battle: This type of battle is like playing through two double battles at once where only the middle Pokemon is participating 
     in both double battles
-  \item Rotation battle: Similiar to triple battle both players sends out 3 pokemons where you can switch between which of your pokemon is battling
-    the opponents pokemon, though a key difference is that you dont hit multiple pokemon with moves like rock slide or earthquake. 
+  \item Rotation battle: Similiar to triple battle both players sends out 3 Pokemons where you can switch between which of your Pokemon is battling
+    the opponents Pokemon, though a key difference is that you dont hit multiple Pokemon with moves like Rock Slide or Earthquake. 
   \item Inverse Battle: During an inverse battle the type chart will be reversed.
-  \item Battle Royal: A 4-way free for all battle where the last pokemon standing wins.
-  \item Max Raid/Tera Raid battle: They are both kind of like a boss battle with a wild pokemon that use the 
-  dynamax or gigantomax or Terastalization mechanic.
+  \item Battle Royal: A 4-way free for all battle where the last Pokemon standing wins.
+  \item Max Raid/Tera Raid battle: A type of boss battle with a wild Pokemon that use the 
+  Dynamax or Terastalization mechanic.
 \end{itemize}
 
 \subsection{Special mechanics}
-Pokemon has begun to make flagship mechanics that are unique to one or two generation of pokemon games.
+Pokemon has begun to make flagship mechanics that are unique to one or two generation of Pokemon games.
 Currently they have four of these mechanics: Mega Evolution, Z-moves, Dynamax and Gigantomax and Terastalization.
 \subsubsection{Mega Evolution}
-Mega evolution was the first big flagship mechanic and was introduced in generation 6. It allows a pokemon to evolve mid-battle and gain a 
+Mega evolution was the first big flagship mechanic and was introduced in generation 6. It allows a Pokemon to evolve mid-battle and gain a 
 power boost, through a change in ability, typing or just pure stat change. This mechanic can only be used once per battle, but lasts for the whole battle
-or until the pokemon is defeated and takes up the item slot of the pokemon.\cite{MegaEvolution}
+or until the Pokemon is defeated and takes up the item slot of the Pokemon.\cite{MegaEvolution}
 \subsubsection{Z-moves}
-Z-moves was a special type of move introduced in generation 7 and can only be used on per battle by a pokemon that holds a Z-crystal. if a player chooses to 
-use a Z-move the player can choose any of the pokemons original list of moves which are compatible with the Z-crystal its holding and unleash a more powerful
-version of that move. There exists a Z-crystal for each type and some special Z-crystals that can be used on their specific pokemon. \cite{Zmoves}
+Z-moves was a special type of move introduced in generation 7 and can only be used on per battle by a Pokemon that holds a Z-crystal. if a player chooses to 
+use a Z-move the player can choose any of the Pokemons original list of moves which are compatible with the Z-crystal its holding and unleash a more powerful
+version of that move. There exists a Z-crystal for each type and some special Z-crystals that can be used on their specific Pokemon. \cite{Zmoves}
 \subsubsection{Dynamax and Gigantomax}
-Dynamax and Gigantomax increases a pokemons size drastically, changes their moves and increases their max hp by 50\% for 3 turns. This is again a one time
-use per battle but lasts for 3 turns or until the pokemon is defeated. Gigantomax is a special form of Dynamax that only a few pokemon can use and 
-changes the pokemons signature move into a G-max move that has a special effect on top of the damage boost it gets from being a Dynamax move.
+Dynamax and Gigantomax increases a Pokemons size drastically, changes their moves and increases their max health by 50\% for 3 turns. This is again a one time
+use per battle but lasts for 3 turns or until the Pokemon is defeated. Gigantomax is a special form of Dynamax that only a few Pokemon can use and 
+changes the Pokemons signature move into a G-max move that has a special effect on top of the damage boost it gets from being a Dynamax move.
 This mechanic has as of now only been available during generation 8. \cite{Dynamax}
 \subsubsection{Terastalization}
-Terastalizing a pokemon means giving it one of the 19 tera types that can work either offensivly or defensivly. Pokemon remain Terastalized so long 
-as they are alive and the battle is ongoing. Terastalized pokemon cannot revert back to their orignial typing, but still gain the STAB effects 
-from their original types as well as the Tera type. \cite{TeraType}
+Terastalizing a Pokemon means giving it one of the 19 tera types that can work either offensively or defensively. Pokemon remain Terastalized so long 
+as they are alive and the battle is ongoing. Terastalized Pokemon cannot revert back to their original typing, but still gain the STAB effects 
+from their original types as well as the Tera type. This mechanic was introduced in generation 9. If time allows, this is the mechanic that will be
+implemented in the battle simulator. \cite{TeraType} 
